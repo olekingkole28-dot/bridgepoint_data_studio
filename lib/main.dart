@@ -84,7 +84,7 @@ class _WorkspaceGateState extends State<_WorkspaceGate> {
       if(snapshot.connectionState==ConnectionState.waiting)return const Scaffold(body:Center(child:CircularProgressIndicator(color:AppTheme.cyan)));
       if(snapshot.hasError)return Scaffold(body:Center(child:_DashboardError(message:snapshot.error.toString(),onRetry:()=>setState(()=>request=_callRpc('bridgepoint_onboarding_state_v70',const {})))));
       if(snapshot.data?['onboarding_complete']!=true)return _OnboardingScreen(onComplete:()=>setState(()=>request=_callRpc('bridgepoint_onboarding_state_v70',const {})));
-      return const DashboardScreen();
+      return DashboardScreen(ownerMode:snapshot.data?['owner_bypass']==true);
     },
   );
 }
@@ -239,7 +239,8 @@ class AppTheme {
 }
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key,this.ownerMode=false});
+  final bool ownerMode;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -281,6 +282,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _NavigationItem('Settings', Icons.settings_rounded),
   ];
 
+  List<_NavigationItem> get visibleNavigationItems=>[
+    ...navigationItems,
+    if(widget.ownerMode)
+      const _NavigationItem('Owner Center',Icons.admin_panel_settings_rounded),
+  ];
+
   static const packages = <String>[
     'All Intelligence',
     'BridgePoint Home',
@@ -295,6 +302,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    if(widget.ownerMode)selectedPackage='All Intelligence';
     dashboardRequest = _loadDashboard();
     sourcesRequest = _loadSources();
     settingsRequest = _loadRuntimeSettings();
@@ -496,10 +504,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             });
           },
         );
+      case 11:
+        if(widget.ownerMode)return const _OwnerCenterPage();
+        return const _ComingSoonPage(
+          title:'Owner Center',icon:Icons.admin_panel_settings_rounded,
+        );
       default:
         return _ComingSoonPage(
-          title: navigationItems[selectedNavigation].label,
-          icon: navigationItems[selectedNavigation].icon,
+          title: visibleNavigationItems[selectedNavigation].label,
+          icon: visibleNavigationItems[selectedNavigation].icon,
         );
     }
   }
@@ -516,7 +529,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 if (desktop)
                   _SideNavigation(
-                    items: navigationItems,
+                    items: visibleNavigationItems,
                     selectedIndex: selectedNavigation,
                     onSelected: (index) {
                       setState(() => selectedNavigation = index);
@@ -543,7 +556,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       if (!desktop)
                         _CompactNavigation(
-                          items: navigationItems,
+                          items: visibleNavigationItems,
                           selectedIndex: selectedNavigation,
                           onSelected: (index) {
                             setState(() => selectedNavigation = index);
@@ -6351,6 +6364,83 @@ class _MyWorkPageState extends State<_MyWorkPage>{
       ]);}),
     ]);
   });
+}
+
+class _OwnerCenterPage extends StatefulWidget{
+  const _OwnerCenterPage();
+  @override State<_OwnerCenterPage> createState()=>_OwnerCenterPageState();
+}
+
+class _OwnerCenterPageState extends State<_OwnerCenterPage>{
+  late Future<Map<String,dynamic>> request;
+  @override void initState(){super.initState();request=_callRpc('owner_dashboard_v63',const {});}
+  void refresh()=>setState(()=>request=_callRpc('owner_dashboard_v63',const {}));
+  Map<String,dynamic> map(dynamic value)=>value is Map?Map<String,dynamic>.from(value):<String,dynamic>{};
+  List<Map<String,dynamic>> rows(dynamic value)=>value is List
+      ?value.whereType<Map>().map((item)=>Map<String,dynamic>.from(item)).toList()
+      :<Map<String,dynamic>>[];
+  String money(dynamic value){final amount=value is num?value.toDouble():double.tryParse('$value')??0;return '\$${amount.toStringAsFixed(0)}';}
+
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+    future:request,builder:(context,snapshot){
+      final data=snapshot.data??const <String,dynamic>{};
+      final system=map(data['system']),customers=map(data['customers']),revenue=map(data['revenue']);
+      final offer=map(data['founding_offer']),intel=map(data['intelligence']);
+      final verticals=rows(data['top_opportunity_verticals']),failures=rows(data['recent_failures']);
+      final healthy=(system['failed_runs_15m'] as num? ?? 0)==0;
+      return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        _PageHeading(title:'Owner Center',subtitle:'Your private daily view of revenue • customers • automation • intelligence',onRefresh:refresh,loading:snapshot.connectionState==ConnectionState.waiting),
+        const SizedBox(height:10),_ExplainerBanner(
+          icon:healthy?Icons.verified_rounded:Icons.warning_amber_rounded,
+          title:healthy?'BridgePoint is operating normally':'BridgePoint needs your attention',
+          message:healthy?'Start here each day. This page combines customer growth, revenue readiness, promotion use, automation health, and intelligence production.':'Review the recent failures below. Customer-facing intelligence remains separated from this owner-only page.',
+        ),
+        const SizedBox(height:18),
+        LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=1000?4:c.maxWidth>=620?2:1;const gap=14.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:[
+          _MetricCard(width:w,label:'CUSTOMERS',value:_formatInteger(customers['total_accounts']??0),detail:'${customers['new_7d']??0} joined in the last 7 days',icon:Icons.groups_rounded,accent:AppTheme.cyan),
+          _MetricCard(width:w,label:'ACTIVE MRR',value:money(revenue['active_mrr']),detail:'${customers['active_paid']??0} active paid accounts',icon:Icons.payments_rounded,accent:AppTheme.green),
+          _MetricCard(width:w,label:'TRIAL PIPELINE',value:money(revenue['trial_pipeline_mrr']),detail:'${customers['active_trials']??0} active customer trials',icon:Icons.hourglass_top_rounded,accent:AppTheme.amber),
+          _MetricCard(width:w,label:'CRITICAL OPPORTUNITIES',value:_formatInteger(intel['critical_opportunities']??0),detail:'Highest-priority active intelligence',icon:Icons.bolt_rounded,accent:AppTheme.pink),
+        ]);}),
+        const SizedBox(height:18),
+        LayoutBuilder(builder:(context,c){final wide=c.maxWidth>=980;final w=wide?(c.maxWidth-16)/2:c.maxWidth;return Wrap(spacing:16,runSpacing:16,children:[
+          SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const _PanelHeader(title:'Customer & Revenue Watch',subtitle:'The items most likely to need a decision today',action:'Private'),const SizedBox(height:14),
+            _OwnerStatusRow('Trials ending within 72 hours','${customers['trials_ending_72h']??0}',AppTheme.amber),
+            _OwnerStatusRow('Past-due subscriptions','${customers['past_due']??0}',(customers['past_due'] as num? ?? 0)>0?AppTheme.pink:AppTheme.green),
+            _OwnerStatusRow('Checkout connected',revenue['checkout_connected']==true?'YES':'NOT YET',revenue['checkout_connected']==true?AppTheme.green:AppTheme.amber),
+            _OwnerStatusRow('Founding offer remaining','${offer['remaining']??10} of 10',AppTheme.cyan),
+            _OwnerStatusRow('Founding discounts applied','${offer['applied']??0}',AppTheme.green),
+          ])))),
+          SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const _PanelHeader(title:'Automation & Intelligence',subtitle:'Whether the data-to-opportunity system is moving',action:'Live'),const SizedBox(height:14),
+            _OwnerStatusRow('Active scheduled jobs','${system['active_jobs']??0}',AppTheme.cyan),
+            _OwnerStatusRow('Failed runs in 15 minutes','${system['failed_runs_15m']??0}',healthy?AppTheme.green:AppTheme.pink),
+            _OwnerStatusRow('Property scores',_formatInteger(intel['property_scores_v37']??0),AppTheme.blue),
+            _OwnerStatusRow('Detected patterns',_formatInteger(intel['patterns_v36']??0),AppTheme.green),
+            _OwnerStatusRow('Active opportunities',_formatInteger(intel['opportunities_v38']??0),AppTheme.amber),
+          ])))),
+          SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const _PanelHeader(title:'Opportunity Mix',subtitle:'Where BridgePoint currently sees the most actionable volume',action:'Top models'),const SizedBox(height:12),
+            if(verticals.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('Opportunity mix will appear as models produce results.',style:TextStyle(color:AppTheme.textMuted)))
+            else ...verticals.map((item)=>_OwnerStatusRow(item['vertical_key']?.toString().replaceAll('_',' ').toUpperCase()??'MODEL','${_formatInteger(item['opportunity_count']??0)} • avg ${item['average_score']??'—'}',AppTheme.cyan)),
+          ])))),
+          SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const _PanelHeader(title:'Recent Automation Failures',subtitle:'Only owner-visible operational messages',action:'Last 10'),const SizedBox(height:12),
+            if(failures.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Row(children:[Icon(Icons.check_circle_rounded,color:AppTheme.green),SizedBox(width:10),Expanded(child:Text('No recent failures recorded.',style:TextStyle(color:AppTheme.textMuted)))]))
+            else ...failures.map((item)=>Container(margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(11),decoration:BoxDecoration(color:AppTheme.pink.withOpacity(.06),borderRadius:BorderRadius.circular(10),border:Border.all(color:AppTheme.pink.withOpacity(.14))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('JOB ${item['jobid']??'—'} • ${item['status']??'FAILED'}',style:const TextStyle(color:AppTheme.pink,fontSize:10,fontWeight:FontWeight.w900)),const SizedBox(height:4),Text(item['message']?.toString()??'No error detail',maxLines:3,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.4))])),
+          ])))),
+        ]);}),
+        if(snapshot.hasError)...[const SizedBox(height:16),_DashboardError(message:snapshot.error.toString(),onRetry:refresh)],
+      ]);
+    },
+  );
+}
+
+class _OwnerStatusRow extends StatelessWidget{
+  const _OwnerStatusRow(this.label,this.value,this.color);
+  final String label,value;final Color color;
+  @override Widget build(BuildContext context)=>Padding(padding:const EdgeInsets.symmetric(vertical:8),child:Row(children:[Expanded(child:Text(label,style:const TextStyle(color:AppTheme.textMuted,fontSize:11))),Text(value,style:TextStyle(color:color,fontWeight:FontWeight.w900,fontSize:11))]));
 }
 
 class _ExplainerBanner extends StatelessWidget{
