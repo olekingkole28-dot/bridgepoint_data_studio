@@ -146,6 +146,15 @@ Future<Map<String, dynamic>> _callRpc(String name, Map<String, dynamic> body) as
   return Map<String, dynamic>.from(decoded);
 }
 
+Map<String,dynamic> _edgeFunctionPayload(dynamic data){
+  if(data is Map)return Map<String,dynamic>.from(data);
+  if(data is String){
+    final decoded=jsonDecode(data);
+    if(decoded is Map)return Map<String,dynamic>.from(decoded);
+  }
+  return <String,dynamic>{'complete':false,'error':'The server returned an unreadable response.'};
+}
+
 class _WorkspaceGate extends StatefulWidget {
   const _WorkspaceGate();
   @override State<_WorkspaceGate> createState()=>_WorkspaceGateState();
@@ -3903,7 +3912,7 @@ class _FieldModePageState extends State<_FieldModePage>{
             onTap:()=>_showOpportunityDetail(context,o),borderRadius:BorderRadius.circular(14),child:Padding(padding:const EdgeInsets.all(13),child:Row(children:[
               Checkbox(value:checked,activeColor:color,onChanged:(v)=>setState((){if(v==true){if(selected.length<9)selected.add(key);}else{selected.remove(key);}})),
               Container(width:42,height:42,decoration:BoxDecoration(color:color.withOpacity(.14),borderRadius:BorderRadius.circular(11)),child:Icon(_opportunityMapIcon(o),color:color,size:21)),
-              const SizedBox(width:11),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${o['full_address']??'Address unavailable'}',style:const TextStyle(color:Colors.white,fontSize:12,fontWeight:FontWeight.w800)),const SizedBox(height:4),Text('${o['title']??o['model_name']??'Opportunity'} • ${o['explanation']??o['recommended_action']??'Open the evidence'}',maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.35))])),
+              const SizedBox(width:11),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${o['full_address']??'Address unavailable'}',style:const TextStyle(color:Colors.white,fontSize:12,fontWeight:FontWeight.w800)),const SizedBox(height:4),Text(_opportunityWhyThisProperty(o),maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.35))])),
               Text('${(o['score'] as num?)?.toStringAsFixed(1)??'—'}',style:TextStyle(color:color,fontSize:17,fontWeight:FontWeight.w900)),
               const SizedBox(width:8),PopupMenuButton<String>(tooltip:'Field actions',onSelected:(action){if(action=='open')_showOpportunityDetail(context,o);if(action=='save')_saveOpportunity(context,o);if(action=='note')_showAddNoteDialog(context,o);if(action=='visited')_markVisited(o);if(action=='directions')_openRoute([o]);},itemBuilder:(context)=>const [
                 PopupMenuItem(value:'open',child:Text('Explain this opportunity')),PopupMenuItem(value:'directions',child:Text('Directions')),
@@ -4487,6 +4496,69 @@ Color _opportunityTypeColor(Map<String,dynamic> item)=>_categoryColor(_mapCatego
 
 IconData _opportunityTypeIcon(Map<String,dynamic> opportunity)=>_opportunityMapIcon(opportunity);
 
+int _opportunityCount(Map<String,dynamic> opportunity,List<String> keys){
+  for(final key in keys){
+    final value=opportunity[key];
+    if(value is num)return value.toInt();
+  }
+  return 0;
+}
+
+List<Map<String,dynamic>> _opportunityDirectEvidence(Map<String,dynamic> opportunity){
+  final raw=opportunity['direct_evidence'];
+  if(raw is! List)return const [];
+  return raw.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();
+}
+
+String _formatEvidenceDate(Object value){
+  final raw='$value'.trim();
+  final parsed=DateTime.tryParse(raw)?.toLocal();
+  if(parsed==null)return raw;
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return '${months[parsed.month-1]} ${parsed.day}, ${parsed.year}';
+}
+
+String _opportunityEvidenceNames(Map<String,dynamic> opportunity){
+  final names=_opportunityDirectEvidence(opportunity)
+      .map((e)=>'${e['title']??e['signal_title']??e['name']??''}'.trim())
+      .where((name)=>name.isNotEmpty)
+      .toSet()
+      .take(3)
+      .toList();
+  return names.isEmpty?'the named evidence in the property timeline':names.join(', ');
+}
+
+String _opportunityWhyThisProperty(Map<String,dynamic> opportunity){
+  final model='${opportunity['model_name']??opportunity['title']??opportunity['model_key']??'This opportunity'}'.trim();
+  final signals=_opportunityCount(opportunity,const ['direct_signal_count','matched_signal_count','distinct_signal_count']);
+  final sources=_opportunityCount(opportunity,const ['direct_source_count','verified_event_count']);
+  if(signals<=0||sources<=0){
+    return '$model is being held for review because the current card does not show enough direct property-level evidence. Open the timeline and verify a named source before taking action.';
+  }
+  return '$model was surfaced because BridgePoint matched $signals direct property-level signal${signals==1?'':'s'} from $sources direct source${sources==1?'':'s'}: ${_opportunityEvidenceNames(opportunity)}. Supporting patterns can strengthen the story, but they are not counted as direct matches.';
+}
+
+String _opportunityWhyNow(Map<String,dynamic> opportunity){
+  final stage='${opportunity['stage']??opportunity['intelligence_stage']??'active review'}'.replaceAll('_',' ').toLowerCase();
+  final score=opportunity['score']??opportunity['opportunity_score']??opportunity['final_score'];
+  final negative=opportunity['negative_score'];
+  final latest=opportunity['latest_evidence_at']??opportunity['latest_direct_evidence_at']??opportunity['last_detected_at'];
+  final scoreText=score is num?' Its current strict score is ${score.toStringAsFixed(1)}/100${negative is num?' after ${negative.toStringAsFixed(1)} negative points':''}.':'';
+  final dateText=latest==null?' The card does not provide a current evidence date, so verify the timeline before outreach.':' The newest linked evidence is dated ${_formatEvidenceDate(latest)}.';
+  return 'The property is in the $stage stage.$scoreText$dateText';
+}
+
+String _opportunityLimitations(Map<String,dynamic> opportunity){
+  final limitations=_opportunityDirectEvidence(opportunity)
+      .map((e)=>'${e['limitation']??e['limitations']??''}'.trim())
+      .where((value)=>value.isNotEmpty)
+      .toSet()
+      .take(2)
+      .toList();
+  if(limitations.isNotEmpty)return limitations.join(' ');
+  return 'This is a ranked reason to investigate, not proof of damage, customer intent, claim coverage, a permit, or a guaranteed sale. Confirm the source dates and property conditions before outreach.';
+}
+
 class _MapControlButton extends StatelessWidget {
   const _MapControlButton({
     required this.icon,
@@ -4523,8 +4595,8 @@ class _ReasoningPanel extends StatelessWidget{
   final Map<String,dynamic> opportunity;
   Widget line(IconData icon,String title,String body,Color color)=>Padding(padding:const EdgeInsets.only(bottom:12),child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Icon(icon,color:color,size:18),const SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:const TextStyle(color:Colors.white,fontSize:11,fontWeight:FontWeight.w800)),const SizedBox(height:3),Text(body,style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.5))]))]));
   @override Widget build(BuildContext context){
-    final explanation='${opportunity['explanation']??opportunity['score_explanation']??opportunity['reason']??'BridgePoint found enough independent evidence to place this property in the review queue.'}';
-    final stage='${opportunity['stage']??opportunity['intelligence_stage']??'active intelligence'}'.replaceAll('_',' ').toLowerCase();
+    final whyProperty=_opportunityWhyThisProperty(opportunity);
+    final whyNow=_opportunityWhyNow(opportunity);
     final directSignals=opportunity['direct_signal_count']??opportunity['matched_signal_count']??opportunity['distinct_signal_count']??0;
     final allSignals=opportunity['event_count']??opportunity['signal_count']??directSignals;
     final patterns=opportunity['matched_pattern_count']??opportunity['pattern_count']??0;
@@ -4533,10 +4605,11 @@ class _ReasoningPanel extends StatelessWidget{
     return Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:AppTheme.panelSoft,borderRadius:BorderRadius.circular(14),border:Border.all(color:AppTheme.cyan.withOpacity(.18))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       const Row(children:[Icon(Icons.psychology_alt_rounded,color:AppTheme.cyan,size:20),SizedBox(width:8),Text('BridgePoint Reasoning',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:13))]),
       const SizedBox(height:5),const Text('Score ranks the opportunity. Confidence tells you how reliable and consistent the supporting evidence is.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),const Divider(height:22),
-      line(Icons.home_work_outlined,'Why this property',explanation,AppTheme.cyan),
-      line(Icons.schedule_rounded,'Why now','The property is in the “$stage” stage and its latest evidence kept it inside BridgePoint’s strict review threshold.',AppTheme.amber),
+      line(Icons.home_work_outlined,'Why this property',whyProperty,AppTheme.cyan),
+      line(Icons.schedule_rounded,'Why now',whyNow,AppTheme.amber),
       line(Icons.fact_check_outlined,'Direct evidence you can verify','$directSignals named property-level signals from $directSources direct source(s). Open the property timeline to see each title, source, date, match method, and limitation.',AppTheme.blue),
       line(Icons.schema_outlined,'Supporting context','$allSignals total property-linked observations and $patterns corroborating patterns help explain the property story. Area context and pattern volume never replace the required direct evidence.',const Color(0xFF9B7BFF)),
+      line(Icons.report_gmailerrorred_rounded,'What this does not prove',_opportunityLimitations(opportunity),AppTheme.red),
       line(Icons.arrow_circle_right_outlined,'Suggested next step',action,AppTheme.green),
     ]));
   }
@@ -6565,8 +6638,7 @@ class _OpportunityDetailRow extends StatelessWidget {
     return _DetailRowShell(
       icon: Icons.bolt_rounded,
       title: '${opportunity['title'] ?? 'Opportunity'}',
-      subtitle:
-          '${opportunity['recommended_action'] ?? opportunity['explanation'] ?? ''}',
+      subtitle:_opportunityWhyThisProperty(opportunity),
       chips: [
         if (score != null)
           _OpportunityChip(
@@ -7342,7 +7414,7 @@ Future<void> _saveOpportunity(BuildContext context,Map<String,dynamic> opportuni
       'p_opportunity_id':opportunity['opportunity_id'],'p_property_id':opportunity['property_id'],
       'p_title':opportunity['title']??opportunity['model_name']??'BridgePoint opportunity',
       'p_address':opportunity['full_address']??'','p_score':opportunity['score'],
-      'p_reason':opportunity['explanation']??'','p_recommended_action':opportunity['recommended_action']??'',
+      'p_reason':_opportunityWhyThisProperty(opportunity),'p_recommended_action':opportunity['recommended_action']??'',
       'p_vertical_key':opportunity['vertical_key']??opportunity['model_key']??'','p_next_action_at':null});
     if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Opportunity saved to My Work.')));
   }catch(e){if(context.mounted)_showInfoDialog(context,'Could not save',e.toString());}
@@ -7379,11 +7451,6 @@ void _showOpportunityDetail(
 ) {
   final score = opportunity['score'] as num?;
   final assessed = opportunity['assessed_total_value'] as num?;
-  final explanation = (opportunity['explanation'] ??
-          opportunity['score_explanation'] ??
-          'No explanation available.')
-      .toString();
-
   showDialog<void>(
     context: context,
     builder: (context) {
@@ -7462,7 +7529,7 @@ void _showOpportunityDetail(
                     ],
                   ),
                   const SizedBox(height: 22),
-                  _ReasoningPanel(opportunity:{...opportunity,'explanation':explanation}),
+                  _ReasoningPanel(opportunity:opportunity),
                   const SizedBox(height:20),
                   Row(children:[
                     Expanded(child:FilledButton.icon(onPressed:(){_saveOpportunity(context,opportunity);},icon:const Icon(Icons.bookmark_add_rounded),label:const Text('Save opportunity'))),
@@ -7691,13 +7758,28 @@ class _EmergencyAdminPanelState extends State<_EmergencyAdminPanel>{
   @override void dispose(){email.dispose();confirmation.dispose();super.dispose();}
   void refresh()=>setState(()=>request=_callRpc('bridgepoint_emergency_admin_state_v82',const {}));
   Future<void> invite()async{
-    if(email.text.trim().isEmpty||confirmation.text!='GRANT BACKUP ADMIN')return;
+    final targetEmail=email.text.trim().toLowerCase();
+    if(!targetEmail.contains('@')){
+      _showInfoDialog(context,'Email required','Enter the trusted person’s full email address. No invitation has been sent.');
+      return;
+    }
+    if(confirmation.text.trim()!='GRANT BACKUP ADMIN'){
+      _showInfoDialog(context,'Confirmation required','Type GRANT BACKUP ADMIN exactly. No invitation has been sent.');
+      return;
+    }
     setState(()=>busy=true);
     try{
-      final result=await Supabase.instance.client.functions.invoke('bridgepoint-emergency-admin-v82',body:{'email':email.text.trim(),'confirmation':confirmation.text});
-      if(result.status<200||result.status>=300)throw Exception('${result.data}');
-      email.clear();confirmation.clear();if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Emergency administrator invitation sent.')));refresh();}
-    }catch(e){if(mounted)_showInfoDialog(context,'Could not prepare backup administrator',e.toString());}
+      final result=await Supabase.instance.client.functions.invoke('bridgepoint-emergency-admin-v82',body:{'email':targetEmail,'confirmation':confirmation.text.trim()});
+      final payload=_edgeFunctionPayload(result.data);
+      if(result.status<200||result.status>=300||payload['complete']!=true||payload['email_sent']!=true){
+        throw Exception('${payload['email_message']??payload['error']??'The invitation email was not accepted for delivery.'}');
+      }
+      email.clear();confirmation.clear();
+      if(mounted){
+        await _showInfoDialog(context,'Backup invitation sent','The secure email provider accepted the invitation for $targetEmail. Ask her to check Inbox, Promotions, and Spam. This screen will continue to show Invitation pending until she accepts it.');
+        refresh();
+      }
+    }catch(e){if(mounted)_showInfoDialog(context,'Invitation was not sent','${e.toString()}\n\nNothing is being marked as delivered. Fix the email-service message shown above, then try again.');}
     finally{if(mounted)setState(()=>busy=false);}
   }
   Future<void> revoke(Map<String,dynamic> admin)async{
@@ -8318,12 +8400,12 @@ class _ContractorRegistryDialogState extends State<_ContractorRegistryDialog>{
   );
 }
 
-void _showInfoDialog(
+Future<void> _showInfoDialog(
   BuildContext context,
   String title,
   String message,
 ) {
-  showDialog<void>(
+  return showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: AppTheme.panel,
@@ -8533,10 +8615,17 @@ class _TeamSettingsPanelState extends State<_TeamSettingsPanel>{
     setState(()=>busy=true);
     try{
       final result=await Supabase.instance.client.functions.invoke('bridgepoint-team-invite-v80',body:{'email':email,'member_role':inviteRole});
-      if(result.status<200||result.status>=300)throw Exception('${result.data}');
+      final payload=_edgeFunctionPayload(result.data);
+      if(result.status<200||result.status>=300||payload['complete']!=true)throw Exception('${payload['email_message']??payload['error']??'The invitation could not be completed.'}');
+      final memberAdded=payload['delivery_status']=='NOT_REQUIRED';
+      final emailSent=payload['email_sent']==true;
+      if(!memberAdded&&!emailSent)throw Exception('${payload['email_message']??'The invitation email was not accepted for delivery.'}');
       inviteEmail.clear();
-      if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Team invitation sent.')));refresh();}
-    }catch(e){if(mounted)_showInfoDialog(context,'Could not invite teammate',e.toString());}
+      if(mounted){
+        await _showInfoDialog(context,memberAdded?'Access granted':'Team invitation sent',memberAdded?'$email already had a verified BridgePoint account, so access was granted immediately.':'The secure email provider accepted the invitation for $email. Ask the teammate to check Inbox, Promotions, and Spam.');
+        refresh();
+      }
+    }catch(e){if(mounted)_showInfoDialog(context,'Invitation was not sent','${e.toString()}\n\nBridgePoint did not mark this as delivered.');}
     finally{if(mounted)setState(()=>busy=false);}
   }
 
