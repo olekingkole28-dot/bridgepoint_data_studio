@@ -138,13 +138,14 @@ class _AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<_AuthScreen> {
-  final email=TextEditingController(); final password=TextEditingController();
-  bool create=false,loading=false; String? error;
+  final displayName=TextEditingController(); final email=TextEditingController(); final password=TextEditingController();
+  bool create=false,loading=false,showPassword=false; String? error;
   Future<void> submit() async {
     setState(()=>loading=true); error=null;
     try {
       if(create) {
-        final response=await Supabase.instance.client.auth.signUp(email:email.text.trim(),password:password.text);
+        final response=await Supabase.instance.client.auth.signUp(email:email.text.trim(),password:password.text,
+          data:{'display_name':displayName.text.trim()});
         if(response.session==null&&mounted) setState(()=>error='Check your email to confirm the account, then sign in.');
       } else {
         await Supabase.instance.client.auth.signInWithPassword(email:email.text.trim(),password:password.text);
@@ -152,14 +153,24 @@ class _AuthScreenState extends State<_AuthScreen> {
     } catch(e) { if(mounted) setState(()=>error=e.toString()); }
     finally { if(mounted) setState(()=>loading=false); }
   }
-  @override void dispose(){email.dispose();password.dispose();super.dispose();}
+  @override void dispose(){displayName.dispose();email.dispose();password.dispose();super.dispose();}
   @override Widget build(BuildContext context)=>Scaffold(body:_ExperienceBackground(child:Center(child:SingleChildScrollView(child:Card(child:Container(
     width:430,padding:const EdgeInsets.all(30),child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.stretch,children:[
       const Icon(Icons.hub_rounded,color:AppTheme.cyan,size:48),const SizedBox(height:14),
       const Text('BRIDGEPOINT INTELLIGENCE',textAlign:TextAlign.center,style:TextStyle(fontSize:18,fontWeight:FontWeight.w900,letterSpacing:1)),
       const SizedBox(height:8),Text(create?'Create your 7-day trial':'Sign in to live property intelligence',textAlign:TextAlign.center,style:const TextStyle(color:AppTheme.textMuted)),
-      const SizedBox(height:24),TextField(controller:email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Email',border:OutlineInputBorder())),
-      const SizedBox(height:12),TextField(controller:password,obscureText:true,onSubmitted:(_)=>submit(),decoration:const InputDecoration(labelText:'Password',border:OutlineInputBorder())),
+      const SizedBox(height:24),if(create)...[TextField(controller:displayName,textCapitalization:TextCapitalization.words,decoration:const InputDecoration(labelText:'Profile name',hintText:'How BridgePoint should welcome you',border:OutlineInputBorder())),const SizedBox(height:12)],TextField(controller:email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Email',border:OutlineInputBorder())),
+      const SizedBox(height:12),TextField(
+        controller:password,obscureText:!showPassword,onSubmitted:(_)=>submit(),
+        decoration:InputDecoration(
+          labelText:'Password',border:const OutlineInputBorder(),
+          suffixIcon:IconButton(
+            tooltip:showPassword?'Hide password':'Show password',
+            onPressed:()=>setState(()=>showPassword=!showPassword),
+            icon:Icon(showPassword?Icons.visibility_off_rounded:Icons.visibility_rounded),
+          ),
+        ),
+      ),
       if(error!=null)...[const SizedBox(height:12),Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:11))],
       const SizedBox(height:18),FilledButton(onPressed:loading?null:submit,child:Text(loading?'Please wait…':create?'Start free trial':'Sign in')),
       TextButton(onPressed:loading?null:()=>setState(()=>create=!create),child:Text(create?'Already have an account? Sign in':'New here? Start 7-day trial')),
@@ -254,8 +265,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late Future<Map<String, dynamic>> settingsRequest;
   late Future<Map<String, dynamic>> healthRequest;
   Timer? _liveRefreshTimer;
+  Timer? _liveCountdownTimer;
   int _liveRefreshTick = 0;
   int _refreshSeconds = 120;
+  int _secondsToRefresh = 120;
 
   static const packageModelKeys = <String, String>{
     'All Intelligence': 'all',
@@ -269,7 +282,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   };
 
   static const navigationItems = <_NavigationItem>[
-    _NavigationItem('Overview', Icons.grid_view_rounded),
+    _NavigationItem('Daily Brief', Icons.wb_sunny_outlined),
     _NavigationItem('Opportunities', Icons.bolt_rounded),
     _NavigationItem('Intelligence Map', Icons.map_rounded),
     _NavigationItem('Properties', Icons.home_work_rounded),
@@ -309,11 +322,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
     healthRequest = _loadSystemHealth();
     _scheduleLiveRefresh(_refreshSeconds);
     _configureFromServer();
+    if(!widget.ownerMode){
+      WidgetsBinding.instance.addPostFrameCallback((_)=>_maybeOfferWalkthrough());
+    }
+  }
+
+  Future<void> _maybeOfferWalkthrough() async {
+    try {
+      final state=await _callRpc('bridgepoint_walkthrough_state_v73',const {});
+      if(!mounted||state['should_offer']!=true)return;
+      final start=await showDialog<bool>(context:context,builder:(context)=>AlertDialog(
+        backgroundColor:AppTheme.panel,
+        title:const Text('Want a 2-minute guided tour?'),
+        content:const Text('We will show you how to read an opportunity, use the map, save leads, plan follow-ups, and control alerts. You can skip this and reopen it later in Settings.'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Not now')),
+          FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Show me around')),
+        ],
+      ));
+      if(start==true){
+        await _callRpc('bridgepoint_set_walkthrough_v73',{'p_status':'STARTED'});
+        if(!mounted)return;
+        await showDialog<void>(context:context,builder:(context)=>const _WalkthroughDialog());
+        await _callRpc('bridgepoint_set_walkthrough_v73',{'p_status':'COMPLETED'});
+      }else{
+        await _callRpc('bridgepoint_set_walkthrough_v73',{'p_status':'DISMISSED'});
+      }
+    }catch(_){/* Never block the workspace if the optional tour is unavailable. */}
   }
 
   @override
   void dispose() {
     _liveRefreshTimer?.cancel();
+    _liveCountdownTimer?.cancel();
     super.dispose();
   }
 
@@ -408,10 +449,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _scheduleLiveRefresh(int seconds) {
     _liveRefreshTimer?.cancel();
+    _liveCountdownTimer?.cancel();
+    _secondsToRefresh=seconds;
     _liveRefreshTimer = Timer.periodic(
       Duration(seconds: seconds),
-      (_) => _refreshLiveWorkspace(),
+      (_) {
+        _secondsToRefresh=seconds;
+        _refreshLiveWorkspace();
+      },
     );
+    _liveCountdownTimer=Timer.periodic(const Duration(seconds:1),(_){
+      if(!mounted)return;
+      setState(()=>_secondsToRefresh=_secondsToRefresh<=1?seconds:_secondsToRefresh-1);
+    });
   }
 
   void _setRefreshSeconds(int seconds) {
@@ -457,12 +507,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildSelectedPage() {
     switch (selectedNavigation) {
       case 0:
-        return _OverviewContent(
-          selectedPackage: selectedPackage,
-          dashboardRequest: dashboardRequest,
-          sourcesRequest: sourcesRequest,
-          onRefresh: _refreshDashboard,
-          onNavigate: _navigateTo,
+        return _DailyBriefPage(
+          key:ValueKey('brief-$_liveRefreshTick-$selectedPackage'),
+          overview:_OverviewContent(
+            selectedPackage: selectedPackage,
+            dashboardRequest: dashboardRequest,
+            sourcesRequest: sourcesRequest,
+            onRefresh: _refreshDashboard,
+            onNavigate: _navigateTo,
+          ),
         );
       case 1:
         return _OpportunitiesPage(
@@ -493,6 +546,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const _ModelsPage();
       case 10:
         return _SettingsPage(
+          ownerMode:widget.ownerMode,
           settingsRequest: settingsRequest,
           healthRequest: healthRequest,
           refreshSeconds: _refreshSeconds,
@@ -548,11 +602,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           }
                         },
                         onSearch: (_) => _navigateTo(3),
-                        onNotifications: () => _showInfoDialog(
-                          context,
-                          'Notifications',
-                          'Live alerts and notification history will appear here as your account workflow is activated.',
+                        onNotifications: () => showDialog<void>(
+                          context:context,
+                          builder:(context)=>const _NotificationCenterDialog(),
                         ),
+                      ),
+                      _LiveSyncStrip(
+                        secondsRemaining:_secondsToRefresh,
+                        refreshSeconds:_refreshSeconds,
                       ),
                       if (!desktop)
                         _CompactNavigation(
@@ -853,6 +910,28 @@ class _TopBar extends StatelessWidget {
   }
 }
 
+class _LiveSyncStrip extends StatelessWidget{
+  const _LiveSyncStrip({required this.secondsRemaining,required this.refreshSeconds});
+  final int secondsRemaining,refreshSeconds;
+  @override Widget build(BuildContext context){
+    final progress=refreshSeconds<=0?0.0:(1-(secondsRemaining/refreshSeconds)).clamp(0.0,1.0);
+    return Container(
+      height:24,
+      padding:const EdgeInsets.symmetric(horizontal:18),
+      child:Row(children:[
+        const _PulseDot(color:AppTheme.green),const SizedBox(width:8),
+        const Text('LIVE INTELLIGENCE',style:TextStyle(color:AppTheme.green,fontSize:9,fontWeight:FontWeight.w900,letterSpacing:.8)),
+        const SizedBox(width:10),
+        Expanded(child:ClipRRect(borderRadius:BorderRadius.circular(4),child:LinearProgressIndicator(
+          value:progress,minHeight:3,backgroundColor:Colors.white10,valueColor:const AlwaysStoppedAnimation(AppTheme.cyan),
+        ))),
+        const SizedBox(width:10),
+        Text('Next sync ${secondsRemaining}s',style:const TextStyle(color:AppTheme.textMuted,fontSize:9,fontWeight:FontWeight.w700)),
+      ]),
+    );
+  }
+}
+
 class _SearchBox extends StatelessWidget {
   const _SearchBox({required this.onSubmitted});
 
@@ -916,6 +995,91 @@ class _CompactNavigation extends StatelessWidget {
     );
   }
 }
+
+class _DailyBriefPage extends StatefulWidget{
+  const _DailyBriefPage({super.key,required this.overview});
+  final Widget overview;
+  @override State<_DailyBriefPage> createState()=>_DailyBriefPageState();
+}
+
+class _DailyBriefPageState extends State<_DailyBriefPage>{
+  late Future<Map<String,dynamic>> request;
+  @override void initState(){super.initState();request=_callRpc('bridgepoint_daily_brief_v74',const {});}
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+    future:request,builder:(context,snapshot){
+      final data=snapshot.data??const <String,dynamic>{};
+      final overnight=data['overnight'] is Map?Map<String,dynamic>.from(data['overnight'] as Map):const <String,dynamic>{};
+      final top=(data['top_opportunities'] as List? ?? const []).whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();
+      return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Card(child:Padding(padding:const EdgeInsets.all(22),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Row(children:[
+            Container(width:46,height:46,decoration:BoxDecoration(gradient:const LinearGradient(colors:[AppTheme.cyan,AppTheme.blue]),borderRadius:BorderRadius.circular(14)),child:const Icon(Icons.wb_sunny_outlined,color:Colors.white)),
+            const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Text('Welcome to BridgePoint Intelligence, ${data['display_name']??'there'}',style:const TextStyle(color:Colors.white,fontSize:20,fontWeight:FontWeight.w900)),
+              const SizedBox(height:4),Text(snapshot.connectionState==ConnectionState.waiting?'Building your live Daily Brief…':'Here is what changed in the last 24 hours and what deserves attention now.',style:const TextStyle(color:AppTheme.textMuted,fontSize:11)),
+            ])),
+            IconButton(tooltip:'Refresh Daily Brief',onPressed:()=>setState(()=>request=_callRpc('bridgepoint_daily_brief_v74',const {})),icon:const Icon(Icons.refresh_rounded,color:AppTheme.cyan)),
+          ]),
+          if(snapshot.hasError)...[const SizedBox(height:12),Text('The Daily Brief could not load yet. Your main workspace is still available.',style:TextStyle(color:AppTheme.amber))],
+          if(snapshot.hasData)...[const SizedBox(height:18),Wrap(spacing:10,runSpacing:10,children:[
+            _MiniStat(label:'NEW EVIDENCE',value:_compactNumber(overnight['new_signals'])),
+            _MiniStat(label:'SOURCES REFRESHED',value:_compactNumber(overnight['refreshed_sources'])),
+            _MiniStat(label:'OPPORTUNITY UPDATES',value:_compactNumber(overnight['strict_opportunity_updates'])),
+            _MiniStat(label:'FOLLOW-UPS DUE',value:_compactNumber(overnight['follow_ups_due'])),
+            _MiniStat(label:'UNREAD ALERTS',value:_compactNumber(data['unread_notifications'])),
+          ]),
+          if(top.isNotEmpty)...[const SizedBox(height:18),const Text('Start here today',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w800,fontSize:14)),const SizedBox(height:8),
+            ...top.take(3).map((o)=>Padding(padding:const EdgeInsets.only(bottom:7),child:Container(padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:AppTheme.panelSoft,borderRadius:BorderRadius.circular(12)),child:Row(children:[
+              Icon(_opportunityTypeIcon(o),color:_opportunityTypeColor(o),size:20),const SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${o['full_address']??o['title']}',style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w700,fontSize:11)),Text('${o['title']} • ${o['recommended_action']??'Review the evidence'}',maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.35))])),Text('${(o['score'] as num?)?.toStringAsFixed(1)??'—'}',style:const TextStyle(color:AppTheme.green,fontWeight:FontWeight.w900,fontSize:16)),
+            ])))),
+          ],
+        ]))),
+        const SizedBox(height:18),widget.overview,
+      ]);
+    });
+}
+
+class _WalkthroughDialog extends StatefulWidget{
+  const _WalkthroughDialog();
+  @override State<_WalkthroughDialog> createState()=>_WalkthroughDialogState();
+}
+class _WalkthroughDialogState extends State<_WalkthroughDialog>{
+  int step=0;
+  static const steps=<({IconData icon,String title,String body})>[
+    (icon:Icons.wb_sunny_outlined,title:'Start with your Daily Brief',body:'BridgePoint welcomes you by profile name and summarizes new evidence, refreshed sources, opportunity changes, alerts, and follow-ups from the last 24 hours.'),
+    (icon:Icons.map_rounded,title:'See different opportunities instantly',body:'Map colors identify the opportunity: amber for roofing, red for fire, purple for storms, blue for flood/FEMA, green for solar or investment, and cyan for commercial or development.'),
+    (icon:Icons.psychology_alt_rounded,title:'Understand why—without jargon',body:'Opportunity score ranks potential. Confidence measures evidence reliability. “Why this property,” “Why now,” evidence counts, and a suggested next action explain every lead.'),
+    (icon:Icons.bookmark_add_outlined,title:'Turn intelligence into work',body:'Save an opportunity, choose a lead stage, add a preset or custom note, and schedule the next action. My Work keeps the pipeline and calendar together.'),
+    (icon:Icons.notifications_active_outlined,title:'Stay ahead automatically',body:'Choose which alerts you want. BridgePoint refreshes in the background and keeps your Daily Brief and notification history synchronized across devices.'),
+  ];
+  @override Widget build(BuildContext context){final s=steps[step];return Dialog(backgroundColor:AppTheme.panel,child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:620),child:Padding(padding:const EdgeInsets.all(28),child:Column(mainAxisSize:MainAxisSize.min,children:[
+    Align(alignment:Alignment.centerRight,child:TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Skip tour'))),
+    Container(width:70,height:70,decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.12),shape:BoxShape.circle),child:Icon(s.icon,color:AppTheme.cyan,size:34)),const SizedBox(height:18),
+    Text(s.title,textAlign:TextAlign.center,style:const TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w900)),const SizedBox(height:10),Text(s.body,textAlign:TextAlign.center,style:const TextStyle(color:AppTheme.textMuted,height:1.55,fontSize:12)),const SizedBox(height:22),
+    Row(mainAxisAlignment:MainAxisAlignment.center,children:List.generate(steps.length,(i)=>Container(width:i==step?24:8,height:8,margin:const EdgeInsets.symmetric(horizontal:3),decoration:BoxDecoration(color:i==step?AppTheme.cyan:AppTheme.panelSoft,borderRadius:BorderRadius.circular(9))))),const SizedBox(height:22),
+    Row(children:[if(step>0)OutlinedButton(onPressed:()=>setState(()=>step--),child:const Text('Back')),const Spacer(),FilledButton.icon(onPressed:(){if(step==steps.length-1){Navigator.pop(context);}else{setState(()=>step++);}},icon:Icon(step==steps.length-1?Icons.check_rounded:Icons.arrow_forward_rounded),label:Text(step==steps.length-1?'Finish':'Next'))]),
+  ]))));}
+}
+
+class _NotificationCenterDialog extends StatefulWidget{
+  const _NotificationCenterDialog();
+  @override State<_NotificationCenterDialog> createState()=>_NotificationCenterDialogState();
+}
+class _NotificationCenterDialogState extends State<_NotificationCenterDialog>{
+  late Future<Map<String,dynamic>> request;
+  bool inApp=true,device=false,critical=true,followUps=true,sourceHealth=true,daily=true;
+  @override void initState(){super.initState();request=_load();}
+  Future<Map<String,dynamic>> _load() async{final d=await _callRpc('bridgepoint_notifications_v74',{'p_limit':50});final p=d['preferences'];if(p is Map){inApp=p['in_app_enabled']!=false;device=p['device_push_enabled']==true;critical=p['critical_opportunities']!=false;followUps=p['saved_follow_ups']!=false;sourceHealth=p['source_health']!=false;daily=p['daily_brief']!=false;}return d;}
+  Future<void> _save() async{await _callRpc('bridgepoint_update_notification_preferences_v74',{'p_in_app_enabled':inApp,'p_device_push_enabled':device,'p_critical_opportunities':critical,'p_saved_follow_ups':followUps,'p_source_health':sourceHealth,'p_daily_brief':daily});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Notification preferences saved.')));}
+  @override Widget build(BuildContext context)=>Dialog(backgroundColor:AppTheme.panel,child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:760,maxHeight:720),child:FutureBuilder<Map<String,dynamic>>(future:request,builder:(context,snapshot){final d=snapshot.data??const <String,dynamic>{};final items=(d['notifications'] as List? ?? const []).whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();return Padding(padding:const EdgeInsets.all(22),child:Column(children:[
+    Row(children:[const Icon(Icons.notifications_active_outlined,color:AppTheme.cyan),const SizedBox(width:10),const Expanded(child:Text('Notification Center',style:TextStyle(color:Colors.white,fontSize:19,fontWeight:FontWeight.w900))),Text('${d['unread_count']??0} unread',style:const TextStyle(color:AppTheme.cyan,fontSize:11)),IconButton(onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.close_rounded))]),
+    const SizedBox(height:8),Wrap(spacing:8,runSpacing:4,children:[FilterChip(label:const Text('Daily Brief'),selected:daily,onSelected:(v)=>setState(()=>daily=v)),FilterChip(label:const Text('Critical opportunities'),selected:critical,onSelected:(v)=>setState(()=>critical=v)),FilterChip(label:const Text('Saved follow-ups'),selected:followUps,onSelected:(v)=>setState(()=>followUps=v)),FilterChip(label:const Text('Source health'),selected:sourceHealth,onSelected:(v)=>setState(()=>sourceHealth=v)),FilterChip(label:const Text('In-app alerts'),selected:inApp,onSelected:(v)=>setState(()=>inApp=v)),FilterChip(label:const Text('Device push'),selected:device,onSelected:(v)=>setState(()=>device=v))]),
+    const SizedBox(height:10),Row(children:[FilledButton.icon(onPressed:_save,icon:const Icon(Icons.save_outlined),label:const Text('Save preferences')),const SizedBox(width:8),TextButton(onPressed:()async{await _callRpc('bridgepoint_mark_notifications_read_v74',{'p_notification_id':null});if(mounted)setState(()=>request=_load());},child:const Text('Mark all read'))]),const Divider(),
+    Expanded(child:snapshot.connectionState==ConnectionState.waiting?const Center(child:CircularProgressIndicator()):items.isEmpty?const Center(child:Text('No alerts yet. BridgePoint will add them as your intelligence changes.',style:TextStyle(color:AppTheme.textMuted))):ListView.separated(itemCount:items.length,separatorBuilder:(_,__)=>const Divider(height:1),itemBuilder:(context,i){final n=items[i];final unread=n['read_at']==null;return ListTile(contentPadding:const EdgeInsets.symmetric(vertical:4),leading:CircleAvatar(backgroundColor:(unread?AppTheme.cyan:AppTheme.textMuted).withOpacity(.12),child:Icon(_notificationIcon('${n['notification_type']}'),color:unread?AppTheme.cyan:AppTheme.textMuted,size:20)),title:Text('${n['title']}',style:TextStyle(color:Colors.white,fontWeight:unread?FontWeight.w800:FontWeight.w500)),subtitle:Text('${n['message']}',style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.4)),trailing:unread?const Icon(Icons.circle,color:AppTheme.cyan,size:8):null);}))
+  ]));})));
+}
+
+IconData _notificationIcon(String type){if(type.contains('CRITICAL'))return Icons.bolt_rounded;if(type.contains('FOLLOW'))return Icons.event_available_outlined;if(type.contains('SOURCE'))return Icons.hub_outlined;return Icons.wb_sunny_outlined;}
 
 class _OverviewContent extends StatelessWidget {
   const _OverviewContent({
@@ -3042,6 +3206,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
           final lng = (point['longitude'] as num?)?.toDouble();
           if (lat == null || lng == null) continue;
           final priority = '${point['priority'] ?? 'medium'}';
+          final typeColor=_opportunityTypeColor(point);
           markers.add(
             Marker(
               point: LatLng(lat, lng),
@@ -3054,12 +3219,11 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _opportunityPriorityColor(priority).withOpacity(.92),
-                      border: Border.all(color: Colors.white.withOpacity(.85), width: 2),
+                      color:typeColor.withOpacity(.94),
+                      border:Border.all(color:_opportunityPriorityColor(priority),width:2.4),
                       boxShadow: [
                         BoxShadow(
-                          color: _opportunityPriorityColor(priority).withOpacity(.28),
-                          blurRadius: 9,
+                          color:typeColor.withOpacity(.38),blurRadius:11,spreadRadius:1,
                         ),
                       ],
                     ),
@@ -3143,13 +3307,16 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                         letterSpacing: .7,
                       ),
                     ),
-                    const SizedBox(width: 18),
-                    _MapLegendDot(color: _opportunityPriorityColor('critical'), label: 'Critical'),
-                    const SizedBox(width: 12),
-                    _MapLegendDot(color: _opportunityPriorityColor('high'), label: 'High'),
-                    const SizedBox(width: 12),
-                    _MapLegendDot(color: _opportunityPriorityColor('medium'), label: 'Medium'),
-                    const Spacer(),
+                    const SizedBox(width: 14),
+                    Expanded(child:SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[
+                      _MapLegendDot(color:AppTheme.amber,label:'Roofing'),const SizedBox(width:12),
+                      _MapLegendDot(color:AppTheme.red,label:'Fire'),const SizedBox(width:12),
+                      const _MapLegendDot(color:Color(0xFF9B7BFF),label:'Storm'),const SizedBox(width:12),
+                      _MapLegendDot(color:AppTheme.blue,label:'Flood/FEMA'),const SizedBox(width:12),
+                      _MapLegendDot(color:AppTheme.green,label:'Solar/Investor'),const SizedBox(width:12),
+                      _MapLegendDot(color:AppTheme.cyan,label:'Commercial/Other'),
+                    ]))),
+                    const SizedBox(width:12),
                     PopupMenuButton<double?>(
                       tooltip: 'Minimum opportunity score',
                       onSelected: (value) {
@@ -3216,6 +3383,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                           ),
                         ],
                       ),
+                      if(!loading)const Positioned.fill(child:IgnorePointer(child:_MapScanOverlay())),
                       if (loading)
                         Positioned.fill(
                           child: Container(
@@ -3304,6 +3472,21 @@ class _MapLegendDot extends StatelessWidget {
   }
 }
 
+class _MapScanOverlay extends StatefulWidget{
+  const _MapScanOverlay();
+  @override State<_MapScanOverlay> createState()=>_MapScanOverlayState();
+}
+class _MapScanOverlayState extends State<_MapScanOverlay> with SingleTickerProviderStateMixin{
+  late final AnimationController controller;
+  @override void initState(){super.initState();controller=AnimationController(vsync:this,duration:const Duration(seconds:6))..repeat();}
+  @override void dispose(){controller.dispose();super.dispose();}
+  @override Widget build(BuildContext context)=>AnimatedBuilder(animation:controller,builder:(context,_)=
+    Align(alignment:Alignment(0,-1+controller.value*2),child:Container(height:2,decoration:BoxDecoration(
+      gradient:LinearGradient(colors:[Colors.transparent,AppTheme.cyan.withOpacity(.34),Colors.transparent]),
+      boxShadow:[BoxShadow(color:AppTheme.cyan.withOpacity(.16),blurRadius:12,spreadRadius:4)],
+    ))));
+}
+
 IconData _opportunityMapIcon(Map<String, dynamic> opportunity) {
   final value = '${opportunity['vertical_key'] ?? ''} '
           '${opportunity['model_key'] ?? ''} '
@@ -3326,6 +3509,19 @@ IconData _opportunityMapIcon(Map<String, dynamic> opportunity) {
   }
   return Icons.bolt_rounded;
 }
+
+Color _opportunityTypeColor(Map<String,dynamic> opportunity){
+  final value='${opportunity['vertical_key']??''} ${opportunity['model_key']??''} ${opportunity['title']??''} ${opportunity['model_name']??''} ${opportunity['top_signal_type']??''}'.toLowerCase();
+  if(value.contains('fire'))return AppTheme.red;
+  if(value.contains('storm')||value.contains('wind')||value.contains('hail')||value.contains('lightning'))return const Color(0xFF9B7BFF);
+  if(value.contains('flood')||value.contains('fema')||value.contains('water'))return AppTheme.blue;
+  if(value.contains('roof')||value.contains('restoration')||value.contains('contract'))return AppTheme.amber;
+  if(value.contains('solar')||value.contains('invest'))return AppTheme.green;
+  if(value.contains('commercial')||value.contains('business')||value.contains('development'))return AppTheme.cyan;
+  return const Color(0xFF5BC0EB);
+}
+
+IconData _opportunityTypeIcon(Map<String,dynamic> opportunity)=>_opportunityMapIcon(opportunity);
 
 class _MapControlButton extends StatelessWidget {
   const _MapControlButton({
@@ -3355,6 +3551,28 @@ class _MapControlButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _ReasoningPanel extends StatelessWidget{
+  const _ReasoningPanel({required this.opportunity});
+  final Map<String,dynamic> opportunity;
+  Widget line(IconData icon,String title,String body,Color color)=>Padding(padding:const EdgeInsets.only(bottom:12),child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Icon(icon,color:color,size:18),const SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:const TextStyle(color:Colors.white,fontSize:11,fontWeight:FontWeight.w800)),const SizedBox(height:3),Text(body,style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.5))]))]));
+  @override Widget build(BuildContext context){
+    final explanation='${opportunity['explanation']??opportunity['score_explanation']??opportunity['reason']??'BridgePoint found enough independent evidence to place this property in the review queue.'}';
+    final stage='${opportunity['stage']??opportunity['intelligence_stage']??'active intelligence'}'.replaceAll('_',' ').toLowerCase();
+    final events=opportunity['event_count']??opportunity['signal_count']??0;
+    final patterns=opportunity['pattern_count']??0;
+    final sources=opportunity['source_count']??opportunity['verified_event_count']??0;
+    final action='${opportunity['recommended_action']??'Review the evidence, confirm property fit, and choose the next customer action.'}';
+    return Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:AppTheme.panelSoft,borderRadius:BorderRadius.circular(14),border:Border.all(color:AppTheme.cyan.withOpacity(.18))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Row(children:[Icon(Icons.psychology_alt_rounded,color:AppTheme.cyan,size:20),SizedBox(width:8),Text('BridgePoint Reasoning',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:13))]),
+      const SizedBox(height:5),const Text('Score ranks the opportunity. Confidence tells you how reliable and consistent the supporting evidence is.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),const Divider(height:22),
+      line(Icons.home_work_outlined,'Why this property',explanation,AppTheme.cyan),
+      line(Icons.schedule_rounded,'Why now','The property is in the “$stage” stage and its latest evidence kept it inside BridgePoint’s strict review threshold.',AppTheme.amber),
+      line(Icons.fact_check_outlined,'Evidence you can verify','$events signals • $patterns compound patterns • $sources independent sources',AppTheme.blue),
+      line(Icons.arrow_circle_right_outlined,'Suggested next step',action,AppTheme.green),
+    ]));
   }
 }
 
@@ -3428,31 +3646,13 @@ void _showMapOpportunityDetail(
                   ],
                 ),
                 const SizedBox(height: 20),
-                Text(
-                  '${point['title'] ?? 'BridgePoint opportunity'}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${point['explanation'] ?? 'No explanation available.'}',
-                  style: const TextStyle(
-                    color: AppTheme.textMuted,
-                    fontSize: 11,
-                    height: 1.55,
-                  ),
-                ),
+                _ReasoningPanel(opportunity:point),
                 const SizedBox(height: 18),
                 Text(
                   'Model: ${point['model_name'] ?? point['model_key'] ?? '—'}\n'
-                  'Top signal: ${point['top_signal_type'] ?? '—'}\n'
                   'Property: ${point['property_type'] ?? '—'}\n'
                   'Municipality: ${point['municipality'] ?? '—'}\n'
-                  'County: ${point['county'] ?? '—'}\n'
-                  'Recommended action: ${point['recommended_action'] ?? 'Continue monitoring'}',
+                  'County: ${point['county'] ?? '—'}',
                   style: const TextStyle(
                     color: AppTheme.textMuted,
                     fontSize: 11,
@@ -6250,43 +6450,7 @@ void _showOpportunityDetail(
                     ],
                   ),
                   const SizedBox(height: 22),
-                  const Text(
-                    'Why BridgePoint surfaced this property',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    explanation,
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 11,
-                      height: 1.55,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Recommended action',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    (opportunity['recommended_action'] ??
-                            'Continue monitoring')
-                        .toString(),
-                    style: const TextStyle(
-                      color: AppTheme.cyan,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  _ReasoningPanel(opportunity:{...opportunity,'explanation':explanation}),
                   const SizedBox(height:20),
                   Row(children:[
                     Expanded(child:FilledButton.icon(onPressed:(){_saveOpportunity(context,opportunity);},icon:const Icon(Icons.bookmark_add_rounded),label:const Text('Save opportunity'))),
@@ -7144,12 +7308,15 @@ class _InlineError extends StatelessWidget {
 
 class _SettingsPage extends StatefulWidget {
   const _SettingsPage({
+    required this.ownerMode,
     required this.settingsRequest,
     required this.healthRequest,
     required this.refreshSeconds,
     required this.onRefreshSecondsChanged,
     required this.onRefresh,
   });
+
+  final bool ownerMode;
 
   final Future<Map<String, dynamic>> settingsRequest;
   final Future<Map<String, dynamic>> healthRequest;
@@ -7402,6 +7569,22 @@ class _SettingsPageState extends State<_SettingsPage> {
                     },
                   ),
                 ),
+                if(widget.ownerMode)SizedBox(width:width,child:_SettingsSection(
+                  icon:Icons.preview_rounded,title:'Customer experience preview',
+                  subtitle:'Your owner account stays free and unlocked. Replay customer-facing moments without changing your access.',
+                  children:[
+                    SizedBox(width:double.infinity,child:FilledButton.icon(
+                      onPressed:()=>showDialog<void>(context:context,builder:(context)=>const _WalkthroughDialog()),
+                      icon:const Icon(Icons.route_rounded),label:const Text('Replay guided walkthrough'))),
+                    const SizedBox(height:8),SizedBox(width:double.infinity,child:OutlinedButton.icon(
+                      onPressed:()=>showDialog<void>(context:context,builder:(context)=>AlertDialog(
+                        backgroundColor:AppTheme.panel,title:const Text('Customer welcome preview'),
+                        content:const Text('New customers choose a profile name, answer five dropdown questions, receive a package recommendation, then land on a personalized Daily Brief. Your owner account bypasses those gates while this preview remains available.'),
+                        actions:[FilledButton(onPressed:()=>Navigator.pop(context),child:const Text('Got it'))])),
+                      icon:const Icon(Icons.waving_hand_outlined),label:const Text('Preview signup & welcome'))),
+                    const SizedBox(height:8),const Text('To see the live personalized welcome, choose Daily Brief in the left menu. To see alerts, tap the bell.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+                  ],
+                )),
                 SizedBox(width:width,child:_SettingsSection(
                   icon:Icons.forum_rounded,title:'Suggestions & feedback',
                   subtitle:'Tell us what would make BridgePoint more useful. Every submission is saved for review.',
@@ -7539,23 +7722,25 @@ class _ComingSoonPage extends StatelessWidget {
 IconData _sourceIcon(Map<String, dynamic> source) {
   final explicit = (source['flutter_icon'] ?? '').toString().toLowerCase();
   final category = (source['source_category'] ?? '').toString().toUpperCase();
+  final value='${source['source_code']??''} ${source['source_name']??''} ${source['provider']??''} $category $explicit'.toLowerCase();
 
-  if (explicit == 'flood' || category.contains('FLOOD')) {
-    return Icons.flood_outlined;
-  }
-  if (explicit == 'grid' || category.contains('GRID')) {
-    return Icons.electric_bolt_outlined;
-  }
-  if (explicit == 'transition' || category.contains('TRANSITION')) {
-    return Icons.swap_horiz_rounded;
-  }
-  if (category.contains('FIRE')) {
-    return Icons.local_fire_department_outlined;
-  }
-  if (category.contains('WEATHER') || category.contains('STORM')) {
-    return Icons.thunderstorm_outlined;
-  }
-  return Icons.hub_outlined;
+  if(value.contains('fema')||value.contains('flood'))return Icons.flood_outlined;
+  if(value.contains('nfirs')||value.contains('fire'))return Icons.local_fire_department_outlined;
+  if(value.contains('noaa')||value.contains('storm')||value.contains('weather'))return Icons.thunderstorm_outlined;
+  if(value.contains('ust')||value.contains('tank'))return Icons.oil_barrel_outlined;
+  if(value.contains('spill')||value.contains('release'))return Icons.water_drop_outlined;
+  if(value.contains('react')||value.contains('remediation')||value.contains('brownfield'))return Icons.science_outlined;
+  if(value.contains('solar'))return Icons.solar_power_outlined;
+  if(value.contains('usgs')||value.contains('hydrolog')||value.contains('elevation'))return Icons.terrain_outlined;
+  if(value.contains('business')||value.contains('registry'))return Icons.business_center_outlined;
+  if(value.contains('transition')||value.contains('sale')||value.contains('ownership'))return Icons.swap_horiz_rounded;
+  if(value.contains('footprint')||value.contains('building')||value.contains('lidar')||value.contains('3d'))return Icons.architecture_outlined;
+  if(value.contains('permit')||value.contains('construction'))return Icons.construction_outlined;
+  if(value.contains('grid')||value.contains('outage')||value.contains('electric'))return Icons.electric_bolt_outlined;
+  if(value.contains('census')||value.contains('demograph'))return Icons.groups_outlined;
+  if(value.contains('311')||value.contains('service request'))return Icons.campaign_outlined;
+  if(value.contains('cama')||value.contains('parcel')||value.contains('property'))return Icons.home_work_outlined;
+  return Icons.dataset_outlined;
 }
 
 Color _sourceColor(String category) {
