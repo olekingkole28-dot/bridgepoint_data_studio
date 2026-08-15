@@ -25,7 +25,7 @@ Deno.serve(async(req:Request)=>{
     });
     if(!ctxRes.ok) return json({complete:false,error:await ctxRes.text()},400);
     const ctx=await ctxRes.json();
-    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"http://localhost:49981";
+    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"https://bridgepoint-intelligence.olekingkole28.chatgpt.site";
     const form=new URLSearchParams();
     form.set("mode","subscription");
     form.set("integration_identifier","bridgepoint_checkout_kjrmxqta");
