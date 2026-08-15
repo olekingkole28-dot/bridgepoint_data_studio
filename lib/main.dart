@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -212,7 +213,7 @@ class _BridgePointMarkPainter extends CustomPainter{
       ..strokeWidth=size.width*.075..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
     final glow=Paint()..color=Colors.white.withOpacity(.22)..style=PaintingStyle.stroke
       ..strokeWidth=size.width*.16..strokeCap=StrokeCap.round;
-    final bridge=Path()
+    final bridge=ui.Path()
       ..moveTo(size.width*.18,size.height*.68)
       ..cubicTo(size.width*.34,size.height*.42,size.width*.66,size.height*.42,size.width*.82,size.height*.68);
     canvas.drawPath(bridge,glow);canvas.drawPath(bridge,stroke);
@@ -325,6 +326,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _NavigationItem('Sources', Icons.hub_rounded),
     _NavigationItem('My Work', Icons.work_history_rounded),
     _NavigationItem('Permit Context', Icons.construction_rounded),
+    _NavigationItem('Coverage', Icons.public_rounded),
     _NavigationItem('Packages', Icons.inventory_2_outlined),
     _NavigationItem('Models', Icons.psychology_alt_rounded),
     _NavigationItem('Settings', Icons.settings_rounded),
@@ -576,10 +578,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 7:
         return const _PermitContextPage();
       case 8:
-        return const _PackagesPage();
+        return const _CoveragePage();
       case 9:
-        return const _ModelsPage();
+        return const _PackagesPage();
       case 10:
+        return const _ModelsPage();
+      case 11:
         return _SettingsPage(
           ownerMode:widget.ownerMode,
           settingsRequest: settingsRequest,
@@ -593,7 +597,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             });
           },
         );
-      case 11:
+      case 12:
         if(widget.ownerMode)return const _OwnerCenterPage();
         return const _ComingSoonPage(
           title:'Owner Center',icon:Icons.admin_panel_settings_rounded,
@@ -639,6 +643,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           }
                         },
                         onSearch: (_) => _navigateTo(3),
+                        onPropertySelected: (property) =>
+                            _showPropertyInventoryDetail(context, property),
                         onNotifications: () => showDialog<void>(
                           context:context,
                           builder:(context)=>const _NotificationCenterDialog(),
@@ -687,7 +693,7 @@ class _WorkspaceAtmosphere extends StatelessWidget{
   const _WorkspaceAtmosphere({required this.pageIndex});
   final int pageIndex;
   @override Widget build(BuildContext context){
-    final daily=pageIndex==0||pageIndex==8||pageIndex==10||pageIndex==11;
+    final daily=pageIndex==0||pageIndex==8||pageIndex==9||pageIndex==11||pageIndex==12;
     final map=pageIndex==2||pageIndex==7;
     final asset=daily
       ?'assets/images/bridgepoint-daily-brief-background-v2.webp'
@@ -873,6 +879,7 @@ class _TopBar extends StatelessWidget {
     required this.packages,
     required this.onPackageChanged,
     required this.onSearch,
+    required this.onPropertySelected,
     required this.onNotifications,
   });
 
@@ -881,6 +888,7 @@ class _TopBar extends StatelessWidget {
   final List<String> packages;
   final ValueChanged<String?> onPackageChanged;
   final ValueChanged<String> onSearch;
+  final ValueChanged<Map<String, dynamic>> onPropertySelected;
   final VoidCallback onNotifications;
 
   @override
@@ -896,7 +904,10 @@ class _TopBar extends StatelessWidget {
           ],
           if (desktop)
             Expanded(
-              child: _SearchBox(onSubmitted: onSearch),
+              child: _SearchBox(
+                onSubmitted: onSearch,
+                onPropertySelected: onPropertySelected,
+              ),
             )
           else
             const Spacer(),
@@ -979,9 +990,13 @@ class _LiveSyncStrip extends StatelessWidget{
 }
 
 class _SearchBox extends StatelessWidget {
-  const _SearchBox({required this.onSubmitted});
+  const _SearchBox({
+    required this.onSubmitted,
+    required this.onPropertySelected,
+  });
 
   final ValueChanged<String> onSubmitted;
+  final ValueChanged<Map<String, dynamic>> onPropertySelected;
 
   @override
   Widget build(BuildContext context) {
@@ -992,15 +1007,68 @@ class _SearchBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(13),
         border: Border.all(color: Colors.white.withOpacity(0.07)),
       ),
-      child: TextField(
-        textInputAction: TextInputAction.search,
-        onSubmitted: onSubmitted,
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textMuted),
-          hintText: 'Search property, address, parcel, or signal',
-          hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 14),
+      child: Autocomplete<Map<String, dynamic>>(
+        displayStringForOption: (option) => '${option['full_address'] ?? ''}',
+        optionsBuilder: (value) async {
+          final query=value.text.trim();
+          if(query.length<2)return const <Map<String,dynamic>>[];
+          try{
+            final result=await _callRpc('bridgepoint_flutter_property_suggestions_v77',{
+              'p_query':query,'p_state_code':'CT','p_limit':8,
+            });
+            return _detailList(result['suggestions']);
+          }catch(_){return const <Map<String,dynamic>>[];}
+        },
+        onSelected: onPropertySelected,
+        fieldViewBuilder:(context,controller,focusNode,onFieldSubmitted)=>TextField(
+          controller:controller,
+          focusNode:focusNode,
+          textInputAction: TextInputAction.search,
+          onSubmitted:(value){onSubmitted(value);onFieldSubmitted();},
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textMuted),
+            hintText: 'Start typing an address or parcel',
+            hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
+        optionsViewBuilder:(context,onSelected,options)=>Align(
+          alignment:Alignment.topLeft,
+          child:Material(
+            color:AppTheme.panel,
+            elevation:18,
+            borderRadius:BorderRadius.circular(13),
+            child:ConstrainedBox(
+              constraints:const BoxConstraints(maxWidth:480,maxHeight:330),
+              child:ListView.separated(
+                padding:const EdgeInsets.all(7),
+                shrinkWrap:true,
+                itemCount:options.length,
+                separatorBuilder:(_,__)=>Divider(height:1,color:Colors.white.withOpacity(.05)),
+                itemBuilder:(context,index){
+                  final option=options.elementAt(index);
+                  return InkWell(
+                    onTap:()=>onSelected(option),
+                    borderRadius:BorderRadius.circular(9),
+                    child:Padding(
+                      padding:const EdgeInsets.symmetric(horizontal:11,vertical:10),
+                      child:Row(children:[
+                        Container(width:34,height:34,decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.09),borderRadius:BorderRadius.circular(9)),child:const Icon(Icons.home_work_outlined,color:AppTheme.cyan,size:18)),
+                        const SizedBox(width:10),
+                        Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+                          Text('${option['full_address']??'Property'}',maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:11,fontWeight:FontWeight.w800)),
+                          const SizedBox(height:3),
+                          Text('${option['municipality']??'Connecticut'} • Parcel ${option['parcel_number']??'not listed'}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),
+                        ])),
+                        if(option['top_score']!=null)_OpportunityChip(label:'${option['top_score']}',color:AppTheme.green),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -2021,10 +2089,12 @@ class _ModelsPageState extends State<_ModelsPage> {
             _PageHeading(
               title: 'Models',
               subtitle:
-                  'Live BridgePoint scoring models • thresholds • package coverage',
+                  'The questions BridgePoint asks of every property • explained plainly',
               onRefresh: _reload,
               loading: loading,
             ),
+            const SizedBox(height:10),
+            const _ExplainerBanner(icon:Icons.psychology_alt_rounded,title:'A model is a question—not a prediction of a guaranteed sale',message:'Each model asks whether a property has enough recent, reliable and diverse evidence for a specific customer need. Confidence measures evidence reliability. The strict score prioritizes qualified properties. Only scores of 78+ enter the published queue.'),
             const SizedBox(height: 18),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -2240,7 +2310,7 @@ class _LiveModelCard extends StatelessWidget {
               ),
               const SizedBox(height: 13),
               Text(
-                '${model['description'] ?? ''}',
+                '${model['customer_outcome'] ?? model['description'] ?? ''}',
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -2254,29 +2324,29 @@ class _LiveModelCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _ModelThreshold(
-                      label: 'WATCH',
-                      value: model['watch_threshold'],
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: _ModelThreshold(
-                      label: 'DEFAULT',
-                      value: model['default_threshold'],
+                      label: 'PUBLISHED',
+                      value: 78,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: _ModelThreshold(
                       label: 'HIGH',
-                      value: model['high_threshold'],
+                      value: 82,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: _ModelThreshold(
-                      label: 'PRIORITY',
-                      value: model['priority_threshold'],
+                      label: 'CRITICAL',
+                      value: 85,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _ModelThreshold(
+                      label: 'CONFIDENCE',
+                      value: '85%',
                     ),
                   ),
                 ],
@@ -2316,6 +2386,11 @@ class _LiveModelCard extends StatelessWidget {
                       .toList(),
                 ),
               const SizedBox(height: 13),
+              Row(children:[
+                Expanded(child:Text('${model['strict_qualified_count']??0} strict live result${model['strict_qualified_count']==1?'':'s'}',style:const TextStyle(color:AppTheme.green,fontSize:9,fontWeight:FontWeight.w800))),
+                if(model['strict_top_score']!=null)Text('Top ${model['strict_top_score']}',style:const TextStyle(color:AppTheme.cyan,fontSize:9,fontWeight:FontWeight.w800)),
+              ]),
+              const SizedBox(height:10),
               Row(
                 children: [
                   Text(
@@ -2469,7 +2544,7 @@ void _showModelDetail(
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${model['description'] ?? ''}',
+                  '${model['customer_outcome'] ?? model['description'] ?? ''}',
                   style: const TextStyle(
                     color: AppTheme.textMuted,
                     fontSize: 11,
@@ -2477,6 +2552,8 @@ void _showModelDetail(
                   ),
                 ),
                 const SizedBox(height: 18),
+                _ExplainerBanner(icon:Icons.fact_check_outlined,title:'What must be true before this model publishes a result',message:'${model['evidence_requirement']??'The property must clear BridgePoint’s strict evidence, confidence, source-diversity and recency gates.'}'),
+                const SizedBox(height:18),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -2494,14 +2571,14 @@ void _showModelDetail(
                       value: '${model['package_count'] ?? packages.length}',
                     ),
                     _MiniStat(
-                      label: 'STATUS',
-                      value: model['active'] == true ? 'Active' : 'Inactive',
+                      label: 'STRICT RESULTS',
+                      value: '${model['strict_qualified_count']??0}',
                     ),
                   ],
                 ),
                 const SizedBox(height: 22),
                 const Text(
-                  'Scoring thresholds',
+                  'Strict score guide',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -2513,33 +2590,37 @@ void _showModelDetail(
                   children: [
                     Expanded(
                       child: _ModelThreshold(
-                        label: 'WATCH',
-                        value: model['watch_threshold'],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _ModelThreshold(
-                        label: 'DEFAULT',
-                        value: model['default_threshold'],
+                        label: 'PUBLISHED',
+                        value: 78,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _ModelThreshold(
                         label: 'HIGH',
-                        value: model['high_threshold'],
+                        value: 82,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _ModelThreshold(
-                        label: 'PRIORITY',
-                        value: model['priority_threshold'],
+                        label: 'CRITICAL',
+                        value: 85,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ModelThreshold(
+                        label: 'CONFIDENCE',
+                        value: '85%',
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height:18),
+                Text('Best for',style:const TextStyle(color:Colors.white,fontSize:13,fontWeight:FontWeight.w800)),
+                const SizedBox(height:6),
+                Text('${model['best_for']??'Property professionals reviewing evidence-backed opportunities'}',style:const TextStyle(color:AppTheme.textMuted,fontSize:11,height:1.5)),
                 const SizedBox(height: 22),
                 const Text(
                   'Package coverage',
@@ -2614,6 +2695,76 @@ void _showModelDetail(
         ),
       ),
     ),
+  );
+}
+
+class _CoveragePage extends StatefulWidget{
+  const _CoveragePage();
+  @override State<_CoveragePage> createState()=>_CoveragePageState();
+}
+
+class _CoveragePageState extends State<_CoveragePage>{
+  late Future<Map<String,dynamic>> request;
+  String region='Northeast';
+  @override void initState(){super.initState();request=_callRpc('bridgepoint_flutter_geographic_catalog_v77',const {});}
+  void refresh()=>setState(()=>request=_callRpc('bridgepoint_flutter_geographic_catalog_v77',const {}));
+  Future<void> register({String? state,String? bundle})async{
+    try{
+      final result=await _callRpc('bridgepoint_register_geographic_interest_v77',{
+        'p_state_code':state,'p_bundle_key':bundle,
+      });
+      if(!mounted)return;
+      _showInfoDialog(context,'Expansion request saved','${result['message']??'We saved your request.'}');
+      refresh();
+    }catch(e){if(mounted)_showInfoDialog(context,'Could not save request',e.toString());}
+  }
+  List<Map<String,dynamic>> rows(dynamic value)=>value is List
+      ?value.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList()
+      :<Map<String,dynamic>>[];
+
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+    future:request,builder:(context,snapshot){
+      final data=snapshot.data??const <String,dynamic>{};
+      final markets=rows(data['markets']),bundles=rows(data['bundles']);
+      final regions=<String>{'Northeast',...markets.map((m)=>'${m['region_name']}')}.toList();
+      final filtered=markets.where((m)=>m['region_name']==region).toList();
+      final live=markets.where((m)=>m['data_status']=='LIVE').length;
+      final requested=markets.where((m)=>m['interest_registered']==true).length;
+      return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        _PageHeading(title:'Coverage',subtitle:'See what is live now and what BridgePoint can unlock next',onRefresh:refresh,loading:snapshot.connectionState==ConnectionState.waiting),
+        const SizedBox(height:10),
+        const _ExplainerBanner(icon:Icons.public_rounded,title:'Built for expansion without hiding what is unavailable',message:'Connecticut is live and included. Every other state remains visible, labeled and locked until its property data, automatic sources and billing are fully activated. Requesting a state never charges you.'),
+        const SizedBox(height:18),
+        LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=900?3:1;const gap=14.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:[
+          _MetricCard(width:w,label:'LIVE STATES',value:'$live',detail:'Connecticut • 1,282,833 active properties',icon:Icons.verified_rounded,accent:AppTheme.green),
+          _MetricCard(width:w,label:'VISIBLE EXPANSION',value:'${markets.length-live}',detail:'Locked markets customers can see and request',icon:Icons.lock_open_rounded,accent:AppTheme.cyan),
+          _MetricCard(width:w,label:'YOUR REQUESTS',value:'$requested',detail:'No charge until a live market is purchased',icon:Icons.notifications_active_outlined,accent:AppTheme.amber),
+        ]);}),
+        const SizedBox(height:18),
+        const _PanelHeader(title:'Expansion bundles',subtitle:'Future package deals activate only when every included state is live',action:'Best value'),
+        const SizedBox(height:10),
+        LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=1000?3:c.maxWidth>=640?2:1;const gap=14.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:bundles.map((b)=>SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(17),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Row(children:[Container(width:38,height:38,decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.1),borderRadius:BorderRadius.circular(10)),child:const Icon(Icons.travel_explore_rounded,color:AppTheme.cyan)),const SizedBox(width:10),Expanded(child:Text('${b['bundle_name']}',style:const TextStyle(fontWeight:FontWeight.w900))),_OpportunityChip(label:b['can_purchase']==true?'AVAILABLE':'PLANNED',color:b['can_purchase']==true?AppTheme.green:AppTheme.amber)]),
+          const SizedBox(height:10),Text('${b['description']}',style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+          const SizedBox(height:12),Text('\$${b['monthly_price']}/month when live',style:const TextStyle(color:Colors.white,fontSize:15,fontWeight:FontWeight.w900)),
+          const SizedBox(height:4),Text('${b['live_state_count']??0} of ${b['state_count']??0} states live',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),
+          const SizedBox(height:12),SizedBox(width:double.infinity,child:OutlinedButton.icon(onPressed:b['interest_registered']==true?null:()=>register(bundle:'${b['bundle_key']}'),icon:Icon(b['interest_registered']==true?Icons.check_rounded:Icons.add_alert_rounded),label:Text(b['interest_registered']==true?'REQUESTED':'REQUEST BUNDLE'))),
+        ]))))).toList());}),
+        const SizedBox(height:20),
+        Row(children:[const Expanded(child:_PanelHeader(title:'State markets',subtitle:'Customers can see the growth path before purchasing',action:'50 states')),DropdownButton<String>(value:region,dropdownColor:AppTheme.panel,items:regions.map((r)=>DropdownMenuItem(value:r,child:Text(r))).toList(),onChanged:(v){if(v!=null)setState(()=>region=v);})]),
+        const SizedBox(height:10),
+        LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=1100?4:c.maxWidth>=720?3:c.maxWidth>=480?2:1;const gap=10.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:filtered.map((m){
+          final isLive=m['data_status']=='LIVE';final interested=m['interest_registered']==true;final owner=data['is_owner']==true;
+          final color=isLive?AppTheme.green:interested?AppTheme.cyan:AppTheme.amber;
+          return SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Row(children:[Container(width:34,height:34,decoration:BoxDecoration(color:color.withOpacity(.1),borderRadius:BorderRadius.circular(9)),child:Icon(isLive?Icons.verified_rounded:Icons.lock_outline_rounded,color:color,size:18)),const SizedBox(width:9),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${m['state_name']}',style:const TextStyle(fontWeight:FontWeight.w900,fontSize:11)),Text('${m['state_code']} • ${m['data_status']}',style:TextStyle(color:color,fontSize:8,fontWeight:FontWeight.w800))]))]),
+            const SizedBox(height:9),Text(isLive?'Included with every BridgePoint package':owner?'Owner access reserved when this market goes live':'Future add-on from \$${m['monthly_price']}/month',style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
+            const SizedBox(height:10),if(isLive)const _OpportunityChip(label:'LIVE DATA',color:AppTheme.green)else SizedBox(width:double.infinity,child:TextButton.icon(onPressed:interested?null:()=>register(state:'${m['state_code']}'),icon:Icon(interested?Icons.check_rounded:Icons.add_alert_rounded,size:16),label:Text(interested?'REQUESTED':'NOTIFY ME'))),
+          ]))));
+        }).toList());}),
+        if(snapshot.hasError)...[const SizedBox(height:14),_DashboardError(message:snapshot.error.toString(),onRetry:refresh)],
+      ]);
+    },
   );
 }
 
@@ -3195,19 +3346,19 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
   }
 
   Future<Map<String, dynamic>> _load() async {
-    final response = await http.post(
-      Uri.parse('$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_intelligence_map_v57'),
-      headers: _apiHeaders(),
-      body: jsonEncode({
-        'p_model_key': widget.modelKey,
-        'p_min_lat': null,
-        'p_max_lat': null,
-        'p_min_lng': null,
-        'p_max_lng': null,
-        'p_min_score': _minimumScore,
-        'p_limit': 500,
-      }),
-    ).timeout(const Duration(seconds: 30));
+    final results=await Future.wait<Object>([
+      http.post(
+        Uri.parse('$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_intelligence_map_v57'),
+        headers: _apiHeaders(),
+        body: jsonEncode({
+          'p_model_key': widget.modelKey,
+          'p_min_lat': null,'p_max_lat': null,'p_min_lng': null,'p_max_lng': null,
+          'p_min_score': _minimumScore,'p_limit': 500,
+        }),
+      ).timeout(const Duration(seconds: 30)),
+      _callRpc('bridgepoint_flutter_geographic_catalog_v77',const {}),
+    ]);
+    final response=results[0] as http.Response;
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
@@ -3218,7 +3369,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
     if (decoded is! Map) {
       throw const FormatException('Unexpected Intelligence Map response.');
     }
-    return Map<String, dynamic>.from(decoded);
+    return <String,dynamic>{...Map<String,dynamic>.from(decoded),'coverage_catalog':results[1]};
   }
 
   void _reload() => setState(() => _request = _load());
@@ -3234,6 +3385,10 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
             ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
             : <Map<String, dynamic>>[];
         final loading = snapshot.connectionState == ConnectionState.waiting;
+        final coverage=data?['coverage_catalog'] is Map
+            ?Map<String,dynamic>.from(data!['coverage_catalog'] as Map)
+            :<String,dynamic>{};
+        final coverageMarkets=_detailList(coverage['markets']);
         final highPriority = points.where((p) {
           final v = '${p['priority']}'.toLowerCase();
           return v == 'critical' || v == 'high';
@@ -3285,6 +3440,25 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
             ),
           );
         }
+        const nearbyCentroids=<String,LatLng>{
+          'MA':LatLng(42.30,-71.80),'RI':LatLng(41.70,-71.55),
+          'NY':LatLng(42.80,-75.20),'NJ':LatLng(40.10,-74.50),
+          'PA':LatLng(41.00,-77.50),'VT':LatLng(44.00,-72.70),
+          'NH':LatLng(43.80,-71.60),'ME':LatLng(45.20,-69.00),
+        };
+        for(final market in coverageMarkets){
+          final code='${market['state_code']}';final center=nearbyCentroids[code];
+          if(center==null||market['data_status']=='LIVE')continue;
+          final requested=market['interest_registered']==true;
+          markers.add(Marker(point:center,width:74,height:56,child:Tooltip(
+            message:'${market['state_name']} • ${market['data_status']}',
+            child:GestureDetector(onTap:()=>_showStateCoverageDialog(context,market,_reload),child:Container(
+              padding:const EdgeInsets.symmetric(horizontal:7,vertical:5),
+              decoration:BoxDecoration(color:AppTheme.panel.withOpacity(.93),borderRadius:BorderRadius.circular(12),border:Border.all(color:(requested?AppTheme.cyan:AppTheme.amber).withOpacity(.8)),boxShadow:[BoxShadow(color:Colors.black.withOpacity(.28),blurRadius:8)]),
+              child:Column(mainAxisSize:MainAxisSize.min,children:[Icon(requested?Icons.notifications_active_rounded:Icons.lock_outline_rounded,color:requested?AppTheme.cyan:AppTheme.amber,size:18),Text(code,style:const TextStyle(color:Colors.white,fontSize:9,fontWeight:FontWeight.w900))]),
+            )),
+          )));
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3292,7 +3466,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
             _PageHeading(
               title: 'Intelligence Map',
               subtitle:
-                  '${widget.packageName} • live Connecticut opportunity geography',
+                  '${widget.packageName} • live Connecticut intelligence with visible expansion markets',
               onRefresh: _reload,
               loading: loading,
             ),
@@ -3361,7 +3535,8 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                       const _MapLegendDot(color:Color(0xFF9B7BFF),label:'Storm'),const SizedBox(width:12),
                       _MapLegendDot(color:AppTheme.blue,label:'Flood/FEMA'),const SizedBox(width:12),
                       _MapLegendDot(color:AppTheme.green,label:'Solar/Investor'),const SizedBox(width:12),
-                      _MapLegendDot(color:AppTheme.cyan,label:'Commercial/Other'),
+                      _MapLegendDot(color:AppTheme.cyan,label:'Commercial/Other'),const SizedBox(width:12),
+                      _MapLegendDot(color:AppTheme.amber,label:'Locked state'),
                     ]))),
                     const SizedBox(width:12),
                     PopupMenuButton<double?>(
@@ -3411,9 +3586,9 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                       FlutterMap(
                         mapController: _mapController,
                         options: const MapOptions(
-                          initialCenter: LatLng(41.60, -72.70),
-                          initialZoom: 8.2,
-                          minZoom: 7,
+                          initialCenter: LatLng(42.15, -72.90),
+                          initialZoom: 6.3,
+                          minZoom: 4,
                           maxZoom: 18,
                         ),
                         children: [
@@ -3480,6 +3655,8 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                                 8.2,
                               ),
                             ),
+                            const SizedBox(height:7),
+                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show Northeast expansion',onTap:()=>_mapController.move(const LatLng(42.15,-72.90),6.3)),
                           ],
                         ),
                       ),
@@ -3517,6 +3694,27 @@ class _MapLegendDot extends StatelessWidget {
       ],
     );
   }
+}
+
+void _showStateCoverageDialog(BuildContext context,Map<String,dynamic> market,VoidCallback refresh){
+  final live=market['data_status']=='LIVE';final requested=market['interest_registered']==true;
+  showDialog<void>(context:context,builder:(dialogContext)=>AlertDialog(
+    backgroundColor:AppTheme.panel,
+    title:Row(children:[Icon(live?Icons.verified_rounded:Icons.lock_outline_rounded,color:live?AppTheme.green:AppTheme.amber),const SizedBox(width:9),Expanded(child:Text('${market['state_name']} coverage'))]),
+    content:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+      _OpportunityChip(label:'${market['data_status']}',color:live?AppTheme.green:AppTheme.amber),
+      const SizedBox(height:12),
+      Text(live?'This market is live and available to this account.':'This market is visible so customers understand where BridgePoint is going. Data remains locked until the full property inventory and automatic intelligence pipeline are live.',style:const TextStyle(color:AppTheme.textMuted,height:1.5)),
+      if(!live)...[const SizedBox(height:12),Text('Future state add-on from \$${market['monthly_price']}/month. Requesting it today does not charge you.',style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w700,height:1.4))],
+    ]),
+    actions:[
+      TextButton(onPressed:()=>Navigator.pop(dialogContext),child:const Text('Close')),
+      if(!live)FilledButton.icon(onPressed:requested?null:()async{
+        try{await _callRpc('bridgepoint_register_geographic_interest_v77',{'p_state_code':market['state_code'],'p_bundle_key':null});if(dialogContext.mounted)Navigator.pop(dialogContext);refresh();}
+        catch(e){if(dialogContext.mounted)_showInfoDialog(dialogContext,'Could not save request',e.toString());}
+      },icon:Icon(requested?Icons.check_rounded:Icons.notifications_active_outlined),label:Text(requested?'Requested':'Notify me')),
+    ],
+  ));
 }
 
 class _MapScanOverlay extends StatefulWidget{
@@ -4513,8 +4711,6 @@ class _PropertiesPageState extends State<_PropertiesPage> {
             ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
             : <Map<String, dynamic>>[];
 
-        final estimate =
-            (data?['property_count_estimate'] as num?)?.toInt() ?? 0;
         final hasMore = data?['has_more'] == true;
         final loading = snapshot.connectionState == ConnectionState.waiting;
 
@@ -4992,15 +5188,18 @@ class _PropertyIntelligenceDialogState
   }
 
   Future<Map<String, dynamic>> _load() async {
-    final response = await http
-        .post(
+    final results=await Future.wait<Object>([
+      http.post(
           Uri.parse(
             '$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_property_detail_v57',
           ),
           headers: _apiHeaders(),
           body: jsonEncode({'p_property_id': widget.propertyId}),
-        )
-        .timeout(const Duration(seconds: 30));
+        ).timeout(const Duration(seconds: 30)),
+      _callRpc('bridgepoint_property_timeline_v78',{'p_property_id':widget.propertyId,'p_limit':120})
+        .catchError((_)=><String,dynamic>{}),
+    ]);
+    final response=results[0] as http.Response;
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
@@ -5011,7 +5210,15 @@ class _PropertyIntelligenceDialogState
     if (decoded is! Map) {
       throw const FormatException('Unexpected property intelligence response.');
     }
-    return Map<String, dynamic>.from(decoded);
+    final detail=Map<String,dynamic>.from(decoded);
+    final timeline=results[1] as Map<String,dynamic>;
+    if(timeline['timeline'] is List){
+      detail['timeline']=timeline['timeline'];
+      detail['timeline_explanation']=timeline['explanation'];
+      final summary=detail['summary'] is Map?Map<String,dynamic>.from(detail['summary'] as Map):<String,dynamic>{};
+      summary['timeline_item_count']=timeline['item_count'];detail['summary']=summary;
+    }
+    return detail;
   }
 
   void _reload() => setState(() => _request = _load());
@@ -5391,9 +5598,9 @@ class _PropertyIntelligenceDialogState
                         ),
                         const SizedBox(height: 14),
                         _DetailSection(
-                          title: 'Intelligence Timeline',
+                          title: 'Property Timeline',
                           subtitle:
-                              'Signals and opportunities ordered by detection time',
+                              '${data['timeline_explanation']??'One chronological history of evidence, patterns, opportunities, your notes, and claim activity.'}',
                           child: timeline.isEmpty
                               ? const _EmptyDetail('No timeline items.')
                               : Column(
@@ -5712,6 +5919,8 @@ class _TimelineDetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = '${item['timeline_type'] ?? 'SIGNAL'}';
     final when = '${item['timeline_at'] ?? ''}';
+    final color=switch(type){'CLAIM'=>AppTheme.green,'NOTE'=>AppTheme.amber,'PATTERN'=>const Color(0xFF9B7BFF),'OPPORTUNITY'=>AppTheme.cyan,_=>AppTheme.blue};
+    final icon=switch(type){'CLAIM'=>Icons.policy_rounded,'NOTE'=>Icons.sticky_note_2_outlined,'PATTERN'=>Icons.schema_rounded,'OPPORTUNITY'=>Icons.bolt_rounded,_=>Icons.radio_button_checked_rounded};
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 9),
       decoration: BoxDecoration(
@@ -5722,13 +5931,7 @@ class _TimelineDetailRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            type == 'OPPORTUNITY'
-                ? Icons.bolt_rounded
-                : Icons.radio_button_checked_rounded,
-            color: type == 'OPPORTUNITY' ? AppTheme.cyan : AppTheme.blue,
-            size: 15,
-          ),
+          Icon(icon,color:color,size: 15),
           const SizedBox(width: 9),
           Expanded(
             child: Column(
@@ -5750,12 +5953,19 @@ class _TimelineDetailRow extends StatelessWidget {
                     fontSize: 8,
                   ),
                 ),
+                if('${item['description']??''}'.isNotEmpty)...[
+                  const SizedBox(height:4),
+                  Text('${item['description']}',maxLines:3,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
+                ],
+                if('${item['source_label']??''}'.isNotEmpty)...[
+                  const SizedBox(height:3),Text('Source: ${item['source_label']}',style:TextStyle(color:color.withOpacity(.9),fontSize:8,fontWeight:FontWeight.w700)),
+                ],
               ],
             ),
           ),
           _OpportunityChip(
             label: type,
-            color: type == 'OPPORTUNITY' ? AppTheme.cyan : AppTheme.blue,
+            color: color,
           ),
         ],
       ),
@@ -6529,29 +6739,64 @@ class _MyWorkPage extends StatefulWidget {
 }
 class _MyWorkPageState extends State<_MyWorkPage>{
   late Future<Map<String,dynamic>> request;
-  @override void initState(){super.initState();request=_callRpc('bridgepoint_my_work_v70',const {'p_limit':200});}
-  void refresh()=>setState(()=>request=_callRpc('bridgepoint_my_work_v70',const {'p_limit':200}));
+  static const claimStages=['CLAIM_FILED','ADJUSTER_ASSIGNED','INSPECTION_SCHEDULED','INSPECTED','ESTIMATE_IN_PROGRESS','ESTIMATE_SUBMITTED','NEGOTIATION','APPROVED','WORK_SCHEDULED','IN_PROGRESS','COMPLETED','PAID','CLOSED_LOST'];
+  @override void initState(){super.initState();request=_callRpc('bridgepoint_my_work_v78',const {'p_limit':200});}
+  void refresh()=>setState(()=>request=_callRpc('bridgepoint_my_work_v78',const {'p_limit':200}));
   Future<void> stage(Map<String,dynamic> item,String value) async{
     try{await _callRpc('bridgepoint_update_lead_stage_v70',{
       'p_saved_opportunity_id':item['saved_opportunity_id'],'p_lead_stage':value,'p_next_action_at':item['next_action_at']});refresh();}
     catch(e){if(mounted)_showInfoDialog(context,'Could not update lead',e.toString());}
   }
+  Future<void> openClaim(Map<String,dynamic> item)async{
+    final carrier=TextEditingController(),damage=TextEditingController();DateTime lossDate=DateTime.now();
+    final confirmed=await showDialog<bool>(context:context,builder:(context)=>StatefulBuilder(builder:(context,setLocal)=>AlertDialog(
+      backgroundColor:AppTheme.panel,title:const Text('Open claim workflow'),
+      content:SizedBox(width:480,child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+        const Text('This creates your private claim workspace and property timeline. BridgePoint never invents carrier or claim information.',style:TextStyle(color:AppTheme.textMuted,height:1.45)),const SizedBox(height:14),
+        TextField(controller:damage,decoration:const InputDecoration(labelText:'Damage type (wind, hail, fire, water...)',border:OutlineInputBorder())),const SizedBox(height:10),
+        TextField(controller:carrier,decoration:const InputDecoration(labelText:'Insurance carrier (optional)',border:OutlineInputBorder())),const SizedBox(height:10),
+        OutlinedButton.icon(onPressed:()async{final picked=await showDatePicker(context:context,initialDate:lossDate,firstDate:DateTime(2000),lastDate:DateTime.now());if(picked!=null)setLocal(()=>lossDate=picked);},icon:const Icon(Icons.calendar_month_rounded),label:Text('Date of loss: ${lossDate.toIso8601String().substring(0,10)}')),
+      ])),
+      actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('Open claim'))],
+    )));
+    if(confirmed!=true)return;
+    try{await _callRpc('bridgepoint_open_claim_v78',{'p_saved_opportunity_id':item['saved_opportunity_id'],'p_date_of_loss':lossDate.toIso8601String().substring(0,10),'p_damage_type':damage.text.trim(),'p_carrier_name':carrier.text.trim()});refresh();}
+    catch(e){if(mounted)_showInfoDialog(context,'Could not open claim',e.toString());}
+  }
+  Future<void> updateClaim(Map<String,dynamic> item,String value)async{
+    try{await _callRpc('bridgepoint_update_claim_v78',{'p_claim_id':item['claim_id'],'p_claim_stage':value});refresh();}
+    catch(e){if(mounted)_showInfoDialog(context,'Could not update claim',e.toString());}
+  }
   @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(future:request,builder:(context,snapshot){
-    final savedRaw=snapshot.data?['saved_opportunities'];final noteRaw=snapshot.data?['open_notes'];
+    final savedRaw=snapshot.data?['saved_opportunities'];final noteRaw=snapshot.data?['open_notes'];final claimRaw=snapshot.data?['claims'];final taskRaw=snapshot.data?['claim_tasks'];
     final saved=savedRaw is List?savedRaw.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList():<Map<String,dynamic>>[];
     final notes=noteRaw is List?noteRaw.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList():<Map<String,dynamic>>[];
-    final due=saved.where((e)=>e['next_action_at']!=null).length+notes.where((e)=>e['follow_up_at']!=null).length;
+    final claims=claimRaw is List?claimRaw.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList():<Map<String,dynamic>>[];
+    final tasks=taskRaw is List?taskRaw.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList():<Map<String,dynamic>>[];
+    final due=saved.where((e)=>e['next_action_at']!=null).length+notes.where((e)=>e['follow_up_at']!=null).length+tasks.length;
     return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       _PageHeading(title:'My Work',subtitle:'Saved opportunities • lead stages • notes • follow-up calendar',onRefresh:refresh,loading:snapshot.connectionState==ConnectionState.waiting),
-      const SizedBox(height:10),const _ExplainerBanner(icon:Icons.lightbulb_rounded,title:'Turn intelligence into action',message:'Save a promising opportunity, move it through your real sales stages, add notes, and schedule the next action. Rankings can change; your saved work stays here.'),
-      const SizedBox(height:18),LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=900?3:1;const gap=14.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:[
+      const SizedBox(height:10),const _ExplainerBanner(icon:Icons.policy_rounded,title:'From first signal through paid claim',message:'Save a promising opportunity, qualify it, open a private claim workflow, record each milestone, attach notes and schedule the next action. Public evidence updates automatically; carrier details appear only when you enter them or authorize an integration.'),
+      const SizedBox(height:18),LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=1000?4:c.maxWidth>=620?2:1;const gap=14.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:[
         _MetricCard(width:w,label:'SAVED LEADS',value:_formatInteger(saved.length),detail:'Opportunities kept by you',icon:Icons.bookmarks_rounded,accent:AppTheme.cyan),
         _MetricCard(width:w,label:'OPEN NOTES',value:_formatInteger(notes.length),detail:'Customer and property notes',icon:Icons.sticky_note_2_rounded,accent:AppTheme.green),
+        _MetricCard(width:w,label:'ACTIVE CLAIMS',value:_formatInteger(claims.where((c)=>!['PAID','CLOSED_LOST'].contains(c['claim_stage'])).length),detail:'Customer-controlled claim workflows',icon:Icons.policy_rounded,accent:const Color(0xFF9B7BFF)),
         _MetricCard(width:w,label:'CALENDAR ITEMS',value:_formatInteger(due),detail:'Scheduled next actions',icon:Icons.calendar_month_rounded,accent:AppTheme.amber),
       ]);}),
       const SizedBox(height:18),
       if(snapshot.hasError)_DashboardError(message:snapshot.error.toString(),onRetry:refresh)
-      else LayoutBuilder(builder:(context,c){final wide=c.maxWidth>=980;final width=wide?(c.maxWidth-16)/2:c.maxWidth;return Wrap(spacing:16,runSpacing:16,children:[
+      else ...[
+      Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        const _PanelHeader(title:'Claims Lifecycle',subtitle:'Customer-controlled milestones from filing through completed work and payment',action:'Private'),const SizedBox(height:12),
+        if(claims.isEmpty)const SizedBox(height:120,child:Center(child:Text('Save an opportunity, then choose “Open claim workflow” when a real claim exists.',style:TextStyle(color:AppTheme.textMuted))))
+        else ...claims.map((item)=>Container(margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(14),decoration:BoxDecoration(color:AppTheme.panelSoft.withOpacity(.55),borderRadius:BorderRadius.circular(12),border:Border.all(color:const Color(0xFF9B7BFF).withOpacity(.18))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Row(children:[Container(width:38,height:38,decoration:BoxDecoration(color:const Color(0xFF9B7BFF).withOpacity(.1),borderRadius:BorderRadius.circular(10)),child:const Icon(Icons.policy_rounded,color:Color(0xFF9B7BFF),size:19)),const SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${item['address']??item['opportunity_title']??'Property claim'}',style:const TextStyle(fontWeight:FontWeight.w900)),const SizedBox(height:3),Text('${item['damage_type']??'Damage type not entered'} • ${item['carrier_name']??'Carrier not entered'}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9))])),if(item['claim_number']!=null)_OpportunityChip(label:'CLAIM ${item['claim_number']}',color:AppTheme.cyan)]),
+          const SizedBox(height:10),Row(children:[Expanded(child:DropdownButtonFormField<String>(value:'${item['claim_stage']}',dropdownColor:AppTheme.panel,decoration:const InputDecoration(labelText:'Claim stage',isDense:true,border:OutlineInputBorder()),items:claimStages.map((v)=>DropdownMenuItem(value:v,child:Text(v.replaceAll('_',' '),style:const TextStyle(fontSize:10)))).toList(),onChanged:(v){if(v!=null)updateClaim(item,v);})),const SizedBox(width:12),Column(crossAxisAlignment:CrossAxisAlignment.end,children:[Text(item['approved_amount']==null?'Approval pending':'\$${_formatInteger(item['approved_amount'])} approved',style:const TextStyle(color:AppTheme.green,fontSize:10,fontWeight:FontWeight.w900)),const SizedBox(height:3),Text(item['next_action_at']==null?'No next action':'Next ${item['next_action_at'].toString().substring(0,10)}',style:const TextStyle(color:AppTheme.textMuted,fontSize:8))])]),
+        ]))),
+        if(tasks.isNotEmpty)...[const Divider(height:24),Text('${tasks.length} open claim task${tasks.length==1?'':'s'} on your calendar',style:const TextStyle(color:AppTheme.amber,fontSize:10,fontWeight:FontWeight.w800))],
+      ]))),
+      const SizedBox(height:16),
+      LayoutBuilder(builder:(context,c){final wide=c.maxWidth>=980;final width=wide?(c.maxWidth-16)/2:c.maxWidth;return Wrap(spacing:16,runSpacing:16,children:[
         SizedBox(width:width,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           const _PanelHeader(title:'Saved Opportunities',subtitle:'Your working lead list—independent of live ranking changes',action:'Lead stage'),const SizedBox(height:12),
           if(saved.isEmpty)const SizedBox(height:180,child:Center(child:Text('Open an opportunity and choose “Save opportunity.”',style:TextStyle(color:AppTheme.textMuted))))
@@ -6562,6 +6807,9 @@ class _MyWorkPageState extends State<_MyWorkPage>{
               decoration:const InputDecoration(labelText:'Lead stage',isDense:true,border:OutlineInputBorder()),
               items:const ['NEW','REVIEWING','CONTACTED','APPOINTMENT','INSPECTION','ESTIMATE','QUOTE','CONTRACT_CLAIM','WON','LOST'].map((v)=>DropdownMenuItem(value:v,child:Text(v.replaceAll('_',' ')))).toList(),
               onChanged:(v){if(v!=null)stage(item,v);}),
+            if(!claims.any((claim)=>claim['saved_opportunity_id']==item['saved_opportunity_id']))...[
+              const SizedBox(height:8),SizedBox(width:double.infinity,child:OutlinedButton.icon(onPressed:()=>openClaim(item),icon:const Icon(Icons.policy_outlined),label:const Text('Open claim workflow'))),
+            ],
           ]))),
         ])))),
         SizedBox(width:width,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -6573,7 +6821,7 @@ class _MyWorkPageState extends State<_MyWorkPage>{
             Text(item['follow_up_at']==null?'UNSCHEDULED':item['follow_up_at'].toString().substring(0,10),style:const TextStyle(color:AppTheme.textMuted,fontSize:9,fontWeight:FontWeight.w700)),
           ]))),
         ])))),
-      ]);}),
+      ]);}),],
     ]);
   });
 }
