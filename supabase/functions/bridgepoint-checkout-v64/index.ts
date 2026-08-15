@@ -26,6 +26,7 @@ Deno.serve(async(req:Request)=>{
   const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"http://localhost:49981";
   const form=new URLSearchParams();
   form.set("mode","subscription");
+  form.set("integration_identifier","bridgepoint_checkout_kjrmxqta");
   form.set("line_items[0][price]",ctx.stripe_price_id);
   form.set("line_items[0][quantity]","1");
   form.set("success_url",`${appUrl}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`);
