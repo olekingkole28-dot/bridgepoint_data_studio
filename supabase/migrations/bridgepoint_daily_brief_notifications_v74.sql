@@ -132,7 +132,7 @@ begin
   select count(*) into due_count from customer_workspace.saved_opportunities_v70
     where user_id=uid and lead_stage not in('WON','LOST') and next_action_at is not null
       and next_action_at<=now()+interval '24 hours';
-  select coalesce(jsonb_agg(to_jsonb(x) order by x.strict_score desc),'[]'::jsonb) into top_rows from (
+  select coalesce(jsonb_agg(to_jsonb(x) order by x.score desc),'[]'::jsonb) into top_rows from (
     select o.opportunity_id,o.property_id,o.opportunity_name title,o.strict_score score,
       round(o.confidence_score*100,0) confidence,o.strict_tier priority,o.reason,
       o.recommended_action,o.vertical_key,
