@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 71391)
-Total output lines: 7756
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -2296,7 +2293,3442 @@ void _showModelDetail(
                         value: model['watch_threshold'],
                       ),
                     ),
-                    const SizedBox(width: 8),…31391 tokens truncated…d(
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ModelThreshold(
+                        label: 'DEFAULT',
+                        value: model['default_threshold'],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ModelThreshold(
+                        label: 'HIGH',
+                        value: model['high_threshold'],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ModelThreshold(
+                        label: 'PRIORITY',
+                        value: model['priority_threshold'],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  'Package coverage',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (packages.isEmpty)
+                  const Text(
+                    'This active model is not currently linked to a customer-facing package.',
+                    style: TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 11,
+                    ),
+                  )
+                else
+                  ...packages.map(
+                    (p) => Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.panelSoft.withOpacity(.55),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.inventory_2_outlined,
+                            color: AppTheme.cyan,
+                            size: 17,
+                          ),
+                          const SizedBox(width: 9),
+                          Expanded(
+                            child: Text(
+                              '${p['package_name'] ?? p['package_key'] ?? 'Package'}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${p['package_type'] ?? ''}'.toUpperCase(),
+                            style: const TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                Text(
+                  'Model key: ${model['model_key'] ?? '—'}\n'
+                  'Model ID: ${model['model_id'] ?? '—'}',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(.30),
+                    fontSize: 9,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _PackagesPage extends StatefulWidget {
+  const _PackagesPage();
+
+  @override
+  State<_PackagesPage> createState() => _PackagesPageState();
+}
+
+class _PackagesPageState extends State<_PackagesPage> {
+  late Future<Map<String, dynamic>> _request;
+
+  @override
+  void initState() {
+    super.initState();
+    _request = _load();
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final response = await http
+        .post(
+          Uri.parse('$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_packages'),
+          headers: _apiHeaders(),
+          body: '{}',
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'BridgePoint Packages API ${response.statusCode}: ${response.body}',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException('Unexpected BridgePoint Packages response.');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  void _reload() => setState(() => _request = _load());
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _request,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final raw = data?['packages'];
+        final packages = raw is List
+            ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+            : <Map<String, dynamic>>[];
+        final loading = snapshot.connectionState == ConnectionState.waiting;
+        final featured =
+            packages.where((p) => p['featured'] == true).length;
+        final modelCount = (data?['active_model_count'] as num?)?.toInt() ?? 0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PageHeading(
+              title: 'Packages',
+              subtitle:
+                  'Live BridgePoint product catalog • models • trials • intelligence scope',
+              onRefresh: _reload,
+              loading: loading,
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 900 ? 3 : 1;
+                const gap = 14.0;
+                final width =
+                    (constraints.maxWidth - gap * (columns - 1)) / columns;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    _MetricCard(
+                      width: width,
+                      label: 'ACTIVE PACKAGES',
+                      value: '${data?['active_package_count'] ?? packages.length}',
+                      detail: 'Live product catalog',
+                      icon: Icons.inventory_2_outlined,
+                      accent: AppTheme.cyan,
+                    ),
+                    _MetricCard(
+                      width: width,
+                      label: 'ACTIVE MODELS',
+                      value: '$modelCount',
+                      detail: 'Intelligence models available',
+                      icon: Icons.psychology_alt_outlined,
+                      accent: AppTheme.blue,
+                    ),
+                    _MetricCard(
+                      width: width,
+                      label: 'FEATURED',
+                      value: '$featured',
+                      detail: 'Primary BridgePoint packages',
+                      icon: Icons.star_outline_rounded,
+                      accent: AppTheme.green,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            if (snapshot.hasError)
+              _DashboardError(
+                message: snapshot.error.toString(),
+                onRetry: _reload,
+              )
+            else if (loading && data == null)
+              const Card(
+                child: SizedBox(
+                  height: 300,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.cyan,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                ),
+              )
+            else
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cardWidth = constraints.maxWidth >= 1150
+                      ? (constraints.maxWidth - 28) / 3
+                      : constraints.maxWidth >= 760
+                          ? (constraints.maxWidth - 14) / 2
+                          : constraints.maxWidth;
+                  return Wrap(
+                    spacing: 14,
+                    runSpacing: 14,
+                    children: packages
+                        .map(
+                          (package) => SizedBox(
+                            width: cardWidth,
+                            child: _LivePackageCard(package: package),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _LivePackageCard extends StatelessWidget {
+  const _LivePackageCard({required this.package});
+
+  final Map<String, dynamic> package;
+
+  @override
+  Widget build(BuildContext context) {
+    final rawModels = package['models'];
+    final models = rawModels is List
+        ? rawModels.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+        : <Map<String, dynamic>>[];
+    final featured = package['featured'] == true;
+    final trialDays = (package['trial_days'] as num?)?.toInt();
+    final monthly = package['monthly_price'] as num?;
+    final yearly = package['yearly_price'] as num?;
+    final type = '${package['package_type'] ?? 'standard'}';
+
+    return Card(
+      child: InkWell(
+        onTap: () => _showPackageDetail(context, package),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(19),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.cyan.withOpacity(.09),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(
+                      _packageIcon('${package['package_key'] ?? ''}'),
+                      color: AppTheme.cyan,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${package['package_name'] ?? 'BridgePoint Package'}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          type.replaceAll('_', ' ').toUpperCase(),
+                          style: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: .6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (featured)
+                    const _OpportunityChip(
+                      label: 'FEATURED',
+                      color: AppTheme.green,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                '${package['description'] ?? ''}',
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppTheme.textMuted,
+                  fontSize: 10,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 15),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _OpportunityChip(
+                    label: '${models.length} MODEL${models.length == 1 ? '' : 'S'}',
+                    color: AppTheme.blue,
+                  ),
+                  if (trialDays != null)
+                    _OpportunityChip(
+                      label: '$trialDays DAY TRIAL',
+                      color: AppTheme.cyan,
+                    ),
+                  _OpportunityChip(
+                    label: package['active'] == true ? 'ACTIVE' : 'INACTIVE',
+                    color: package['active'] == true
+                        ? AppTheme.green
+                        : AppTheme.textMuted,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (models.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.panelSoft.withOpacity(.5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'Custom intelligence model builder',
+                    style: TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 9,
+                    ),
+                  ),
+                )
+              else
+                ...models.take(4).map(
+                  (model) => Padding(
+                    padding: const EdgeInsets.only(bottom: 7),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline_rounded,
+                          color: AppTheme.green,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            '${model['model_name'] ?? model['model_key'] ?? 'Model'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (models.length > 4)
+                Text(
+                  '+ ${models.length - 4} more models',
+                  style: const TextStyle(
+                    color: AppTheme.cyan,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      monthly == null && yearly == null
+                          ? 'Pricing not configured'
+                          : monthly != null
+                              ? '\$${monthly.toStringAsFixed(0)} / month'
+                              : '\$${yearly!.toStringAsFixed(0)} / year',
+                      style: TextStyle(
+                        color: monthly == null && yearly == null
+                            ? AppTheme.textMuted
+                            : Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppTheme.textMuted,
+                    size: 19,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+IconData _packageIcon(String key) {
+  switch (key) {
+    case 'home':
+      return Icons.home_work_outlined;
+    case 'commercial':
+      return Icons.business_outlined;
+    case 'solar':
+      return Icons.solar_power_outlined;
+    case 'investor':
+      return Icons.trending_up_rounded;
+    case 'infrastructure':
+      return Icons.construction_outlined;
+    case 'custom_model':
+      return Icons.tune_rounded;
+    case 'all_intelligence':
+      return Icons.all_inclusive_rounded;
+    default:
+      return Icons.inventory_2_outlined;
+  }
+}
+
+void _showPackageDetail(
+  BuildContext context,
+  Map<String, dynamic> package,
+) {
+  final rawModels = package['models'];
+  final models = rawModels is List
+      ? rawModels.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+      : <Map<String, dynamic>>[];
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: AppTheme.panel,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _packageIcon('${package['package_key'] ?? ''}'),
+                      color: AppTheme.cyan,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${package['package_name'] ?? 'BridgePoint Package'}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '${package['description'] ?? ''}',
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 11,
+                    height: 1.55,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _MiniStat(
+                      label: 'MODELS',
+                      value: '${models.length}',
+                    ),
+                    _MiniStat(
+                      label: 'TRIAL',
+                      value: '${package['trial_days'] ?? '—'} days',
+                    ),
+                    _MiniStat(
+                      label: 'TYPE',
+                      value: '${package['package_type'] ?? '—'}',
+                    ),
+                    _MiniStat(
+                      label: 'STATUS',
+                      value: package['active'] == true ? 'Active' : 'Inactive',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  'Included intelligence models',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (models.isEmpty)
+                  const Text(
+                    'This add-on creates personalized intelligence models rather than bundling a fixed prebuilt model.',
+                    style: TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 11,
+                      height: 1.5,
+                    ),
+                  )
+                else
+                  ...models.map(
+                    (model) => Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 9),
+                      padding: const EdgeInsets.all(13),
+                      decoration: BoxDecoration(
+                        color: AppTheme.panelSoft.withOpacity(.55),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white.withOpacity(.05)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${model['model_name'] ?? model['model_key'] ?? 'Model'}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            '${model['description'] ?? ''}',
+                            style: const TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 9,
+                              height: 1.45,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Text(
+                            '${model['model_category'] ?? 'intelligence'} • ${model['target_entity_type'] ?? 'entity'} • priority ${model['priority_threshold'] ?? '—'}',
+                            style: const TextStyle(
+                              color: AppTheme.cyan,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cyan.withOpacity(.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.cyan.withOpacity(.16)),
+                  ),
+                  child: const Text(
+                    'Start with a 7-day free trial. Founding customers #1–10 receive 50% off their first 6 monthly payments.',
+                    style: TextStyle(color: AppTheme.cyan,fontSize:10,height:1.45,fontWeight:FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(children:[
+                  Expanded(child:FilledButton.icon(
+                    onPressed:package['monthly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'month');},
+                    icon:const Icon(Icons.bolt_rounded),
+                    label:Text(package['monthly_price']==null?'Monthly unavailable':'Start monthly • \$${(package['monthly_price'] as num).toStringAsFixed(0)}'),
+                  )),
+                  const SizedBox(width:10),
+                  Expanded(child:OutlinedButton(
+                    onPressed:package['yearly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'year');},
+                    child:Text(package['yearly_price']==null?'Annual unavailable':'Annual • \$${(package['yearly_price'] as num).toStringAsFixed(0)}'),
+                  )),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _IntelligenceMapPage extends StatefulWidget {
+  const _IntelligenceMapPage({
+    required this.modelKey,
+    required this.packageName,
+  });
+
+  final String modelKey;
+  final String packageName;
+
+  @override
+  State<_IntelligenceMapPage> createState() => _IntelligenceMapPageState();
+}
+
+class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
+  late Future<Map<String, dynamic>> _request;
+  final MapController _mapController = MapController();
+  double? _minimumScore;
+
+  @override
+  void initState() {
+    super.initState();
+    _request = _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _IntelligenceMapPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.modelKey != widget.modelKey) {
+      _request = _load();
+    }
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final response = await http.post(
+      Uri.parse('$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_intelligence_map_v57'),
+      headers: _apiHeaders(),
+      body: jsonEncode({
+        'p_model_key': widget.modelKey,
+        'p_min_lat': null,
+        'p_max_lat': null,
+        'p_min_lng': null,
+        'p_max_lng': null,
+        'p_min_score': _minimumScore,
+        'p_limit': 500,
+      }),
+    ).timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'BridgePoint Intelligence Map API ${response.statusCode}: ${response.body}',
+      );
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException('Unexpected Intelligence Map response.');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  void _reload() => setState(() => _request = _load());
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _request,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final raw = data?['points'];
+        final points = raw is List
+            ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+            : <Map<String, dynamic>>[];
+        final loading = snapshot.connectionState == ConnectionState.waiting;
+        final highPriority = points.where((p) {
+          final v = '${p['priority']}'.toLowerCase();
+          return v == 'critical' || v == 'high';
+        }).length;
+        final avgScore = points.isEmpty
+            ? 0.0
+            : points.fold<double>(
+                    0,
+                    (sum, p) =>
+                        sum + ((p['opportunity_score'] as num?)?.toDouble() ?? 0),
+                  ) /
+                  points.length;
+
+        final markers = <Marker>[];
+        for (final point in points) {
+          final lat = (point['latitude'] as num?)?.toDouble();
+          final lng = (point['longitude'] as num?)?.toDouble();
+          if (lat == null || lng == null) continue;
+          final priority = '${point['priority'] ?? 'medium'}';
+          markers.add(
+            Marker(
+              point: LatLng(lat, lng),
+              width: 34,
+              height: 34,
+              child: Tooltip(
+                message: '${point['full_address'] ?? point['municipality'] ?? 'Opportunity'}',
+                child: GestureDetector(
+                  onTap: () => _showMapOpportunityDetail(context, point),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _opportunityPriorityColor(priority).withOpacity(.92),
+                      border: Border.all(color: Colors.white.withOpacity(.85), width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _opportunityPriorityColor(priority).withOpacity(.28),
+                          blurRadius: 9,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _opportunityMapIcon(point),
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PageHeading(
+              title: 'Intelligence Map',
+              subtitle:
+                  '${widget.packageName} • live Connecticut opportunity geography',
+              onRefresh: _reload,
+              loading: loading,
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 900 ? 3 : 1;
+                const gap = 14.0;
+                final width =
+                    (constraints.maxWidth - gap * (columns - 1)) / columns;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    _MetricCard(
+                      width: width,
+                      label: 'MAPPED',
+                      value: '${markers.length}',
+                      detail: data?['has_more'] == true
+                          ? 'Top intelligence points • more available'
+                          : 'Opportunity points returned',
+                      icon: Icons.map_outlined,
+                      accent: AppTheme.cyan,
+                    ),
+                    _MetricCard(
+                      width: width,
+                      label: 'HIGH PRIORITY',
+                      value: '$highPriority',
+                      detail: 'Critical + high on current map',
+                      icon: Icons.priority_high_rounded,
+                      accent: AppTheme.blue,
+                    ),
+                    _MetricCard(
+                      width: width,
+                      label: 'AVG SCORE',
+                      value: points.isEmpty ? '—' : avgScore.toStringAsFixed(1),
+                      detail: 'Mapped opportunity intelligence',
+                      icon: Icons.analytics_outlined,
+                      accent: AppTheme.green,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                child: Row(
+                  children: [
+                    const Icon(Icons.layers_outlined, color: AppTheme.cyan, size: 18),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'OPPORTUNITIES',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: .7,
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    _MapLegendDot(color: _opportunityPriorityColor('critical'), label: 'Critical'),
+                    const SizedBox(width: 12),
+                    _MapLegendDot(color: _opportunityPriorityColor('high'), label: 'High'),
+                    const SizedBox(width: 12),
+                    _MapLegendDot(color: _opportunityPriorityColor('medium'), label: 'Medium'),
+                    const Spacer(),
+                    PopupMenuButton<double?>(
+                      tooltip: 'Minimum opportunity score',
+                      onSelected: (value) {
+                        _minimumScore = value;
+                        _reload();
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(value: null, child: Text('All scores')),
+                        PopupMenuItem(value: 50.0, child: Text('Score 50+')),
+                        PopupMenuItem(value: 70.0, child: Text('Score 70+')),
+                        PopupMenuItem(value: 85.0, child: Text('Score 85+')),
+                      ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Text(
+                          _minimumScore == null
+                              ? 'All scores'
+                              : '${_minimumScore!.toStringAsFixed(0)}+ score',
+                          style: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (snapshot.hasError)
+              _DashboardError(message: snapshot.error.toString(), onRetry: _reload)
+            else
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: SizedBox(
+                  height: 610,
+                  child: Stack(
+                    children: [
+                      FlutterMap(
+                        mapController: _mapController,
+                        options: const MapOptions(
+                          initialCenter: LatLng(41.60, -72.70),
+                          initialZoom: 8.2,
+                          minZoom: 7,
+                          maxZoom: 18,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.bridgepoint.data_studio',
+                          ),
+                          MarkerLayer(markers: markers),
+                          RichAttributionWidget(
+                            attributions: const [
+                              TextSourceAttribution('OpenStreetMap contributors'),
+                            ],
+                          ),
+                        ],
+                      ),
+                      if (loading)
+                        Positioned.fill(
+                          child: Container(
+                            color: AppTheme.panel.withOpacity(.45),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppTheme.cyan,
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      Positioned(
+                        top: 14,
+                        right: 14,
+                        child: Column(
+                          children: [
+                            _MapControlButton(
+                              icon: Icons.add_rounded,
+                              tooltip: 'Zoom in',
+                              onTap: () {
+                                final camera = _mapController.camera;
+                                _mapController.move(
+                                  camera.center,
+                                  camera.zoom + 1,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 7),
+                            _MapControlButton(
+                              icon: Icons.remove_rounded,
+                              tooltip: 'Zoom out',
+                              onTap: () {
+                                final camera = _mapController.camera;
+                                _mapController.move(
+                                  camera.center,
+                                  camera.zoom - 1,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 7),
+                            _MapControlButton(
+                              icon: Icons.center_focus_strong_rounded,
+                              tooltip: 'Reset Connecticut',
+                              onTap: () => _mapController.move(
+                                const LatLng(41.60, -72.70),
+                                8.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MapLegendDot extends StatelessWidget {
+  const _MapLegendDot({required this.color, required this.label});
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(color: AppTheme.textMuted, fontSize: 9),
+        ),
+      ],
+    );
+  }
+}
+
+IconData _opportunityMapIcon(Map<String, dynamic> opportunity) {
+  final value = '${opportunity['vertical_key'] ?? ''} '
+          '${opportunity['model_key'] ?? ''} '
+          '${opportunity['title'] ?? ''} '
+          '${opportunity['model_name'] ?? ''}'
+      .toLowerCase();
+  if (value.contains('roof')) return Icons.roofing_rounded;
+  if (value.contains('restoration')) return Icons.handyman_rounded;
+  if (value.contains('adjust')) return Icons.policy_rounded;
+  if (value.contains('invest')) return Icons.real_estate_agent_rounded;
+  if (value.contains('contract')) return Icons.construction_rounded;
+  if (value.contains('solar')) return Icons.solar_power_rounded;
+  if (value.contains('commercial') || value.contains('business')) {
+    return Icons.business_rounded;
+  }
+  if (value.contains('development')) return Icons.location_city_rounded;
+  if (value.contains('fire')) return Icons.local_fire_department_rounded;
+  if (value.contains('flood') || value.contains('water')) {
+    return Icons.flood_rounded;
+  }
+  return Icons.bolt_rounded;
+}
+
+class _MapControlButton extends StatelessWidget {
+  const _MapControlButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: AppTheme.panel.withOpacity(.94),
+        borderRadius: BorderRadius.circular(9),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(9),
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+void _showMapOpportunityDetail(
+  BuildContext context,
+  Map<String, dynamic> point,
+) {
+  final score = (point['opportunity_score'] as num?)?.toDouble();
+  final confidence =
+      (point['opportunity_confidence_percent'] as num?)?.toDouble();
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: AppTheme.panel,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: AppTheme.cyan),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        '${point['full_address'] ?? point['municipality'] ?? 'Opportunity'}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _MiniStat(
+                      label: 'OPPORTUNITY',
+                      value: score?.toStringAsFixed(1) ?? '—',
+                    ),
+                    _MiniStat(
+                      label: 'PRIORITY',
+                      value: '${point['priority'] ?? '—'}',
+                    ),
+                    _MiniStat(
+                      label: 'CONFIDENCE',
+                      value: confidence == null
+                          ? '—'
+                          : '${confidence.toStringAsFixed(0)}%',
+                    ),
+                    _MiniStat(
+                      label: 'EVENTS',
+                      value: '${point['event_count'] ?? 0}',
+                    ),
+                    _MiniStat(
+                      label: 'SIGNALS',
+                      value: '${point['distinct_signal_count'] ?? 0}',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  '${point['title'] ?? 'BridgePoint opportunity'}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${point['explanation'] ?? 'No explanation available.'}',
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 11,
+                    height: 1.55,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Model: ${point['model_name'] ?? point['model_key'] ?? '—'}\n'
+                  'Top signal: ${point['top_signal_type'] ?? '—'}\n'
+                  'Property: ${point['property_type'] ?? '—'}\n'
+                  'Municipality: ${point['municipality'] ?? '—'}\n'
+                  'County: ${point['county'] ?? '—'}\n'
+                  'Recommended action: ${point['recommended_action'] ?? 'Continue monitoring'}',
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 11,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _SignalsPage extends StatefulWidget {
+  const _SignalsPage();
+
+  @override
+  State<_SignalsPage> createState() => _SignalsPageState();
+}
+
+class _SignalsPageState extends State<_SignalsPage> {
+  static const int _pageSize = 25;
+
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _familyController = TextEditingController();
+  final TextEditingController _statusController = TextEditingController();
+
+  late Future<Map<String, dynamic>> _request;
+  int _offset = 0;
+  String? _search;
+  String? _family;
+  String? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _request = _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _familyController.dispose();
+    _statusController.dispose();
+    super.dispose();
+  }
+
+  String? _clean(String value) {
+    final v = value.trim();
+    return v.isEmpty ? null : v;
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final response = await http
+        .post(
+          Uri.parse('$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_signals'),
+          headers: _apiHeaders(),
+          body: jsonEncode({
+            'p_search': _search,
+            'p_signal_family': _family,
+            'p_status': _status,
+            'p_limit': _pageSize,
+            'p_offset': _offset,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'BridgePoint Signals API ${response.statusCode}: ${response.body}',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException('Unexpected BridgePoint Signals response.');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  void _reload() {
+    setState(() => _request = _load());
+  }
+
+  void _applyFilters() {
+    _offset = 0;
+    _search = _clean(_searchController.text);
+    _family = _clean(_familyController.text);
+    _status = _clean(_statusController.text);
+    _reload();
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    _familyController.clear();
+    _statusController.clear();
+    _offset = 0;
+    _search = null;
+    _family = null;
+    _status = null;
+    _reload();
+  }
+
+  void _previous() {
+    if (_offset <= 0) return;
+    _offset = (_offset - _pageSize).clamp(0, 1 << 30);
+    _reload();
+  }
+
+  void _next() {
+    _offset += _pageSize;
+    _reload();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _request,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final raw = data?['signals'];
+        final signals = raw is List
+            ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+            : <Map<String, dynamic>>[];
+        final loading = snapshot.connectionState == ConnectionState.waiting;
+        final hasMore = data?['has_more'] == true;
+
+        final activeCount =
+            signals.where((s) => '${s['status']}'.toLowerCase() == 'active').length;
+        final highCount = signals.where((s) {
+          final sev = s['severity'];
+          return sev is num && sev >= 80;
+        }).length;
+        final avgConfidence = signals.isEmpty
+            ? 0.0
+            : signals.fold<double>(
+                  0,
+                  (sum, s) => sum + ((s['confidence'] as num?)?.toDouble() ?? 0),
+                ) /
+                signals.length;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PageHeading(
+              title: 'Signals',
+              subtitle:
+                  'Live property intelligence • evidence • strength • confidence',
+              onRefresh: _reload,
+              loading: loading,
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 900 ? 3 : 1;
+                const gap = 14.0;
+                final width =
+                    (constraints.maxWidth - gap * (columns - 1)) / columns;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    _MetricCard(
+                      width: width,
+                      label: 'ACTIVE ON PAGE',
+                      value: '$activeCount',
+                      detail: '${signals.length} signals returned',
+                      icon: Icons.radar_rounded,
+                      accent: AppTheme.cyan,
+                    ),
+                    _MetricCard(
+                      width: width,
+                      label: 'HIGH SEVERITY',
+                      value: '$highCount',
+                      detail: 'Severity 80+ on this page',
+                      icon: Icons.warning_amber_rounded,
+                      accent: AppTheme.blue,
+                    ),
+                    _MetricCard(
+                      width: width,
+                      label: 'AVG CONFIDENCE',
+                      value: signals.isEmpty
+                          ? '—'
+                          : '${(avgConfidence * 100).toStringAsFixed(0)}%',
+                      detail: 'Current page evidence confidence',
+                      icon: Icons.verified_outlined,
+                      accent: AppTheme.green,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final fields = [
+                          _signalField(
+                            controller: _searchController,
+                            label: 'Signal, detector, or description',
+                            icon: Icons.search_rounded,
+                          ),
+                          _signalField(
+                            controller: _familyController,
+                            label: 'Signal family',
+                            icon: Icons.account_tree_outlined,
+                          ),
+                          _signalField(
+                            controller: _statusController,
+                            label: 'Status',
+                            icon: Icons.toggle_on_outlined,
+                          ),
+                        ];
+                        if (constraints.maxWidth < 800) {
+                          return Column(
+                            children: [
+                              fields[0],
+                              const SizedBox(height: 10),
+                              fields[1],
+                              const SizedBox(height: 10),
+                              fields[2],
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(flex: 2, child: fields[0]),
+                            const SizedBox(width: 10),
+                            Expanded(child: fields[1]),
+                            const SizedBox(width: 10),
+                            Expanded(child: fields[2]),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: loading ? null : _applyFilters,
+                          icon: const Icon(Icons.filter_alt_rounded, size: 17),
+                          label: const Text('Apply'),
+                        ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: loading ? null : _clearFilters,
+                          icon: const Icon(Icons.clear_rounded, size: 17),
+                          label: const Text('Clear'),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Newest signals first',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.38),
+                            fontSize: 9,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            if (snapshot.hasError)
+              _DashboardError(
+                message: snapshot.error.toString(),
+                onRetry: _reload,
+              )
+            else if (loading && data == null)
+              const Card(
+                child: SizedBox(
+                  height: 260,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.cyan,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                ),
+              )
+            else if (signals.isEmpty)
+              const Card(
+                child: SizedBox(
+                  height: 220,
+                  child: Center(
+                    child: Text(
+                      'No signals match these filters.',
+                      style: TextStyle(color: AppTheme.textMuted),
+                    ),
+                  ),
+                ),
+              )
+            else
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _PanelHeader(
+                        title: 'Signal Intelligence',
+                        subtitle:
+                            'Property-linked detections and supporting evidence',
+                        action: 'Inspect signal',
+                      ),
+                      const SizedBox(height: 14),
+                      ...signals.map((signal) => _SignalListCard(signal: signal)),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed:
+                                _offset > 0 && !loading ? _previous : null,
+                            icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                            label: const Text('Previous'),
+                          ),
+                          const SizedBox(width: 10),
+                          OutlinedButton.icon(
+                            onPressed: hasMore && !loading ? _next : null,
+                            icon:
+                                const Icon(Icons.chevron_right_rounded, size: 18),
+                            label: const Text('Next'),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Page ${(_offset ~/ _pageSize) + 1} • ${signals.length} returned',
+                            style: const TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _signalField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+  }) {
+    return TextField(
+      controller: controller,
+      onSubmitted: (_) => _applyFilters(),
+      style: const TextStyle(color: Colors.white, fontSize: 11),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 10),
+        prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 18),
+        isDense: true,
+        filled: true,
+        fillColor: AppTheme.panelSoft.withOpacity(0.45),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppTheme.cyan),
+        ),
+      ),
+    );
+  }
+}
+
+class _SignalListCard extends StatelessWidget {
+  const _SignalListCard({required this.signal});
+
+  final Map<String, dynamic> signal;
+
+  @override
+  Widget build(BuildContext context) {
+    final title =
+        (signal['signal_name'] ?? signal['title'] ?? 'Signal').toString();
+    final address = (signal['full_address'] ?? '').toString();
+    final municipality = (signal['municipality'] ?? 'Unknown').toString();
+    final family = (signal['signal_family'] ?? 'uncategorized').toString();
+    final status = (signal['status'] ?? 'unknown').toString();
+    final severity = (signal['severity'] as num?)?.toDouble();
+    final strength = (signal['strength'] as num?)?.toDouble();
+    final confidence = (signal['confidence'] as num?)?.toDouble();
+    final evidenceCount = (signal['evidence_count'] as num?)?.toInt() ?? 0;
+    final detector = (signal['detector_key'] ?? '—').toString();
+
+    return InkWell(
+      onTap: () => _showSignalDetail(context, signal),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: AppTheme.panelSoft.withOpacity(0.50),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppTheme.cyan.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.radar_rounded,
+                color: AppTheme.cyan,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              flex: 4,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    address.trim().isEmpty ? municipality : address,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 9,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    detector,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.35),
+                      fontSize: 8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _OpportunityChip(
+                    label: family.replaceAll('_', ' ').toUpperCase(),
+                    color: AppTheme.blue,
+                  ),
+                  _OpportunityChip(
+                    label: status.toUpperCase(),
+                    color: status.toLowerCase() == 'active'
+                        ? AppTheme.green
+                        : AppTheme.textMuted,
+                  ),
+                  if (severity != null)
+                    _OpportunityChip(
+                      label: 'SEV ${severity.toStringAsFixed(0)}',
+                      color: severity >= 80 ? AppTheme.cyan : AppTheme.blue,
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 125,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    strength == null
+                        ? 'Strength —'
+                        : 'Strength ${strength.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: AppTheme.cyan,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    confidence == null
+                        ? 'Confidence —'
+                        : '${(confidence * 100).toStringAsFixed(0)}% confidence',
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 9,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$evidenceCount evidence item${evidenceCount == 1 ? '' : 's'}',
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 7),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.textMuted,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _showSignalDetail(
+  BuildContext context,
+  Map<String, dynamic> signal,
+) {
+  final title =
+      (signal['signal_name'] ?? signal['title'] ?? 'Signal').toString();
+  final confidence = (signal['confidence'] as num?)?.toDouble();
+  final evidence = signal['evidence_summary'];
+  final evidenceText = evidence is Map
+      ? const JsonEncoder.withIndent('  ').convert(evidence)
+      : (evidence?.toString() ?? 'No evidence summary.');
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: AppTheme.panel,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 780),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.radar_rounded, color: AppTheme.cyan),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${signal['full_address'] ?? signal['municipality'] ?? 'Property intelligence'}',
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _MiniStat(
+                      label: 'SEVERITY',
+                      value: '${signal['severity'] ?? '—'}',
+                    ),
+                    _MiniStat(
+                      label: 'STRENGTH',
+                      value: '${signal['strength'] ?? '—'}',
+                    ),
+                    _MiniStat(
+                      label: 'CONFIDENCE',
+                      value: confidence == null
+                          ? '—'
+                          : '${(confidence * 100).toStringAsFixed(0)}%',
+                    ),
+                    _MiniStat(
+                      label: 'EVIDENCE',
+                      value: '${signal['evidence_count'] ?? 0}',
+                    ),
+                    _MiniStat(
+                      label: 'STATUS',
+                      value: '${signal['status'] ?? '—'}',
+                    ),
+                    _MiniStat(
+                      label: 'PROPERTY',
+                      value: '${signal['property_type'] ?? '—'}',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  'Detection',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  'Family: ${signal['signal_family'] ?? '—'}\n'
+                  'Signal key: ${signal['signal_key'] ?? '—'}\n'
+                  'Detector: ${signal['detector_key'] ?? '—'}\n'
+                  'Direction: ${signal['direction'] ?? '—'}\n'
+                  'Detected: ${signal['detected_at'] ?? '—'}\n'
+                  'Effective: ${signal['effective_at'] ?? '—'}\n'
+                  'Expires: ${signal['expires_at'] ?? '—'}',
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 11,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Evidence summary',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.panelSoft.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  ),
+                  child: SelectableText(
+                    evidenceText,
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 10,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Signal ID: ${signal['signal_id'] ?? '—'}',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.30),
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _PropertiesPage extends StatefulWidget {
+  const _PropertiesPage();
+
+  @override
+  State<_PropertiesPage> createState() => _PropertiesPageState();
+}
+
+class _PropertiesPageState extends State<_PropertiesPage> {
+  static const int _pageSize = 25;
+
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _municipalityController = TextEditingController();
+  final TextEditingController _typeController = TextEditingController();
+
+  late Future<Map<String, dynamic>> _request;
+  int _offset = 0;
+  String? _search;
+  String? _municipality;
+  String? _propertyType;
+
+  @override
+  void initState() {
+    super.initState();
+    _request = _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _municipalityController.dispose();
+    _typeController.dispose();
+    super.dispose();
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final response = await http
+        .post(
+          Uri.parse(
+            '$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_properties',
+          ),
+          headers: _apiHeaders(),
+          body: jsonEncode({
+            'p_search': _search,
+            'p_municipality': _municipality,
+            'p_property_type': _propertyType,
+            'p_limit': _pageSize,
+            'p_offset': _offset,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'BridgePoint Properties API ${response.statusCode}: ${response.body}',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException('Unexpected BridgePoint Properties response.');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  void _reload() {
+    final next = _load();
+    setState(() => _request = next);
+  }
+
+  void _applyFilters() {
+    _offset = 0;
+    _search = _clean(_searchController.text);
+    _municipality = _clean(_municipalityController.text);
+    _propertyType = _clean(_typeController.text);
+    _reload();
+  }
+
+  String? _clean(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    _municipalityController.clear();
+    _typeController.clear();
+    _offset = 0;
+    _search = null;
+    _municipality = null;
+    _propertyType = null;
+    _reload();
+  }
+
+  void _previous() {
+    if (_offset <= 0) return;
+    _offset = (_offset - _pageSize).clamp(0, 1 << 30);
+    _reload();
+  }
+
+  void _next() {
+    _offset += _pageSize;
+    _reload();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _request,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final raw = data?['properties'];
+        final properties = raw is List
+            ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+            : <Map<String, dynamic>>[];
+
+        final estimate =
+            (data?['property_count_estimate'] as num?)?.toInt() ?? 0;
+        final hasMore = data?['has_more'] == true;
+        final loading = snapshot.connectionState == ConnectionState.waiting;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PageHeading(
+              title: 'Properties',
+              subtitle:
+                  'Connecticut property universe • search, inspect, and open intelligence',
+              onRefresh: _reload,
+              loading: loading,
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 900 ? 3 : 1;
+                const gap = 14.0;
+                final width =
+                    (constraints.maxWidth - gap * (columns - 1)) / columns;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    _MetricCard(
+                      width: width,
+                      label: 'PROPERTY INVENTORY',
+                      value: '1,282,833',
+                      detail: 'Imported Connecticut CAMA / parcel rows',
+                      icon: Icons.home_work_outlined,
+                      accent: AppTheme.cyan,
+                    ),
+                    _MetricCard(
+                      width: width,
+                      label: 'PAGE',
+                      value: '${(_offset ~/ _pageSize) + 1}',
+                      detail:
+                          '${properties.isEmpty ? 0 : _offset + 1}–${_offset + properties.length}',
+                      icon: Icons.view_list_rounded,
+                      accent: AppTheme.blue,
+                    ),
+                    _MetricCard(
+                      width: width,
+                      label: 'SEARCH MODE',
+                      value: _search == null &&
+                              _municipality == null &&
+                              _propertyType == null
+                          ? 'Browse'
+                          : 'Filtered',
+                      detail: '25 properties per request',
+                      icon: Icons.manage_search_rounded,
+                      accent: AppTheme.green,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 800) {
+                          return Column(
+                            children: [
+                              _propertyField(
+                                controller: _searchController,
+                                label: 'Address or parcel',
+                                icon: Icons.search_rounded,
+                                onSubmitted: (_) => _applyFilters(),
+                              ),
+                              const SizedBox(height: 10),
+                              _propertyField(
+                                controller: _municipalityController,
+                                label: 'Municipality',
+                                icon: Icons.location_city_outlined,
+                                onSubmitted: (_) => _applyFilters(),
+                              ),
+                              const SizedBox(height: 10),
+                              _propertyField(
+                                controller: _typeController,
+                                label: 'Property type',
+                                icon: Icons.category_outlined,
+                                onSubmitted: (_) => _applyFilters(),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: _propertyField(
+                                controller: _searchController,
+                                label: 'Address or parcel',
+                                icon: Icons.search_rounded,
+                                onSubmitted: (_) => _applyFilters(),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _propertyField(
+                                controller: _municipalityController,
+                                label: 'Municipality',
+                                icon: Icons.location_city_outlined,
+                                onSubmitted: (_) => _applyFilters(),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _propertyField(
+                                controller: _typeController,
+                                label: 'Property type',
+                                icon: Icons.category_outlined,
+                                onSubmitted: (_) => _applyFilters(),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: loading ? null : _applyFilters,
+                          icon: const Icon(Icons.search_rounded, size: 17),
+                          label: const Text('Search'),
+                        ),
+                        const SizedBox(width: 10),
+                        OutlinedButton.icon(
+                          onPressed: loading ? null : _clearFilters,
+                          icon: const Icon(Icons.clear_rounded, size: 17),
+                          label: const Text('Clear'),
+                        ),
+                        const Spacer(),
+                        Text(
+                          'Search narrows properties before intelligence joins',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.38),
+                            fontSize: 9,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            if (snapshot.hasError)
+              _DashboardError(
+                message: snapshot.error.toString(),
+                onRetry: _reload,
+              )
+            else if (loading && data == null)
+              const Card(
+                child: SizedBox(
+                  height: 260,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.cyan,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                ),
+              )
+            else if (properties.isEmpty)
+              const Card(
+                child: SizedBox(
+                  height: 220,
+                  child: Center(
+                    child: Text(
+                      'No properties match this search.',
+                      style: TextStyle(color: AppTheme.textMuted),
+                    ),
+                  ),
+                ),
+              )
+            else
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _PanelHeader(
+                        title: 'Connecticut Properties',
+                        subtitle:
+                            'Inventory • property facts • attached intelligence',
+                        action: 'Open property',
+                      ),
+                      const SizedBox(height: 14),
+                      ...properties.map(
+                        (property) => _PropertyListCard(property: property),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed:
+                                _offset > 0 && !loading ? _previous : null,
+                            icon: const Icon(
+                              Icons.chevron_left_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('Previous'),
+                          ),
+                          const SizedBox(width: 10),
+                          OutlinedButton.icon(
+                            onPressed: hasMore && !loading ? _next : null,
+                            icon: const Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('Next'),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${properties.length} returned',
+                            style: const TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _propertyField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required ValueChanged<String> onSubmitted,
+  }) {
+    return TextField(
+      controller: controller,
+      onSubmitted: onSubmitted,
+      style: const TextStyle(color: Colors.white, fontSize: 11),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(
+          color: AppTheme.textMuted,
+          fontSize: 10,
+        ),
+        prefixIcon: Icon(icon, color: AppTheme.textMuted, size: 18),
+        isDense: true,
+        filled: true,
+        fillColor: AppTheme.panelSoft.withOpacity(0.45),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppTheme.cyan),
+        ),
+      ),
+    );
+  }
+}
+
+class _PropertyListCard extends StatelessWidget {
+  const _PropertyListCard({required this.property});
+
+  final Map<String, dynamic> property;
+
+  @override
+  Widget build(BuildContext context) {
+    final address = (property['full_address'] ?? '').toString();
+    final municipality = (property['municipality'] ?? 'Unknown').toString();
+    final county = (property['county'] ?? '').toString();
+    final parcel = (property['parcel_number'] ?? 'No parcel').toString();
+    final type = (property['property_type'] ?? 'UNKNOWN').toString();
+    final score = property['final_score'] as num?;
+    final opportunityScore = property['opportunity_score'] as num?;
+    final priority = property['opportunity_priority']?.toString();
+    final signal = property['top_signal_type']?.toString();
+    final assessed = property['assessed_total_value'] as num?;
+    final yearBuilt = property['year_built'];
+
+    final displayAddress =
+        address.trim().isEmpty || address == '${property['postal_code']}, CT'
+            ? '$municipality, CT • $parcel'
+            : address;
+
+    return InkWell(
+      onTap: () => _showPropertyInventoryDetail(context, property),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: AppTheme.panelSoft.withOpacity(0.50),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppTheme.cyan.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.home_work_outlined,
+                color: AppTheme.cyan,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              flex: 4,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayAddress,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    [
+                      municipality,
+                      if (county.isNotEmpty) '$county County',
+                      parcel,
+                    ].join(' • '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _OpportunityChip(label: type, color: AppTheme.blue),
+                  if (score != null)
+                    _OpportunityChip(
+                      label: 'SCORE ${score.toStringAsFixed(1)}',
+                      color: AppTheme.cyan,
+                    ),
+                  if (priority != null)
+                    _OpportunityChip(
+                      label: priority.toUpperCase(),
+                      color: _opportunityPriorityColor(priority),
+                    ),
+                  if (signal != null)
+                    _OpportunityChip(
+                      label: signal.replaceAll('_', ' ').toUpperCase(),
+                      color: AppTheme.green,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 135,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    opportunityScore == null
+                        ? 'No active opportunity'
+                        : 'Opportunity ${opportunityScore.toStringAsFixed(1)}',
+                    style: TextStyle(
+                      color: opportunityScore == null
+                          ? AppTheme.textMuted
+                          : AppTheme.cyan,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    [
+                      if (yearBuilt != null) 'Built $yearBuilt',
+                      if (assessed != null)
+                        '\$${_formatInteger(assessed)} assessed',
+                    ].isEmpty
+                        ? 'Property record'
+                        : [
+                            if (yearBuilt != null) 'Built $yearBuilt',
+                            if (assessed != null)
+                              '\$${_formatInteger(assessed)} assessed',
+                          ].join(' • '),
+                    textAlign: TextAlign.right,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 7),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.textMuted,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+void _showPropertyInventoryDetail(
+  BuildContext context,
+  Map<String, dynamic> property,
+) {
+  final propertyId = property['property_id']?.toString();
+  if (propertyId == null || propertyId.isEmpty) return;
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => _PropertyIntelligenceDialog(propertyId: propertyId),
+  );
+}
+
+class _PropertyIntelligenceDialog extends StatefulWidget {
+  const _PropertyIntelligenceDialog({required this.propertyId});
+
+  final String propertyId;
+
+  @override
+  State<_PropertyIntelligenceDialog> createState() =>
+      _PropertyIntelligenceDialogState();
+}
+
+class _PropertyIntelligenceDialogState
+    extends State<_PropertyIntelligenceDialog> {
+  late Future<Map<String, dynamic>> _request;
+
+  @override
+  void initState() {
+    super.initState();
+    _request = _load();
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final response = await http
+        .post(
+          Uri.parse(
+            '$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_property_detail_v57',
+          ),
+          headers: _apiHeaders(),
+          body: jsonEncode({'p_property_id': widget.propertyId}),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Property Intelligence API ${response.statusCode}: ${response.body}',
+      );
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException('Unexpected property intelligence response.');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  void _reload() => setState(() => _request = _load());
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppTheme.panel,
+      insetPadding: const EdgeInsets.all(22),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1180, maxHeight: 850),
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _request,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                snapshot.data == null) {
+              return const SizedBox(
+                height: 520,
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: AppTheme.cyan,
+                    strokeWidth: 2.5,
+                  ),
+                ),
+              );
+            }
+            if (snapshot.hasError) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _DashboardError(
+                      message: snapshot.error.toString(),
+                      onRetry: _reload,
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final data = snapshot.data ?? <String, dynamic>{};
+            final property = data['property'] is Map
+                ? Map<String, dynamic>.from(data['property'] as Map)
+                : <String, dynamic>{};
+            final summary = data['summary'] is Map
+                ? Map<String, dynamic>.from(data['summary'] as Map)
+                : <String, dynamic>{};
+            final scores = _detailList(data['scores']);
+            final opportunities = _detailList(data['opportunities']);
+            final signals = _detailList(data['signals']);
+            final timeline = _detailList(data['timeline']);
+            final physical = data['physical_intelligence'] is Map
+                ? Map<String, dynamic>.from(
+                    data['physical_intelligence'] as Map,
+                  )
+                : <String, dynamic>{};
+            final solar = data['solar_intelligence'] is Map
+                ? Map<String, dynamic>.from(data['solar_intelligence'] as Map)
+                : <String, dynamic>{};
+            final propertyDna = data['property_dna'] is Map
+                ? Map<String, dynamic>.from(data['property_dna'] as Map)
+                : <String, dynamic>{};
+            final building2d = _detailList(physical['building_2d']);
+            final building3d = _detailList(physical['building_3d']);
+            final solarInstallations = _detailList(solar['installations']);
+            final solarPotential = _detailList(solar['potential']);
+            final patterns = _detailList(data['patterns']);
+            final relationships = _detailList(data['relationships']);
+            final modernScores = _detailList(data['modern_scores']);
+            final modernPatterns = _detailList(data['modern_patterns']);
+            final modernOpportunities =
+                _detailList(data['modern_opportunities']);
+
+            final address =
+                '${property['full_address'] ?? '${property['municipality'] ?? 'Connecticut'} property'}';
+            final assessed = property['assessed_total_value'] as num?;
+            final market = property['market_total_value'] as num?;
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 14, 14),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.hub_outlined,
+                        color: AppTheme.cyan,
+                        size: 25,
+                      ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              address,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'PROPERTY INTELLIGENCE RECORD • ${property['municipality'] ?? 'CT'} • ${property['parcel_number'] ?? 'No parcel'}',
+                              style: const TextStyle(
+                                color: AppTheme.textMuted,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: .55,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Refresh intelligence',
+                        onPressed: _reload,
+                        icon: const Icon(
+                          Icons.refresh_rounded,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(.06)),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _MiniStat(
+                              label: 'MODEL SCORES',
+                              value: '${summary['score_count'] ?? scores.length}',
+                            ),
+                            _MiniStat(
+                              label: 'OPPORTUNITIES',
+                              value:
+                                  '${summary['active_opportunity_count'] ?? opportunities.length}',
+                            ),
+                            _MiniStat(
+                              label: 'SIGNALS',
+                              value: '${summary['signal_count'] ?? signals.length}',
+                            ),
+                            _MiniStat(
+                              label: 'TIMELINE',
+                              value:
+                                  '${summary['timeline_item_count'] ?? timeline.length}',
+                            ),
+                            _MiniStat(
+                              label: 'PHYSICAL',
+                              value:
+                                  '${propertyDna['physical_record_count'] ?? building2d.length + building3d.length}',
+                            ),
+                            _MiniStat(
+                              label: 'PATTERNS',
+                              value:
+                                  '${propertyDna['pattern_count'] ?? patterns.length}',
+                            ),
+                            _MiniStat(
+                              label: 'RELATIONSHIPS',
+                              value:
+                                  '${propertyDna['relationship_count'] ?? relationships.length}',
+                            ),
+                            _MiniStat(
+                              label: 'V37 SCORE',
+                              value: modernScores.isEmpty
+                                  ? '—'
+                                  : _formatDecimal(
+                                      modernScores.first['intelligence_score'],
+                                    ),
+                            ),
+                            _MiniStat(
+                              label: 'V38 OPPORTUNITIES',
+                              value: '${modernOpportunities.length}',
+                            ),
+                            _MiniStat(
+                              label: 'ASSESSED',
+                              value: assessed == null
+                                  ? '—'
+                                  : '\$${_formatInteger(assessed)}',
+                            ),
+                            _MiniStat(
+                              label: 'MARKET',
+                              value: market == null
+                                  ? '—'
+                                  : '\$${_formatInteger(market)}',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 22),
+                        _DetailSection(
+                          title: 'Property',
+                          subtitle: 'Canonical Connecticut property record',
+                          child: Wrap(
+                            spacing: 22,
+                            runSpacing: 10,
+                            children: [
+                              _DetailFact('Type', property['property_type']),
+                              _DetailFact('Land use', property['land_use_description']),
+                              _DetailFact('Year built', property['year_built']),
+                              _DetailFact('Buildings', property['building_count']),
+                              _DetailFact('Acreage', property['acreage']),
+                              _DetailFact('Tax year', property['tax_year']),
+                              _DetailFact('County', property['county']),
+                              _DetailFact('Postal', property['postal_code']),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          title: 'Modern BridgePoint Intelligence',
+                          subtitle:
+                              'V37 scoring, V36 compound patterns and V38 opportunity decisions',
+                          child: _JsonIntelligenceList(
+                            emptyMessage:
+                                'This property has not reached the modern intelligence engines yet.',
+                            records: <Map<String, dynamic>>[
+                              ...modernScores.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': 'V37 Property Score',
+                                  ...row,
+                                },
+                              ),
+                              ...modernPatterns.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': 'V36 Pattern',
+                                  ...row,
+                                },
+                              ),
+                              ...modernOpportunities.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': 'V38 Opportunity',
+                                  ...row,
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          title: 'Physical & Building Intelligence',
+                          subtitle:
+                              'Connecticut 2023 2D and 3D building baselines linked to this property',
+                          child: _JsonIntelligenceList(
+                            emptyMessage:
+                                'No matched building baseline currently attached.',
+                            records: <Map<String, dynamic>>[
+                              ...building2d.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': '2D building baseline',
+                                  ...row,
+                                },
+                              ),
+                              ...building3d.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': '3D building baseline',
+                                  ...row,
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          title: 'Solar Intelligence',
+                          subtitle:
+                              'Known installations and property-level solar potential',
+                          child: _JsonIntelligenceList(
+                            emptyMessage:
+                                'No solar installation or potential record currently attached.',
+                            records: <Map<String, dynamic>>[
+                              ...solarInstallations.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': 'Solar installation',
+                                  ...row,
+                                },
+                              ),
+                              ...solarPotential.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': 'Solar potential',
+                                  ...row,
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          title: 'Patterns & Relationships',
+                          subtitle:
+                              'Cross-source patterns, ownership and connected-entity intelligence',
+                          child: _JsonIntelligenceList(
+                            emptyMessage:
+                                'No active patterns or relationships currently attached.',
+                            records: <Map<String, dynamic>>[
+                              ...patterns.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': 'Pattern',
+                                  ...row,
+                                },
+                              ),
+                              ...relationships.map(
+                                (row) => <String, dynamic>{
+                                  'record_type': 'Relationship',
+                                  ...row,
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          title: 'Model Scores',
+                          subtitle:
+                              'Current BridgePoint scoring results for this property',
+                          child: scores.isEmpty
+                              ? const _EmptyDetail('No current model scores.')
+                              : Column(
+                                  children: scores
+                                      .map((s) => _ScoreDetailRow(score: s))
+                                      .toList(),
+                                ),
+                        ),
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          title: 'Active Opportunities',
+                          subtitle:
+                              'Qualified actions currently surfaced by BridgePoint',
+                          child: opportunities.isEmpty
+                              ? const _EmptyDetail(
+                                  'No active opportunities currently attached.',
+                                )
+                              : Column(
+                                  children: opportunities
+                                      .map(
+                                        (o) => _OpportunityDetailRow(
+                                          opportunity: o,
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                        ),
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          title: 'Signals & Evidence',
+                          subtitle:
+                              'Property evidence and area/context intelligence are labeled separately',
+                          child: signals.isEmpty
+                              ? const _EmptyDetail('No signals attached.')
+                              : Column(
+                                  children: signals
+                                      .map((s) => _SignalDetailRow(signal: s))
+                                      .toList(),
+                                ),
+                        ),
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          title: 'Intelligence Timeline',
+                          subtitle:
+                              'Signals and opportunities ordered by detection time',
+                          child: timeline.isEmpty
+                              ? const _EmptyDetail('No timeline items.')
+                              : Column(
+                                  children: timeline
+                                      .map((t) => _TimelineDetailRow(item: t))
+                                      .toList(),
+                                ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Property ID: ${data['property_id'] ?? widget.propertyId}',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(.25),
+                            fontSize: 8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+List<Map<String, dynamic>> _detailList(Object? value) {
+  if (value is! List) return <Map<String, dynamic>>[];
+  return value
+      .whereType<Map>()
+      .map((e) => Map<String, dynamic>.from(e))
+      .toList();
+}
+
+class _JsonIntelligenceList extends StatelessWidget {
+  const _JsonIntelligenceList({
+    required this.records,
+    required this.emptyMessage,
+  });
+
+  final List<Map<String, dynamic>> records;
+  final String emptyMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    if (records.isEmpty) return _EmptyDetail(emptyMessage);
+    return Column(
+      children: records.take(25).map((record) {
+        final visible = record.entries.where((entry) {
+          final value = entry.value;
+          return value != null &&
+              '$value'.trim().isNotEmpty &&
+              value is! Map &&
+              value is! List;
+        }).take(10).toList();
+        final title = '${record['record_type'] ?? 'Intelligence record'}';
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(.025),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white.withOpacity(.06)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppTheme.cyan,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Wrap(
+                spacing: 18,
+                runSpacing: 7,
+                children: visible
+                    .where((entry) => entry.key != 'record_type')
+                    .map(
+                      (entry) => _DetailFact(
+                        _intelligenceLabel(entry.key),
+                        entry.value,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+String _intelligenceLabel(String key) {
+  return key
+      .split('_')
+      .where((part) => part.isNotEmpty)
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
+}
+
+class _DetailSection extends StatelessWidget {
+  const _DetailSection({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AppTheme.panelSoft.withOpacity(.38),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(.055)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: AppTheme.textMuted,
+              fontSize: 8,
+            ),
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailFact extends StatelessWidget {
+  const _DetailFact(this.label, this.value);
+
+  final String label;
+  final Object? value;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 145,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(
+              color: AppTheme.textMuted,
+              fontSize: 7,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${value ?? '—'}',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScoreDetailRow extends StatelessWidget {
+  const _ScoreDetailRow({required this.score});
+  final Map<String, dynamic> score;
+
+  @override
+  Widget build(BuildContext context) {
+    final finalScore = score['final_score'] as num?;
+    final confidence = score['confidence_score'] as num?;
+    return _DetailRowShell(
+      icon: Icons.speed_rounded,
+      title: '${score['model_name'] ?? score['model_key'] ?? 'Model score'}',
+      subtitle: '${score['explanation'] ?? 'Current intelligence score'}',
+      chips: [
+        if (finalScore != null)
+          _OpportunityChip(
+            label: 'SCORE ${finalScore.toStringAsFixed(1)}',
+            color: AppTheme.cyan,
+          ),
+        if (score['score_status'] != null)
+          _OpportunityChip(
+            label: '${score['score_status']}'.toUpperCase(),
+            color: AppTheme.blue,
+          ),
+        if (confidence != null)
+          _OpportunityChip(
+            label: '${confidence.toStringAsFixed(0)}% CONF',
+            color: AppTheme.green,
+          ),
+        _OpportunityChip(
+          label: '${score['event_count'] ?? 0} EVENTS',
+          color: AppTheme.textMuted,
+        ),
+      ],
+    );
+  }
+}
+
+class _OpportunityDetailRow extends StatelessWidget {
+  const _OpportunityDetailRow({required this.opportunity});
+  final Map<String, dynamic> opportunity;
+
+  @override
+  Widget build(BuildContext context) {
+    final score = opportunity['score'] as num?;
+    final priority = '${opportunity['priority'] ?? 'medium'}';
+    return _DetailRowShell(
+      icon: Icons.bolt_rounded,
+      title: '${opportunity['title'] ?? 'Opportunity'}',
+      subtitle:
+          '${opportunity['recommended_action'] ?? opportunity['explanation'] ?? ''}',
+      chips: [
+        if (score != null)
+          _OpportunityChip(
+            label: 'SCORE ${score.toStringAsFixed(1)}',
+            color: AppTheme.cyan,
+          ),
+        _OpportunityChip(
+          label: priority.toUpperCase(),
+          color: _opportunityPriorityColor(priority),
+        ),
+        if (opportunity['model_name'] != null)
+          _OpportunityChip(
+            label: '${opportunity['model_name']}',
+            color: AppTheme.blue,
+          ),
+      ],
+    );
+  }
+}
+
+class _SignalDetailRow extends StatelessWidget {
+  const _SignalDetailRow({required this.signal});
+  final Map<String, dynamic> signal;
+
+  @override
+  Widget build(BuildContext context) {
+    final evidence = signal['evidence_summary'] is Map
+        ? Map<String, dynamic>.from(signal['evidence_summary'] as Map)
+        : <String, dynamic>{};
+    final precision = '${evidence['matching_precision'] ?? ''}';
+    final contextual = precision.startsWith('AREA_') ||
+        '${evidence['storage_mode'] ?? ''}'.contains('area_context');
+    final severity = signal['severity'] as num?;
+    final confidence = signal['confidence'] as num?;
+
+    return _DetailRowShell(
+      icon: contextual ? Icons.public_rounded : Icons.place_outlined,
+      title: '${signal['signal_name'] ?? signal['title'] ?? 'Signal'}',
+      subtitle: contextual
+          ? 'Area/context intelligence • ${evidence['provider'] ?? signal['signal_family'] ?? ''}'
+          : 'Property evidence • ${evidence['provider'] ?? signal['signal_family'] ?? ''}',
+      chips: [
+        _OpportunityChip(
+          label: contextual ? 'AREA CONTEXT' : 'PROPERTY EVIDENCE',
+          color: contextual ? AppTheme.blue : AppTheme.green,
+        ),
+        if (severity != null)
+          _OpportunityChip(
+            label: 'SEV ${severity.toStringAsFixed(0)}',
+            color: AppTheme.cyan,
+          ),
+        if (confidence != null)
+          _OpportunityChip(
+            label: '${(confidence * 100).toStringAsFixed(0)}% CONF',
+            color: AppTheme.textMuted,
+          ),
+        _OpportunityChip(
+          label: '${signal['evidence_count'] ?? 0} EVIDENCE',
+          color: AppTheme.textMuted,
+        ),
+      ],
+    );
+  }
+}
+
+class _TimelineDetailRow extends StatelessWidget {
+  const _TimelineDetailRow({required this.item});
+  final Map<String, dynamic> item;
+
+  @override
+  Widget build(BuildContext context) {
+    final type = '${item['timeline_type'] ?? 'SIGNAL'}';
+    final when = '${item['timeline_at'] ?? ''}';
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withOpacity(.045)),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            type == 'OPPORTUNITY'
+                ? Icons.bolt_rounded
+                : Icons.radio_button_checked_rounded,
+            color: type == 'OPPORTUNITY' ? AppTheme.cyan : AppTheme.blue,
+            size: 15,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${item['title'] ?? type}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  when.length >= 10 ? when.substring(0, 10) : when,
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _OpportunityChip(
+            label: type,
+            color: type == 'OPPORTUNITY' ? AppTheme.cyan : AppTheme.blue,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRowShell extends StatelessWidget {
+  const _DetailRowShell({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.chips,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<Widget> chips;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withOpacity(.045)),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppTheme.cyan, size: 17),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (subtitle.trim().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 8,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 7),
+                Wrap(spacing: 6, runSpacing: 6, children: chips),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyDetail extends StatelessWidget {
+  const _EmptyDetail(this.message);
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      message,
+      style: const TextStyle(
+        color: AppTheme.textMuted,
+        fontSize: 10,
+      ),
+    );
+  }
+}
+
+class _OpportunitiesPage extends StatefulWidget {
+  const _OpportunitiesPage({
+    required this.modelKey,
+    required this.packageName,
+  });
+
+  final String modelKey;
+  final String packageName;
+
+  @override
+  State<_OpportunitiesPage> createState() => _OpportunitiesPageState();
+}
+
+class _OpportunitiesPageState extends State<_OpportunitiesPage> {
+  static const int _pageSize = 25;
+
+  late Future<Map<String, dynamic>> _request;
+  int _offset = 0;
+  String? _priority;
+
+  @override
+  void initState() {
+    super.initState();
+    _request = _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _OpportunitiesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.modelKey != widget.modelKey) {
+      _offset = 0;
+      _priority = null;
+      _request = _load();
+    }
+  }
+
+  Future<Map<String, dynamic>> _load() async {
+    final response = await http
+        .post(
+          Uri.parse(
+            '$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_opportunities_v57',
+          ),
+          headers: _apiHeaders(),
+          body: jsonEncode({
+            'p_model_key': widget.modelKey,
+            'p_limit': _pageSize,
+            'p_offset': _offset,
+            'p_priority': _priority,
+            'p_stage': null,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'BridgePoint Opportunities API ${response.statusCode}: ${response.body}',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException(
+        'Unexpected BridgePoint Opportunities response.',
+      );
+    }
+
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  void _refresh() {
+    final next = _load();
+    setState(() {
+      _request = next;
+    });
+  }
+
+  void _setPriority(String? value) {
+    _offset = 0;
+    _priority = value == 'all' ? null : value;
+    _refresh();
+  }
+
+  void _previousPage() {
+    if (_offset <= 0) return;
+    _offset = (_offset - _pageSize).clamp(0, 1 << 30);
+    _refresh();
+  }
+
+  void _nextPage() {
+    _offset += _pageSize;
+    _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _request,
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final raw = data?['opportunities'];
+        final opportunities = raw is List
+            ? raw
+                .whereType<Map>()
+                .map((item) => Map<String, dynamic>.from(item))
+                .toList()
+            : <Map<String, dynamic>>[];
+
+        final total = (data?['total_results'] as num?)?.toInt() ?? 0;
+        final hasMore = data?['has_more'] == true;
+        final loading =
+            snapshot.connectionState == ConnectionState.waiting;
+        final first = total == 0 ? 0 : _offset + 1;
+        final last = total == 0
+            ? 0
+            : (_offset + opportunities.length).clamp(0, total);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PageHeading(
+              title: 'Opportunities',
+              subtitle:
+                  '${widget.packageName} • live ranked Connecticut property intelligence',
+              onRefresh: _refresh,
+              loading: loading,
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 900 ? 3 : 1;
+                const gap = 14.0;
+                final width =
+                    (constraints.maxWidth - gap * (columns - 1)) / columns;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    _MetricCard(
+                      width: width,
+                      label: 'MATCHING OPPORTUNITIES',
+                      value: loading && data == null
+                          ? '—'
+                          : _formatInteger(total),
+                      detail: widget.packageName,
+                      icon: Icons.bolt_rounded,
+                      accent: AppTheme.cyan,
+                    ),
+                    _MetricCard(
                       width: width,
                       label: 'CURRENT PAGE',
                       value: total == 0
