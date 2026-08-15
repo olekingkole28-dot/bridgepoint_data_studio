@@ -26,7 +26,7 @@ Deno.serve(async(req:Request)=>{
     });
     const result=await rpc.json().catch(()=>({complete:false,error:"Backup administrator invitation could not be saved"}));
     if(!rpc.ok)return respond({complete:false,error:result.message??result.error??"Invitation could not be saved"},rpc.status);
-    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"https://bridgepoint-intelligence.olekingkole28.chatgpt.site";
+    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"https://bridgepointintelligence.online";
     const invite=await fetch(supabaseUrl+"/auth/v1/invite?redirect_to="+encodeURIComponent(appUrl),{
       method:"POST",headers:{apikey:service,Authorization:"Bearer "+service,"Content-Type":"application/json"},
       body:JSON.stringify({email,data:{
@@ -37,8 +37,19 @@ Deno.serve(async(req:Request)=>{
     });
     if(!invite.ok){
       const detail=await invite.json().catch(()=>({}));
-      return respond({...result,email_sent:false,email_message:detail.msg??detail.message??"Invitation saved; email delivery is pending configuration."});
+      return respond({
+        ...result,
+        complete:false,
+        email_sent:false,
+        delivery_status:"FAILED",
+        email_message:detail.msg??detail.message??"The backup invitation was saved, but the email provider did not accept it.",
+      },424);
     }
-    return respond({...result,email_sent:true});
+    return respond({
+      ...result,
+      email_sent:true,
+      delivery_status:"ACCEPTED_BY_EMAIL_PROVIDER",
+      delivery_message:"The secure backup-administrator invitation was accepted for delivery.",
+    });
   }catch(error){return respond({complete:false,error:String(error)},500);}
 });

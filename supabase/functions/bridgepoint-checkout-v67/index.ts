@@ -25,7 +25,7 @@ Deno.serve(async(req:Request)=>{
     });
     if(!ctxRes.ok) return json({complete:false,error:await ctxRes.text()},400);
     const ctx=await ctxRes.json();
-    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"https://bridgepoint-intelligence.olekingkole28.chatgpt.site";
+    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"https://bridgepointintelligence.online";
     const form=new URLSearchParams();
     form.set("mode","subscription");
     form.set("integration_identifier","bridgepoint_checkout_kjrmxqta");
@@ -54,4 +54,3 @@ Deno.serve(async(req:Request)=>{
       founding_discount_applied:Boolean(ctx.coupon_id)});
   }catch(error){return json({complete:false,error:String(error)},500);}
 });
-
