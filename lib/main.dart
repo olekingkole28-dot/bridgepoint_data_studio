@@ -3,14 +3,20 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
+const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';
+const _bridgePointShareSubject = 'Try BridgePoint Intelligence';
+const _bridgePointShareMessage =
+    'See property opportunities, live weather context, explainable evidence, maps, timelines, and field tools in one place. Try BridgePoint Intelligence free for 7 days: $_bridgePointLiveUrl';
 // Supabase publishable keys are intentionally safe for client applications.
 // Never place a service_role or sb_secret key in Flutter source code.
 const _supabasePublishableKey =
@@ -413,6 +419,56 @@ Future<void> _openOwnerPayoutSettings(BuildContext context) async {
   if(!await launchUrl(uri,mode:LaunchMode.externalApplication)&&context.mounted){
     _showInfoDialog(context,'Could not open Stripe','Open Stripe Dashboard → Settings → Bank accounts and scheduling. Enter bank information only inside Stripe.');
   }
+}
+
+Future<void> _launchBridgePointShareTarget(BuildContext context,Uri uri,{required String label})async{
+  try{
+    if(!await launchUrl(uri,mode:LaunchMode.externalApplication))throw Exception('No compatible app or browser was available.');
+  }catch(error){
+    await Clipboard.setData(const ClipboardData(text:_bridgePointLiveUrl));
+    if(context.mounted)_showInfoDialog(context,'Could not open $label','$error\n\nThe BridgePoint link was copied so you can paste it anywhere.');
+  }
+}
+
+Future<void> _shareBridgePointNatively(BuildContext context)async{
+  try{
+    final box=context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(ShareParams(
+      title:'BridgePoint Intelligence',subject:_bridgePointShareSubject,text:_bridgePointShareMessage,
+      sharePositionOrigin:box==null?null:box.localToGlobal(Offset.zero)&box.size,
+    ));
+  }catch(error){if(context.mounted)_showInfoDialog(context,'Share menu unavailable','$error\n\nUse Copy link, Email, Text, or a social button below.');}
+}
+
+void _showShareBridgePointDialog(BuildContext context)=>showDialog<void>(context:context,builder:(context)=>const _ShareBridgePointDialog());
+
+class _ShareBridgePointDialog extends StatelessWidget{
+  const _ShareBridgePointDialog();
+  Future<void> _copy(BuildContext context)async{
+    await Clipboard.setData(const ClipboardData(text:_bridgePointLiveUrl));
+    if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('BridgePoint link copied.')));
+  }
+  Widget _action(IconData icon,String label,VoidCallback onPressed,{Color color=AppTheme.cyan})=>SizedBox(width:218,child:OutlinedButton.icon(onPressed:onPressed,icon:Icon(icon,color:color),label:Text(label)));
+  @override Widget build(BuildContext context)=>AlertDialog(
+    backgroundColor:AppTheme.panel,
+    title:const Row(children:[Icon(Icons.ios_share_rounded,color:AppTheme.cyan),SizedBox(width:10),Expanded(child:Text('Share BridgePoint'))]),
+    content:ConstrainedBox(constraints:const BoxConstraints(maxWidth:720),child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Text('Invite a customer, teammate, friend, or organization. Every option uses the permanent BridgePoint link.',style:TextStyle(color:AppTheme.textMuted,fontSize:11,height:1.45)),
+      const SizedBox(height:14),Container(width:double.infinity,padding:const EdgeInsets.all(13),decoration:BoxDecoration(color:AppTheme.panelSoft,borderRadius:BorderRadius.circular(12),border:Border.all(color:Colors.white.withOpacity(.07))),child:const SelectableText(_bridgePointLiveUrl,style:TextStyle(color:AppTheme.cyan,fontWeight:FontWeight.w800))),
+      const SizedBox(height:14),Wrap(spacing:9,runSpacing:9,children:[
+        _action(Icons.share_rounded,'Device share menu',()=>_shareBridgePointNatively(context)),
+        _action(Icons.content_copy_rounded,'Copy link',()=>_copy(context)),
+        _action(Icons.email_outlined,'Email it',()=>_launchBridgePointShareTarget(context,Uri(scheme:'mailto',queryParameters:{'subject':_bridgePointShareSubject,'body':_bridgePointShareMessage}),label:'email')),
+        _action(Icons.sms_outlined,'Send as text',()=>_launchBridgePointShareTarget(context,Uri(scheme:'sms',queryParameters:{'body':_bridgePointShareMessage}),label:'text messages')),
+        _action(Icons.chat_rounded,'WhatsApp',()=>_launchBridgePointShareTarget(context,Uri.https('wa.me','/',{'text':_bridgePointShareMessage}),label:'WhatsApp'),color:AppTheme.green),
+        _action(Icons.alternate_email_rounded,'Post to X',()=>_launchBridgePointShareTarget(context,Uri.https('twitter.com','/intent/tweet',{'text':'Property intelligence that explains what changed and what to do next.','url':_bridgePointLiveUrl}),label:'X')),
+        _action(Icons.business_center_outlined,'Share on LinkedIn',()=>_launchBridgePointShareTarget(context,Uri.https('www.linkedin.com','/sharing/share-offsite/',{'url':_bridgePointLiveUrl}),label:'LinkedIn'),color:AppTheme.blue),
+        _action(Icons.people_alt_outlined,'Share on Facebook',()=>_launchBridgePointShareTarget(context,Uri.https('www.facebook.com','/sharer/sharer.php',{'u':_bridgePointLiveUrl}),label:'Facebook'),color:AppTheme.blue),
+      ]),
+      const SizedBox(height:14),const Text('Email and text open your device composer so you choose the recipient and approve the message before it is sent.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.45)),
+    ]))),
+    actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('Done'))],
+  );
 }
 
 class AppTheme {
@@ -1202,6 +1258,11 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+          _IconButton(
+            icon: Icons.ios_share_rounded,
+            onTap: () => _showShareBridgePointDialog(context),
+          ),
+          const SizedBox(width: 10),
           _IconButton(
             icon: Icons.help_outline_rounded,
             onTap: () => _showFaqDialog(context),
@@ -9005,6 +9066,16 @@ class _SettingsPageState extends State<_SettingsPage> {
                         actions:[FilledButton(onPressed:()=>Navigator.pop(context),child:const Text('Got it'))])),
                       icon:const Icon(Icons.waving_hand_outlined),label:const Text('Preview signup & welcome'))),
                     const SizedBox(height:8),const Text('To see the live personalized welcome, choose Daily Brief in the left menu. To see alerts, tap the bell.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+                  ],
+                )),
+                SizedBox(width:width,child:_SettingsSection(
+                  icon:Icons.ios_share_rounded,title:'Share BridgePoint',
+                  subtitle:'Send the permanent app link by email, text, device share menu, or social network.',
+                  children:[
+                    const SelectableText(_bridgePointLiveUrl,style:TextStyle(color:AppTheme.cyan,fontSize:11,fontWeight:FontWeight.w800)),
+                    const SizedBox(height:10),SizedBox(width:double.infinity,child:FilledButton.icon(
+                      onPressed:()=>_showShareBridgePointDialog(context),icon:const Icon(Icons.send_rounded),label:const Text('Choose how to share'))),
+                    const SizedBox(height:8),const Text('You always review and choose the recipient before an email or text is sent.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
                   ],
                 )),
                 SizedBox(width:width,child:const _TeamSettingsPanel()),
