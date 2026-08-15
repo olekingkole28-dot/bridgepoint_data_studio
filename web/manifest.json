@@ -1,0 +1,11 @@
+{
+  "name": "BridgePoint Intelligence",
+  "short_name": "BridgePoint",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#07111F",
+  "theme_color": "#07111F",
+  "description": "Live property intelligence and ranked opportunities",
+  "orientation": "any",
+  "prefer_related_applications": false
+}
