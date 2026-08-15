@@ -1,7 +1,7 @@
 name: bridgepoint_data_studio
 description: BridgePoint Intelligence live property opportunity platform.
 publish_to: none
-version: 0.74.0+74
+version: 0.76.0+76
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -24,3 +24,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/bridgepoint-intelligence-background-v1.webp
+    - assets/images/bridgepoint-daily-brief-background-v2.webp
+    - assets/images/bridgepoint-map-background-v2.webp

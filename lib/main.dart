@@ -81,7 +81,7 @@ class _WorkspaceGateState extends State<_WorkspaceGate> {
   @override void initState(){super.initState();request=_callRpc('bridgepoint_onboarding_state_v70',const {});}
   @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
     future:request,builder:(context,snapshot){
-      if(snapshot.connectionState==ConnectionState.waiting)return const Scaffold(body:Center(child:CircularProgressIndicator(color:AppTheme.cyan)));
+      if(snapshot.connectionState==ConnectionState.waiting)return const Scaffold(body:_ExperienceBackground(child:Center(child:Column(mainAxisSize:MainAxisSize.min,children:[_BridgePointMark(size:64),SizedBox(height:18),Text('Preparing your intelligence workspace',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w800)),SizedBox(height:14),SizedBox(width:220,child:LinearProgressIndicator(color:AppTheme.cyan,backgroundColor:Colors.white12))]))));
       if(snapshot.hasError)return Scaffold(body:Center(child:_DashboardError(message:snapshot.error.toString(),onRetry:()=>setState(()=>request=_callRpc('bridgepoint_onboarding_state_v70',const {})))));
       if(snapshot.data?['onboarding_complete']!=true)return _OnboardingScreen(onComplete:()=>setState(()=>request=_callRpc('bridgepoint_onboarding_state_v70',const {})));
       return DashboardScreen(ownerMode:snapshot.data?['owner_bypass']==true);
@@ -117,7 +117,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen>{
     items:options.map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:loading?null:change);
   @override Widget build(BuildContext context)=>Scaffold(body:_ExperienceBackground(child:Center(child:SingleChildScrollView(padding:const EdgeInsets.all(20),child:Card(child:Container(
     width:680,padding:const EdgeInsets.all(30),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-      const Icon(Icons.route_rounded,color:AppTheme.cyan,size:48),const SizedBox(height:12),
+      const Center(child:_BridgePointMark(size:56)),const SizedBox(height:12),
       const Text('Let’s build the right BridgePoint workspace',textAlign:TextAlign.center,style:TextStyle(fontSize:22,fontWeight:FontWeight.w900)),
       const SizedBox(height:8),const Text('Choose the answers that fit you best. BridgePoint will recommend the package and intelligence most useful for your work.',textAlign:TextAlign.center,style:TextStyle(color:AppTheme.textMuted,height:1.5)),
       const SizedBox(height:24),drop('What kind of work do you do?',industry,const ['Roofing','Home services','Restoration','Public adjusting','Commercial real estate','Property investing','Development','Solar','Other'],(v)=>setState(()=>industry=v??industry)),
@@ -156,7 +156,7 @@ class _AuthScreenState extends State<_AuthScreen> {
   @override void dispose(){displayName.dispose();email.dispose();password.dispose();super.dispose();}
   @override Widget build(BuildContext context)=>Scaffold(body:_ExperienceBackground(child:Center(child:SingleChildScrollView(child:Card(child:Container(
     width:430,padding:const EdgeInsets.all(30),child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-      const Icon(Icons.hub_rounded,color:AppTheme.cyan,size:48),const SizedBox(height:14),
+      const Center(child:_BridgePointMark(size:58)),const SizedBox(height:14),
       const Text('BRIDGEPOINT INTELLIGENCE',textAlign:TextAlign.center,style:TextStyle(fontSize:18,fontWeight:FontWeight.w900,letterSpacing:1)),
       const SizedBox(height:8),Text(create?'Create your 7-day trial':'Sign in to live property intelligence',textAlign:TextAlign.center,style:const TextStyle(color:AppTheme.textMuted)),
       const SizedBox(height:24),if(create)...[TextField(controller:displayName,textCapitalization:TextCapitalization.words,decoration:const InputDecoration(labelText:'Profile name',hintText:'How BridgePoint should welcome you',border:OutlineInputBorder())),const SizedBox(height:12)],TextField(controller:email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Email',border:OutlineInputBorder())),
@@ -190,6 +190,41 @@ class _ExperienceBackground extends StatelessWidget {
       child:child,
     ),
   );
+}
+
+class _BridgePointMark extends StatelessWidget{
+  const _BridgePointMark({this.size=42});
+  final double size;
+  @override Widget build(BuildContext context)=>Container(
+    width:size,height:size,
+    decoration:BoxDecoration(
+      gradient:const LinearGradient(colors:[AppTheme.cyan,AppTheme.blue],begin:Alignment.topLeft,end:Alignment.bottomRight),
+      borderRadius:BorderRadius.circular(size*.28),
+      boxShadow:[BoxShadow(color:AppTheme.cyan.withOpacity(.20),blurRadius:size*.38,spreadRadius:1)],
+    ),
+    child:CustomPaint(painter:_BridgePointMarkPainter()),
+  );
+}
+
+class _BridgePointMarkPainter extends CustomPainter{
+  @override void paint(Canvas canvas,Size size){
+    final stroke=Paint()..color=Colors.white..style=PaintingStyle.stroke
+      ..strokeWidth=size.width*.075..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
+    final glow=Paint()..color=Colors.white.withOpacity(.22)..style=PaintingStyle.stroke
+      ..strokeWidth=size.width*.16..strokeCap=StrokeCap.round;
+    final bridge=Path()
+      ..moveTo(size.width*.18,size.height*.68)
+      ..cubicTo(size.width*.34,size.height*.42,size.width*.66,size.height*.42,size.width*.82,size.height*.68);
+    canvas.drawPath(bridge,glow);canvas.drawPath(bridge,stroke);
+    canvas.drawLine(Offset(size.width*.18,size.height*.68),Offset(size.width*.18,size.height*.38),stroke);
+    canvas.drawLine(Offset(size.width*.82,size.height*.68),Offset(size.width*.82,size.height*.38),stroke);
+    canvas.drawLine(Offset(size.width*.18,size.height*.68),Offset(size.width*.82,size.height*.68),stroke);
+    final node=Paint()..color=Colors.white;
+    for(final point in [Offset(size.width*.18,size.height*.34),Offset(size.width*.50,size.height*.48),Offset(size.width*.82,size.height*.34)]){
+      canvas.drawCircle(point,size.width*.075,node);
+    }
+  }
+  @override bool shouldRepaint(covariant CustomPainter oldDelegate)=>false;
 }
 
 Future<void> _openStripeFlow(BuildContext context,String functionName,Map<String,dynamic> body) async {
@@ -590,8 +625,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     },
                   ),
                 Expanded(
-                  child: Column(
+                  child: Stack(
                     children: [
+                      Positioned.fill(child:_WorkspaceAtmosphere(pageIndex:selectedNavigation)),
+                      Column(children: [
                       _TopBar(
                         desktop: desktop,
                         package: selectedPackage,
@@ -633,6 +670,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
+                    ]),
                     ],
                   ),
                 ),
@@ -642,6 +680,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       },
     );
+  }
+}
+
+class _WorkspaceAtmosphere extends StatelessWidget{
+  const _WorkspaceAtmosphere({required this.pageIndex});
+  final int pageIndex;
+  @override Widget build(BuildContext context){
+    final daily=pageIndex==0||pageIndex==8||pageIndex==10||pageIndex==11;
+    final map=pageIndex==2||pageIndex==7;
+    final asset=daily
+      ?'assets/images/bridgepoint-daily-brief-background-v2.webp'
+      :map?'assets/images/bridgepoint-map-background-v2.webp'
+      :'assets/images/bridgepoint-intelligence-background-v1.webp';
+    return IgnorePointer(child:Stack(fit:StackFit.expand,children:[
+      Image.asset(asset,fit:BoxFit.cover,alignment:map?Alignment.center:Alignment.topCenter,
+        color:Colors.white.withOpacity(daily ? .18 : map ? .16 : .11),colorBlendMode:BlendMode.modulate),
+      DecoratedBox(decoration:BoxDecoration(gradient:LinearGradient(
+        begin:Alignment.topCenter,end:Alignment.bottomCenter,
+        colors:[AppTheme.navy.withOpacity(.70),AppTheme.navy.withOpacity(.90),AppTheme.navy.withOpacity(.97)]))),
+    ]));
   }
 }
 
@@ -776,19 +834,7 @@ class _Brand extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.cyan, AppTheme.blue],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(13),
-          ),
-          child: const Icon(Icons.polyline_rounded, color: Colors.white),
-        ),
+        const _BridgePointMark(),
         const SizedBox(width: 12),
         const Expanded(
           child: Column(
@@ -3563,7 +3609,7 @@ class _ReasoningPanel extends StatelessWidget{
     final explanation='${opportunity['explanation']??opportunity['score_explanation']??opportunity['reason']??'BridgePoint found enough independent evidence to place this property in the review queue.'}';
     final stage='${opportunity['stage']??opportunity['intelligence_stage']??'active intelligence'}'.replaceAll('_',' ').toLowerCase();
     final events=opportunity['event_count']??opportunity['signal_count']??0;
-    final patterns=opportunity['pattern_count']??0;
+    final patterns=opportunity['matched_pattern_count']??opportunity['pattern_count']??0;
     final sources=opportunity['source_count']??opportunity['verified_event_count']??0;
     final action='${opportunity['recommended_action']??'Review the evidence, confirm property fit, and choose the next customer action.'}';
     return Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:AppTheme.panelSoft,borderRadius:BorderRadius.circular(14),border:Border.all(color:AppTheme.cyan.withOpacity(.18))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -3571,7 +3617,8 @@ class _ReasoningPanel extends StatelessWidget{
       const SizedBox(height:5),const Text('Score ranks the opportunity. Confidence tells you how reliable and consistent the supporting evidence is.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),const Divider(height:22),
       line(Icons.home_work_outlined,'Why this property',explanation,AppTheme.cyan),
       line(Icons.schedule_rounded,'Why now','The property is in the “$stage” stage and its latest evidence kept it inside BridgePoint’s strict review threshold.',AppTheme.amber),
-      line(Icons.fact_check_outlined,'Evidence you can verify','$events signals • $patterns compound patterns • $sources independent sources',AppTheme.blue),
+      line(Icons.fact_check_outlined,'Evidence you can verify','$events property-linked signals • $patterns corroborating compound patterns • $sources independent source families',AppTheme.blue),
+      line(Icons.schema_outlined,'How patterns count','A compound pattern is a corroborated sequence across evidence—not a substitute for evidence. BridgePoint now requires signals, source diversity, confidence, recency, and at least one matching pattern before an opportunity is ranked.',const Color(0xFF9B7BFF)),
       line(Icons.arrow_circle_right_outlined,'Suggested next step',action,AppTheme.green),
     ]));
   }
