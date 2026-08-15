@@ -4525,7 +4525,7 @@ class _ReasoningPanel extends StatelessWidget{
   @override Widget build(BuildContext context){
     final explanation='${opportunity['explanation']??opportunity['score_explanation']??opportunity['reason']??'BridgePoint found enough independent evidence to place this property in the review queue.'}';
     final stage='${opportunity['stage']??opportunity['intelligence_stage']??'active intelligence'}'.replaceAll('_',' ').toLowerCase();
-    final directSignals=opportunity['matched_signal_count']??opportunity['direct_signal_count']??opportunity['distinct_signal_count']??0;
+    final directSignals=opportunity['direct_signal_count']??opportunity['matched_signal_count']??opportunity['distinct_signal_count']??0;
     final allSignals=opportunity['event_count']??opportunity['signal_count']??directSignals;
     final patterns=opportunity['matched_pattern_count']??opportunity['pattern_count']??0;
     final directSources=opportunity['direct_source_count']??opportunity['verified_event_count']??0;
@@ -4603,7 +4603,7 @@ void _showMapOpportunityDetail(
                     ),
                     _MiniStat(
                       label: 'DIRECT SIGNALS',
-                      value: '${point['matched_signal_count'] ?? point['distinct_signal_count'] ?? 0}',
+                      value: '${point['direct_signal_count'] ?? point['matched_signal_count'] ?? point['distinct_signal_count'] ?? 0}',
                     ),
                     _MiniStat(
                       label: 'DIRECT SOURCES',
