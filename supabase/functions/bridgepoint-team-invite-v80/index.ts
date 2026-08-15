@@ -30,7 +30,7 @@ Deno.serve(async(req:Request)=>{
     if(!rpc.ok)return respond({complete:false,error:result.message??result.error??"Invitation could not be saved"},rpc.status);
     if(result.email_required!==true)return respond({...result,email_sent:false});
 
-    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"http://localhost:49981";
+    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"https://bridgepoint-intelligence.olekingkole28.chatgpt.site";
     const invite=await fetch(supabaseUrl+"/auth/v1/invite?redirect_to="+encodeURIComponent(appUrl),{
       method:"POST",
       headers:{apikey:service,Authorization:"Bearer "+service,"Content-Type":"application/json"},
