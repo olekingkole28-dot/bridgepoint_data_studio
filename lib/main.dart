@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
 // Supabase publishable keys are intentionally safe for client applications.
@@ -12,7 +14,12 @@ const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
 const _supabasePublishableKey =
     'sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: _supabaseUrl,
+    anonKey: _supabasePublishableKey,
+  );
   runApp(const BridgePointApp());
 }
 
@@ -25,10 +32,76 @@ class BridgePointApp extends StatelessWidget {
       title: 'BridgePoint Intelligence',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const DashboardScreen(),
+      home: const _AuthGate(),
     );
   }
 }
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+  @override
+  Widget build(BuildContext context) => StreamBuilder<AuthState>(
+    stream: Supabase.instance.client.auth.onAuthStateChange,
+    builder: (context, _) => Supabase.instance.client.auth.currentSession == null
+        ? const _AuthScreen()
+        : const DashboardScreen(),
+  );
+}
+
+class _AuthScreen extends StatefulWidget {
+  const _AuthScreen();
+  @override
+  State<_AuthScreen> createState() => _AuthScreenState();
+}
+
+class _AuthScreenState extends State<_AuthScreen> {
+  final email=TextEditingController(); final password=TextEditingController();
+  bool create=false,loading=false; String? error;
+  Future<void> submit() async {
+    setState(()=>loading=true); error=null;
+    try {
+      if(create) {
+        final response=await Supabase.instance.client.auth.signUp(email:email.text.trim(),password:password.text);
+        if(response.session==null&&mounted) setState(()=>error='Check your email to confirm the account, then sign in.');
+      } else {
+        await Supabase.instance.client.auth.signInWithPassword(email:email.text.trim(),password:password.text);
+      }
+    } catch(e) { if(mounted) setState(()=>error=e.toString()); }
+    finally { if(mounted) setState(()=>loading=false); }
+  }
+  @override void dispose(){email.dispose();password.dispose();super.dispose();}
+  @override Widget build(BuildContext context)=>Scaffold(body:Center(child:SingleChildScrollView(child:Card(child:Container(
+    width:430,padding:const EdgeInsets.all(30),child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+      const Icon(Icons.hub_rounded,color:AppTheme.cyan,size:48),const SizedBox(height:14),
+      const Text('BRIDGEPOINT INTELLIGENCE',textAlign:TextAlign.center,style:TextStyle(fontSize:18,fontWeight:FontWeight.w900,letterSpacing:1)),
+      const SizedBox(height:8),Text(create?'Create your 7-day trial':'Sign in to live property intelligence',textAlign:TextAlign.center,style:const TextStyle(color:AppTheme.textMuted)),
+      const SizedBox(height:24),TextField(controller:email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Email',border:OutlineInputBorder())),
+      const SizedBox(height:12),TextField(controller:password,obscureText:true,onSubmitted:(_)=>submit(),decoration:const InputDecoration(labelText:'Password',border:OutlineInputBorder())),
+      if(error!=null)...[const SizedBox(height:12),Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:11))],
+      const SizedBox(height:18),FilledButton(onPressed:loading?null:submit,child:Text(loading?'Please wait…':create?'Start free trial':'Sign in')),
+      TextButton(onPressed:loading?null:()=>setState(()=>create=!create),child:Text(create?'Already have an account? Sign in':'New here? Start 7-day trial')),
+    ]),
+  )))));
+}
+
+Future<void> _openStripeFlow(BuildContext context,String functionName,Map<String,dynamic> body) async {
+  final session=Supabase.instance.client.auth.currentSession;
+  if(session==null){_showInfoDialog(context,'Sign in required','Please sign in before managing billing.');return;}
+  try{
+    final response=await http.post(Uri.parse('$_supabaseUrl/functions/v1/$functionName'),headers:{
+      'apikey':_supabasePublishableKey,'Authorization':'Bearer ${session.accessToken}','Content-Type':'application/json'
+    },body:jsonEncode(body)).timeout(const Duration(seconds:30));
+    final decoded=jsonDecode(response.body);
+    if(response.statusCode<200||response.statusCode>=300||decoded is! Map||decoded['url']==null) throw Exception(decoded is Map?decoded['error']:'Billing request failed');
+    if(!await launchUrl(Uri.parse(decoded['url'].toString()),mode:LaunchMode.externalApplication)) throw Exception('Could not open Stripe');
+  }catch(e){if(context.mounted)_showInfoDialog(context,'Billing unavailable',e.toString());}
+}
+
+Future<void> _startCheckout(BuildContext context,Map<String,dynamic> package,String interval)=>
+  _openStripeFlow(context,'bridgepoint-checkout-v67',{'package_key':package['package_key'],'interval':interval});
+
+Future<void> _openBillingPortal(BuildContext context)=>
+  _openStripeFlow(context,'bridgepoint-billing-portal-v66',const {});
 
 class AppTheme {
   static const Color navy = Color(0xFF07111F);
@@ -2746,6 +2819,33 @@ void _showPackageDetail(
                       ),
                     ),
                   ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cyan.withOpacity(.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.cyan.withOpacity(.16)),
+                  ),
+                  child: const Text(
+                    'Start with a 7-day free trial. Founding customers #1–10 receive 50% off their first 6 monthly payments.',
+                    style: TextStyle(color: AppTheme.cyan,fontSize:10,height:1.45,fontWeight:FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(children:[
+                  Expanded(child:FilledButton.icon(
+                    onPressed:package['monthly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'month');},
+                    icon:const Icon(Icons.bolt_rounded),
+                    label:Text(package['monthly_price']==null?'Monthly unavailable':'Start monthly • \$${(package['monthly_price'] as num).toStringAsFixed(0)}'),
+                  )),
+                  const SizedBox(width:10),
+                  Expanded(child:OutlinedButton(
+                    onPressed:package['yearly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'year');},
+                    child:Text(package['yearly_price']==null?'Annual unavailable':'Annual • \$${(package['yearly_price'] as num).toStringAsFixed(0)}'),
+                  )),
+                ]),
               ],
             ),
           ),
@@ -6885,9 +6985,18 @@ class _SettingsPageState extends State<_SettingsPage> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Personal settings will synchronize across devices after account sign-in is enabled.',
+                            'Your account, trial and billing settings synchronize securely across devices.',
                             style: TextStyle(color: AppTheme.textMuted, fontSize: 10, height: 1.45),
                           ),
+                          const SizedBox(height: 12),
+                          SizedBox(width:double.infinity,child:OutlinedButton.icon(
+                            onPressed:()=>_openBillingPortal(context),
+                            icon:const Icon(Icons.credit_card_rounded),label:const Text('Manage billing'),
+                          )),
+                          SizedBox(width:double.infinity,child:TextButton.icon(
+                            onPressed:()=>Supabase.instance.client.auth.signOut(),
+                            icon:const Icon(Icons.logout_rounded),label:const Text('Sign out'),
+                          )),
                         ],
                       );
                     },
