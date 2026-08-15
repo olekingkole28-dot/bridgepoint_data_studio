@@ -1033,6 +1033,7 @@ class _DailyBriefPageState extends State<_DailyBriefPage>{
               Icon(_opportunityTypeIcon(o),color:_opportunityTypeColor(o),size:20),const SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${o['full_address']??o['title']}',style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w700,fontSize:11)),Text('${o['title']} • ${o['recommended_action']??'Review the evidence'}',maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.35))])),Text('${(o['score'] as num?)?.toStringAsFixed(1)??'—'}',style:const TextStyle(color:AppTheme.green,fontWeight:FontWeight.w900,fontSize:16)),
             ])))),
           ],
+          ],
         ]))),
         const SizedBox(height:18),widget.overview,
       ]);
@@ -3480,7 +3481,7 @@ class _MapScanOverlayState extends State<_MapScanOverlay> with SingleTickerProvi
   late final AnimationController controller;
   @override void initState(){super.initState();controller=AnimationController(vsync:this,duration:const Duration(seconds:6))..repeat();}
   @override void dispose(){controller.dispose();super.dispose();}
-  @override Widget build(BuildContext context)=>AnimatedBuilder(animation:controller,builder:(context,_)=
+  @override Widget build(BuildContext context)=>AnimatedBuilder(animation:controller,builder:(context,_)=>
     Align(alignment:Alignment(0,-1+controller.value*2),child:Container(height:2,decoration:BoxDecoration(
       gradient:LinearGradient(colors:[Colors.transparent,AppTheme.cyan.withOpacity(.34),Colors.transparent]),
       boxShadow:[BoxShadow(color:AppTheme.cyan.withOpacity(.16),blurRadius:12,spreadRadius:4)],
