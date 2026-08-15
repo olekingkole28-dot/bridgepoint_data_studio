@@ -6400,14 +6400,14 @@ class _OwnerCenterPageState extends State<_OwnerCenterPage>{
           _MetricCard(width:w,label:'CUSTOMERS',value:_formatInteger(customers['total_accounts']??0),detail:'${customers['new_7d']??0} joined in the last 7 days',icon:Icons.groups_rounded,accent:AppTheme.cyan),
           _MetricCard(width:w,label:'ACTIVE MRR',value:money(revenue['active_mrr']),detail:'${customers['active_paid']??0} active paid accounts',icon:Icons.payments_rounded,accent:AppTheme.green),
           _MetricCard(width:w,label:'TRIAL PIPELINE',value:money(revenue['trial_pipeline_mrr']),detail:'${customers['active_trials']??0} active customer trials',icon:Icons.hourglass_top_rounded,accent:AppTheme.amber),
-          _MetricCard(width:w,label:'CRITICAL OPPORTUNITIES',value:_formatInteger(intel['critical_opportunities']??0),detail:'Highest-priority active intelligence',icon:Icons.bolt_rounded,accent:AppTheme.pink),
+          _MetricCard(width:w,label:'CRITICAL OPPORTUNITIES',value:_formatInteger(intel['critical_opportunities']??0),detail:'Highest-priority active intelligence',icon:Icons.bolt_rounded,accent:AppTheme.red),
         ]);}),
         const SizedBox(height:18),
         LayoutBuilder(builder:(context,c){final wide=c.maxWidth>=980;final w=wide?(c.maxWidth-16)/2:c.maxWidth;return Wrap(spacing:16,runSpacing:16,children:[
           SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             const _PanelHeader(title:'Customer & Revenue Watch',subtitle:'The items most likely to need a decision today',action:'Private'),const SizedBox(height:14),
             _OwnerStatusRow('Trials ending within 72 hours','${customers['trials_ending_72h']??0}',AppTheme.amber),
-            _OwnerStatusRow('Past-due subscriptions','${customers['past_due']??0}',(customers['past_due'] as num? ?? 0)>0?AppTheme.pink:AppTheme.green),
+            _OwnerStatusRow('Past-due subscriptions','${customers['past_due']??0}',(customers['past_due'] as num? ?? 0)>0?AppTheme.red:AppTheme.green),
             _OwnerStatusRow('Checkout connected',revenue['checkout_connected']==true?'YES':'NOT YET',revenue['checkout_connected']==true?AppTheme.green:AppTheme.amber),
             _OwnerStatusRow('Founding offer remaining','${offer['remaining']??10} of 10',AppTheme.cyan),
             _OwnerStatusRow('Founding discounts applied','${offer['applied']??0}',AppTheme.green),
@@ -6415,7 +6415,7 @@ class _OwnerCenterPageState extends State<_OwnerCenterPage>{
           SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             const _PanelHeader(title:'Automation & Intelligence',subtitle:'Whether the data-to-opportunity system is moving',action:'Live'),const SizedBox(height:14),
             _OwnerStatusRow('Active scheduled jobs','${system['active_jobs']??0}',AppTheme.cyan),
-            _OwnerStatusRow('Failed runs in 15 minutes','${system['failed_runs_15m']??0}',healthy?AppTheme.green:AppTheme.pink),
+            _OwnerStatusRow('Failed runs in 15 minutes','${system['failed_runs_15m']??0}',healthy?AppTheme.green:AppTheme.red),
             _OwnerStatusRow('Property scores',_formatInteger(intel['property_scores_v37']??0),AppTheme.blue),
             _OwnerStatusRow('Detected patterns',_formatInteger(intel['patterns_v36']??0),AppTheme.green),
             _OwnerStatusRow('Active opportunities',_formatInteger(intel['opportunities_v38']??0),AppTheme.amber),
@@ -6428,7 +6428,20 @@ class _OwnerCenterPageState extends State<_OwnerCenterPage>{
           SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             const _PanelHeader(title:'Recent Automation Failures',subtitle:'Only owner-visible operational messages',action:'Last 10'),const SizedBox(height:12),
             if(failures.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Row(children:[Icon(Icons.check_circle_rounded,color:AppTheme.green),SizedBox(width:10),Expanded(child:Text('No recent failures recorded.',style:TextStyle(color:AppTheme.textMuted)))]))
-            else ...failures.map((item)=>Container(margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(11),decoration:BoxDecoration(color:AppTheme.pink.withOpacity(.06),borderRadius:BorderRadius.circular(10),border:Border.all(color:AppTheme.pink.withOpacity(.14))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('JOB ${item['jobid']??'—'} • ${item['status']??'FAILED'}',style:const TextStyle(color:AppTheme.pink,fontSize:10,fontWeight:FontWeight.w900)),const SizedBox(height:4),Text(item['message']?.toString()??'No error detail',maxLines:3,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.4))])),
+            else ...failures.map((item)=>Container(
+              margin:const EdgeInsets.only(bottom:8),
+              padding:const EdgeInsets.all(11),
+              decoration:BoxDecoration(
+                color:AppTheme.red.withOpacity(.06),
+                borderRadius:BorderRadius.circular(10),
+                border:Border.all(color:AppTheme.red.withOpacity(.14)),
+              ),
+              child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+                Text('JOB ${item['jobid']??'—'} • ${item['status']??'FAILED'}',style:const TextStyle(color:AppTheme.red,fontSize:10,fontWeight:FontWeight.w900)),
+                const SizedBox(height:4),
+                Text(item['message']?.toString()??'No error detail',maxLines:3,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.4)),
+              ]),
+            )),
           ])))),
         ]);}),
         if(snapshot.hasError)...[const SizedBox(height:16),_DashboardError(message:snapshot.error.toString(),onRetry:refresh)],
