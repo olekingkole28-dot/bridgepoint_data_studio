@@ -6337,7 +6337,7 @@ class _MyWorkPageState extends State<_MyWorkPage>{
               decoration:const InputDecoration(labelText:'Lead stage',isDense:true,border:OutlineInputBorder()),
               items:const ['NEW','REVIEWING','CONTACTED','APPOINTMENT','INSPECTION','ESTIMATE','QUOTE','CONTRACT_CLAIM','WON','LOST'].map((v)=>DropdownMenuItem(value:v,child:Text(v.replaceAll('_',' ')))).toList(),
               onChanged:(v){if(v!=null)stage(item,v);}),
-          ])),
+          ]))),
         ])))),
         SizedBox(width:width,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           const _PanelHeader(title:'Notes & Calendar',subtitle:'Preset actions and scheduled follow-ups',action:'Next action'),const SizedBox(height:12),
@@ -6346,7 +6346,7 @@ class _MyWorkPageState extends State<_MyWorkPage>{
             Container(width:38,height:38,decoration:BoxDecoration(color:AppTheme.amber.withOpacity(.1),borderRadius:BorderRadius.circular(10)),child:const Icon(Icons.event_note_rounded,color:AppTheme.amber,size:19)),
             const SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(item['preset_key']?.toString().replaceAll('_',' ')??'NOTE',style:const TextStyle(fontSize:10,fontWeight:FontWeight.w900,color:AppTheme.cyan)),const SizedBox(height:4),Text(item['note_text']?.toString()??'',style:const TextStyle(fontSize:11,height:1.4))])),
             Text(item['follow_up_at']==null?'UNSCHEDULED':item['follow_up_at'].toString().substring(0,10),style:const TextStyle(color:AppTheme.textMuted,fontSize:9,fontWeight:FontWeight.w700)),
-          ])),
+          ]))),
         ])))),
       ]);}),
     ]);
