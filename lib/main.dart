@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -14,6 +15,62 @@ const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
 // Never place a service_role or sb_secret key in Flutter source code.
 const _supabasePublishableKey =
     'sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25';
+
+@immutable
+class _DisplayPreferences {
+  const _DisplayPreferences({
+    this.largeText = false,
+    this.highContrast = false,
+    this.reducedMotion = false,
+    this.simplifiedViews = false,
+  });
+
+  final bool largeText;
+  final bool highContrast;
+  final bool reducedMotion;
+  final bool simplifiedViews;
+
+  _DisplayPreferences copyWith({
+    bool? largeText,
+    bool? highContrast,
+    bool? reducedMotion,
+    bool? simplifiedViews,
+  }) => _DisplayPreferences(
+    largeText: largeText ?? this.largeText,
+    highContrast: highContrast ?? this.highContrast,
+    reducedMotion: reducedMotion ?? this.reducedMotion,
+    simplifiedViews: simplifiedViews ?? this.simplifiedViews,
+  );
+}
+
+final ValueNotifier<_DisplayPreferences> _displayPreferences =
+    ValueNotifier(const _DisplayPreferences());
+
+class _BridgePointScrollBehavior extends MaterialScrollBehavior {
+  const _BridgePointScrollBehavior();
+
+  @override
+  Set<ui.PointerDeviceKind> get dragDevices => const {
+    ui.PointerDeviceKind.touch,
+    ui.PointerDeviceKind.mouse,
+    ui.PointerDeviceKind.trackpad,
+    ui.PointerDeviceKind.stylus,
+    ui.PointerDeviceKind.unknown,
+  };
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const ClampingScrollPhysics();
+}
+
+void _applyDisplayPreferences(Map<String,dynamic> value){
+  _displayPreferences.value=_DisplayPreferences(
+    largeText:value['large_text']==true,
+    highContrast:value['high_contrast']==true,
+    reducedMotion:value['reduced_motion']==true,
+    simplifiedViews:value['simplified_views']==true,
+  );
+}
 
 Map<String, String> _apiHeaders() {
   final token = Supabase.instance.client.auth.currentSession?.accessToken;
@@ -39,11 +96,27 @@ class BridgePointApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'BridgePoint Intelligence',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const _AuthGate(),
+    return ValueListenableBuilder<_DisplayPreferences>(
+      valueListenable: _displayPreferences,
+      builder: (context, preferences, _) => MaterialApp(
+        title: 'BridgePoint Intelligence',
+        debugShowCheckedModeBanner: false,
+        scrollBehavior: const _BridgePointScrollBehavior(),
+        theme: preferences.highContrast
+            ? AppTheme.highContrastTheme
+            : AppTheme.darkTheme,
+        builder: (context, child) {
+          final media = MediaQuery.of(context);
+          return MediaQuery(
+            data: media.copyWith(
+              textScaler: TextScaler.linear(preferences.largeText ? 1.18 : 1),
+              disableAnimations: preferences.reducedMotion,
+            ),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
+        home: const _AuthGate(),
+      ),
     );
   }
 }
@@ -79,12 +152,23 @@ class _WorkspaceGate extends StatefulWidget {
 }
 class _WorkspaceGateState extends State<_WorkspaceGate> {
   late Future<Map<String,dynamic>> request;
-  @override void initState(){super.initState();request=_callRpc('bridgepoint_onboarding_state_v70',const {});}
+  @override void initState(){super.initState();request=_load();}
+  Future<Map<String,dynamic>> _load()async{
+    final results=await Future.wait([
+      _callRpc('bridgepoint_onboarding_state_v70',const {}),
+      _callRpc('bridgepoint_display_preferences_v80',const {}),
+      _callRpc('bridgepoint_legal_state_v82',const {}),
+    ]);
+    _applyDisplayPreferences(results[1]);
+    return results[0]..['legal_state']=results[2];
+  }
   @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
     future:request,builder:(context,snapshot){
       if(snapshot.connectionState==ConnectionState.waiting)return const Scaffold(body:_ExperienceBackground(child:Center(child:Column(mainAxisSize:MainAxisSize.min,children:[_BridgePointMark(size:64),SizedBox(height:18),Text('Preparing your intelligence workspace',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w800)),SizedBox(height:14),SizedBox(width:220,child:LinearProgressIndicator(color:AppTheme.cyan,backgroundColor:Colors.white12))]))));
-      if(snapshot.hasError)return Scaffold(body:Center(child:_DashboardError(message:snapshot.error.toString(),onRetry:()=>setState(()=>request=_callRpc('bridgepoint_onboarding_state_v70',const {})))));
-      if(snapshot.data?['onboarding_complete']!=true)return _OnboardingScreen(onComplete:()=>setState(()=>request=_callRpc('bridgepoint_onboarding_state_v70',const {})));
+      if(snapshot.hasError)return Scaffold(body:Center(child:_DashboardError(message:snapshot.error.toString(),onRetry:()=>setState(()=>request=_load()))));
+      final legal=snapshot.data?['legal_state'];
+      if(legal is Map&&legal['required_acceptance_missing']==true)return _LegalAcceptanceScreen(state:Map<String,dynamic>.from(legal),onComplete:()=>setState(()=>request=_load()));
+      if(snapshot.data?['onboarding_complete']!=true)return _OnboardingScreen(onComplete:()=>setState(()=>request=_load()));
       return DashboardScreen(ownerMode:snapshot.data?['owner_bypass']==true);
     },
   );
@@ -109,6 +193,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen>{
     widget.onComplete();
   }catch(e){if(mounted)setState(()=>error=e.toString());}finally{if(mounted)setState(()=>loading=false);}}
   static String _packageName(dynamic key)=>const {
+    'homeowner':'BridgePoint Homeowner',
     'roofing_opportunity':'Roofing Opportunity','bridgepoint_commercial':'BridgePoint Commercial',
     'property_investor':'Property Investor','solar_opportunity':'Solar Opportunity',
     'development_opportunity':'Development Opportunity','bridgepoint_home':'BridgePoint Home','all':'All Intelligence'
@@ -121,8 +206,8 @@ class _OnboardingScreenState extends State<_OnboardingScreen>{
       const Center(child:_BridgePointMark(size:56)),const SizedBox(height:12),
       const Text('Let’s build the right BridgePoint workspace',textAlign:TextAlign.center,style:TextStyle(fontSize:22,fontWeight:FontWeight.w900)),
       const SizedBox(height:8),const Text('Choose the answers that fit you best. BridgePoint will recommend the package and intelligence most useful for your work.',textAlign:TextAlign.center,style:TextStyle(color:AppTheme.textMuted,height:1.5)),
-      const SizedBox(height:24),drop('What kind of work do you do?',industry,const ['Roofing','Home services','Restoration','Public adjusting','Commercial real estate','Property investing','Development','Solar','Other'],(v)=>setState(()=>industry=v??industry)),
-      const SizedBox(height:12),drop('What is your role?',role,const ['Owner','Sales manager','Sales representative','Estimator','Investor','Developer','Operations','Other'],(v)=>setState(()=>role=v??role)),
+      const SizedBox(height:24),drop('What kind of work do you do?',industry,const ['Homeowner','Roofing','Home services','Restoration','Public adjusting','Commercial real estate','Property investing','Development','Solar','Other'],(v)=>setState(()=>industry=v??industry)),
+      const SizedBox(height:12),drop('What is your role?',role,const ['Property owner','Owner','Sales manager','Sales representative','Estimator','Investor','Developer','Operations','Other'],(v)=>setState(()=>role=v??role)),
       const SizedBox(height:12),drop('What is your main goal?',goal,const ['Find the best leads','Prioritize my current leads','Monitor properties','Plan field visits','Find development opportunities','Track customer follow-ups'],(v)=>setState(()=>goal=v??goal)),
       const SizedBox(height:12),drop('Where do you work?',territory,const ['Statewide Connecticut','One municipality','One county','Multiple counties','New England'],(v)=>setState(()=>territory=v??territory)),
       const SizedBox(height:12),drop('Which best describes your business?',experience,const ['Just getting started','Growing business','Established team','Multi-location operation'],(v)=>setState(()=>experience=v??experience)),
@@ -140,13 +225,14 @@ class _AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<_AuthScreen> {
   final displayName=TextEditingController(); final email=TextEditingController(); final password=TextEditingController();
-  bool create=false,loading=false,showPassword=false; String? error;
+  bool create=false,loading=false,showPassword=false,acceptTerms=false; String? error;
   Future<void> submit() async {
     setState(()=>loading=true); error=null;
     try {
       if(create) {
+        if(!acceptTerms)throw Exception('Review and accept the Terms, Privacy Notice, Acceptable Use rules, and Data Disclaimer to create an account.');
         final response=await Supabase.instance.client.auth.signUp(email:email.text.trim(),password:password.text,
-          data:{'display_name':displayName.text.trim()});
+          data:{'display_name':displayName.text.trim(),'legal_accepted':true,'legal_version':'2026-08-15'});
         if(response.session==null&&mounted) setState(()=>error='Check your email to confirm the account, then sign in.');
       } else {
         await Supabase.instance.client.auth.signInWithPassword(email:email.text.trim(),password:password.text);
@@ -172,11 +258,58 @@ class _AuthScreenState extends State<_AuthScreen> {
           ),
         ),
       ),
+      if(create)...[const SizedBox(height:10),CheckboxListTile(
+        contentPadding:EdgeInsets.zero,controlAffinity:ListTileControlAffinity.leading,value:acceptTerms,
+        onChanged:loading?null:(v)=>setState(()=>acceptTerms=v==true),
+        title:const Text('I agree to the Terms, Privacy Notice, Acceptable Use rules, and Data & Scoring Disclaimer.',style:TextStyle(fontSize:10,height:1.4)),
+        subtitle:TextButton(onPressed:()=>showDialog<void>(context:context,builder:(context)=>const _PublicLegalSummaryDialog()),child:const Align(alignment:Alignment.centerLeft,child:Text('Review before creating account'))),
+      )],
       if(error!=null)...[const SizedBox(height:12),Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:11))],
       const SizedBox(height:18),FilledButton(onPressed:loading?null:submit,child:Text(loading?'Please wait…':create?'Start free trial':'Sign in')),
       TextButton(onPressed:loading?null:()=>setState(()=>create=!create),child:Text(create?'Already have an account? Sign in':'New here? Start 7-day trial')),
     ]),
   ))))));
+}
+
+class _PublicLegalSummaryDialog extends StatelessWidget{
+  const _PublicLegalSummaryDialog();
+  @override Widget build(BuildContext context)=>AlertDialog(
+    backgroundColor:AppTheme.panel,title:const Row(children:[Icon(Icons.gavel_outlined,color:AppTheme.cyan),SizedBox(width:9),Expanded(child:Text('BridgePoint Legal & Trust Summary'))]),
+    content:const SizedBox(width:650,child:SingleChildScrollView(child:Text(
+      'Terms: BridgePoint is a property-intelligence and workflow tool, not professional advice or proof of damage, coverage, a permit, customer intent, or a guaranteed outcome.\n\nPrivacy: BridgePoint uses account, workspace, security, and source data to provide the service. Precise location is collected only after a Company user explicitly starts a field shift, is never sold, and is deleted after seven days.\n\nAcceptable Use: No discrimination, harassment, trespass, deceptive claims, hidden monitoring, unlawful solicitation, credential sharing, scraping, or resale. Users must follow licensing, do-not-call, email, text, field-safety, and property-access laws.\n\nData & Scoring: Sources can be delayed or imperfect. Scores prioritize investigation and include visible negative adjustments. NOAA radar is weather context—not property-level proof.\n\nThe full versioned documents appear immediately after sign-in and remain available in Settings → Legal & Trust Center.',
+      style:TextStyle(color:AppTheme.textMuted,height:1.55),))),
+    actions:[FilledButton(onPressed:()=>Navigator.pop(context),child:const Text('Close'))],
+  );
+}
+
+class _LegalAcceptanceScreen extends StatefulWidget{
+  const _LegalAcceptanceScreen({required this.state,required this.onComplete});
+  final Map<String,dynamic> state;final VoidCallback onComplete;
+  @override State<_LegalAcceptanceScreen> createState()=>_LegalAcceptanceScreenState();
+}
+class _LegalAcceptanceScreenState extends State<_LegalAcceptanceScreen>{
+  bool accepted=false,busy=false;String? error;
+  Future<void> submit()async{
+    if(!accepted)return;
+    setState(()=>busy=true);
+    try{await _callRpc('bridgepoint_accept_legal_v82',{'p_document_keys':['TERMS','PRIVACY','ACCEPTABLE_USE','DATA_DISCLAIMER'],'p_acceptance_source':'APP_REQUIRED_GATE'});widget.onComplete();}
+    catch(e){if(mounted)setState(()=>error=e.toString());}
+    finally{if(mounted)setState(()=>busy=false);}
+  }
+  @override Widget build(BuildContext context){
+    final docs=(widget.state['documents'] as List? ?? const []).whereType<Map>().where((e)=>e['required']==true).map((e)=>Map<String,dynamic>.from(e)).toList();
+    return Scaffold(body:_ExperienceBackground(child:Center(child:Card(child:Container(width:760,constraints:const BoxConstraints(maxHeight:820),padding:const EdgeInsets.all(26),child:Column(children:[
+      const _BridgePointMark(size:54),const SizedBox(height:10),const Text('Legal & Trust Center',style:TextStyle(fontSize:22,fontWeight:FontWeight.w900)),
+      const SizedBox(height:5),const Text('Please review the current documents before continuing.',style:TextStyle(color:AppTheme.textMuted)),const SizedBox(height:14),
+      Expanded(child:ListView.separated(itemCount:docs.length,separatorBuilder:(_,__)=>const SizedBox(height:7),itemBuilder:(context,i){final d=docs[i];return Card(color:AppTheme.panelSoft.withOpacity(.8),child:ExpansionTile(
+        leading:const Icon(Icons.verified_user_outlined,color:AppTheme.cyan),title:Text('${d['title']}',style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text('Version ${d['document_version']} • ${d['summary']}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),
+        children:[Padding(padding:const EdgeInsets.fromLTRB(16,0,16,18),child:SelectableText('${d['content_markdown']}'.replaceAll('# ',''),style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.55)))],
+      ));})),
+      CheckboxListTile(value:accepted,onChanged:busy?null:(v)=>setState(()=>accepted=v==true),controlAffinity:ListTileControlAffinity.leading,title:const Text('I have reviewed and agree to these current documents.',style:TextStyle(fontSize:11,fontWeight:FontWeight.w800))),
+      if(error!=null)Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:10)),const SizedBox(height:8),
+      SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:accepted&&!busy?submit:null,icon:const Icon(Icons.check_circle_outline_rounded),label:Text(busy?'Saving acceptance…':'Accept and continue'))),
+    ]))))));
+  }
 }
 
 class _ExperienceBackground extends StatelessWidget {
@@ -209,21 +342,40 @@ class _BridgePointMark extends StatelessWidget{
 
 class _BridgePointMarkPainter extends CustomPainter{
   @override void paint(Canvas canvas,Size size){
+    final shadow=Paint()..color=const Color(0xFF05101F).withOpacity(.20)
+      ..style=PaintingStyle.stroke..strokeWidth=size.width*.16
+      ..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
     final stroke=Paint()..color=Colors.white..style=PaintingStyle.stroke
-      ..strokeWidth=size.width*.075..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
-    final glow=Paint()..color=Colors.white.withOpacity(.22)..style=PaintingStyle.stroke
-      ..strokeWidth=size.width*.16..strokeCap=StrokeCap.round;
-    final bridge=ui.Path()
-      ..moveTo(size.width*.18,size.height*.68)
-      ..cubicTo(size.width*.34,size.height*.42,size.width*.66,size.height*.42,size.width*.82,size.height*.68);
-    canvas.drawPath(bridge,glow);canvas.drawPath(bridge,stroke);
-    canvas.drawLine(Offset(size.width*.18,size.height*.68),Offset(size.width*.18,size.height*.38),stroke);
-    canvas.drawLine(Offset(size.width*.82,size.height*.68),Offset(size.width*.82,size.height*.38),stroke);
-    canvas.drawLine(Offset(size.width*.18,size.height*.68),Offset(size.width*.82,size.height*.68),stroke);
+      ..strokeWidth=size.width*.075..strokeCap=StrokeCap.round
+      ..strokeJoin=StrokeJoin.round;
+    final monogram=ui.Path()
+      ..moveTo(size.width*.27,size.height*.23)
+      ..lineTo(size.width*.27,size.height*.77)
+      ..moveTo(size.width*.29,size.height*.25)
+      ..cubicTo(size.width*.68,size.height*.17,size.width*.79,size.height*.33,size.width*.72,size.height*.43)
+      ..cubicTo(size.width*.68,size.height*.49,size.width*.59,size.height*.51,size.width*.47,size.height*.51)
+      ..cubicTo(size.width*.72,size.height*.49,size.width*.83,size.height*.61,size.width*.76,size.height*.72)
+      ..cubicTo(size.width*.70,size.height*.81,size.width*.48,size.height*.80,size.width*.29,size.height*.76);
+    canvas.drawPath(monogram,shadow);
+    canvas.drawPath(monogram,stroke);
+
+    final route=Paint()..color=Colors.white.withOpacity(.72)
+      ..style=PaintingStyle.stroke..strokeWidth=size.width*.032
+      ..strokeCap=StrokeCap.round;
+    canvas.drawLine(
+      Offset(size.width*.18,size.height*.83),
+      Offset(size.width*.84,size.height*.83),
+      route,
+    );
     final node=Paint()..color=Colors.white;
-    for(final point in [Offset(size.width*.18,size.height*.34),Offset(size.width*.50,size.height*.48),Offset(size.width*.82,size.height*.34)]){
-      canvas.drawCircle(point,size.width*.075,node);
-    }
+    canvas.drawCircle(Offset(size.width*.18,size.height*.83),size.width*.035,node);
+    canvas.drawCircle(Offset(size.width*.84,size.height*.83),size.width*.035,node);
+    canvas.drawCircle(Offset(size.width*.53,size.height*.51),size.width*.11,node);
+    canvas.drawCircle(
+      Offset(size.width*.53,size.height*.51),
+      size.width*.042,
+      Paint()..color=const Color(0xFF0A2C5C),
+    );
   }
   @override bool shouldRepaint(covariant CustomPainter oldDelegate)=>false;
 }
@@ -246,6 +398,13 @@ Future<void> _startCheckout(BuildContext context,Map<String,dynamic> package,Str
 
 Future<void> _openBillingPortal(BuildContext context)=>
   _openStripeFlow(context,'bridgepoint-billing-portal-v66',const {});
+
+Future<void> _openOwnerPayoutSettings(BuildContext context) async {
+  final uri=Uri.parse('https://dashboard.stripe.com/test/settings/payouts');
+  if(!await launchUrl(uri,mode:LaunchMode.externalApplication)&&context.mounted){
+    _showInfoDialog(context,'Could not open Stripe','Open Stripe Dashboard → Settings → Bank accounts and scheduling. Enter bank information only inside Stripe.');
+  }
+}
 
 class AppTheme {
   static const Color navy = Color(0xFF07111F);
@@ -283,6 +442,20 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData get highContrastTheme => darkTheme.copyWith(
+    scaffoldBackgroundColor: const Color(0xFF02060B),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF081727),
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: Color(0xFF5CEBFF), width: 1.25),
+      ),
+    ),
+    dividerColor: Colors.white38,
+  );
 }
 
 class DashboardScreen extends StatefulWidget {
@@ -305,9 +478,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _liveRefreshTick = 0;
   int _refreshSeconds = 120;
   int _secondsToRefresh = 120;
+  final ScrollController _workspaceScrollController = ScrollController();
+  final Map<int, double> _pageScrollOffsets = <int, double>{};
+  late final String _activitySessionKey =
+      'bp84:${Supabase.instance.client.auth.currentUser?.id ?? 'unknown'}:${DateTime.now().microsecondsSinceEpoch}';
 
   static const packageModelKeys = <String, String>{
     'All Intelligence': 'all',
+    'BridgePoint Homeowner': 'bridgepoint_home',
     'BridgePoint Home': 'bridgepoint_home',
     'BridgePoint Commercial': 'bridgepoint_commercial',
     'Roofing Opportunity': 'roofing_opportunity',
@@ -320,6 +498,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const navigationItems = <_NavigationItem>[
     _NavigationItem('Daily Brief', Icons.wb_sunny_outlined),
     _NavigationItem('Opportunities', Icons.bolt_rounded),
+    _NavigationItem('Field Mode', Icons.directions_walk_rounded),
     _NavigationItem('Intelligence Map', Icons.map_rounded),
     _NavigationItem('Properties', Icons.home_work_rounded),
     _NavigationItem('Signals', Icons.radar_rounded),
@@ -340,6 +519,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   static const packages = <String>[
     'All Intelligence',
+    'BridgePoint Homeowner',
     'BridgePoint Home',
     'BridgePoint Commercial',
     'Roofing Opportunity',
@@ -359,6 +539,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     healthRequest = _loadSystemHealth();
     _scheduleLiveRefresh(_refreshSeconds);
     _configureFromServer();
+    unawaited(_recordAppActivity('SESSION_START', 'Daily Brief'));
     if(!widget.ownerMode){
       WidgetsBinding.instance.addPostFrameCallback((_)=>_maybeOfferWalkthrough());
     }
@@ -390,9 +571,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    unawaited(_recordAppActivity(
+      'SESSION_END',
+      visibleNavigationItems[selectedNavigation].label,
+    ));
     _liveRefreshTimer?.cancel();
     _liveCountdownTimer?.cancel();
+    _workspaceScrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _recordAppActivity(String eventType, String pageName) async {
+    try {
+      await _callRpc('bridgepoint_record_app_activity_v84', {
+        'p_session_key': _activitySessionKey,
+        'p_event_type': eventType,
+        'p_page_name': pageName,
+        'p_platform': 'flutter_web',
+        'p_app_version': '0.85.0+85',
+        'p_metadata': const <String, dynamic>{},
+      });
+    } catch (_) {
+      // Operational counters must never interrupt a customer's workspace.
+    }
   }
 
   Future<Map<String, dynamic>> _loadDashboard() async {
@@ -532,12 +733,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
       healthRequest = _loadSystemHealth();
       _liveRefreshTick++;
     });
+    unawaited(_recordAppActivity(
+      'HEARTBEAT',
+      visibleNavigationItems[selectedNavigation].label,
+    ));
   }
 
   void _navigateTo(int index) {
+    if (index == selectedNavigation) {
+      if (_workspaceScrollController.hasClients) {
+        if (_displayPreferences.value.reducedMotion) {
+          _workspaceScrollController.jumpTo(0);
+        } else {
+          _workspaceScrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+          );
+        }
+      }
+      return;
+    }
+    if (_workspaceScrollController.hasClients) {
+      _pageScrollOffsets[selectedNavigation] =
+          _workspaceScrollController.offset;
+    }
     setState(() {
       selectedNavigation = index;
       _liveRefreshTick++;
+    });
+    unawaited(_recordAppActivity(
+      'PAGE_VIEW',
+      visibleNavigationItems[index].label,
+    ));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_workspaceScrollController.hasClients) return;
+      final requested = _pageScrollOffsets[index] ?? 0;
+      final target = requested.clamp(
+        0.0,
+        _workspaceScrollController.position.maxScrollExtent,
+      ).toDouble();
+      _workspaceScrollController.jumpTo(target);
     });
   }
 
@@ -560,30 +796,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
           packageName: selectedPackage,
         );
       case 2:
-        return _IntelligenceMapPage(
+        return _FieldModePage(
           modelKey: packageModelKeys[selectedPackage] ?? 'all',
           packageName: selectedPackage,
         );
       case 3:
-        return const _PropertiesPage();
+        return _IntelligenceMapPage(
+          modelKey: packageModelKeys[selectedPackage] ?? 'all',
+          packageName: selectedPackage,
+        );
       case 4:
-        return const _SignalsPage();
+        return const _PropertiesPage();
       case 5:
+        return const _SignalsPage();
+      case 6:
         return _SourcesPage(
           sourcesRequest: sourcesRequest,
           onRefresh: _refreshDashboard,
         );
-      case 6:
-        return const _MyWorkPage();
       case 7:
-        return const _PermitContextPage();
+        return const _MyWorkPage();
       case 8:
-        return const _CoveragePage();
+        return const _PermitContextPage();
       case 9:
-        return const _PackagesPage();
+        return const _CoveragePage();
       case 10:
-        return const _ModelsPage();
+        return const _PackagesPage();
       case 11:
+        return const _ModelsPage();
+      case 12:
         return _SettingsPage(
           ownerMode:widget.ownerMode,
           settingsRequest: settingsRequest,
@@ -597,7 +838,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             });
           },
         );
-      case 12:
+      case 13:
         if(widget.ownerMode)return const _OwnerCenterPage();
         return const _ComingSoonPage(
           title:'Owner Center',icon:Icons.admin_panel_settings_rounded,
@@ -624,9 +865,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _SideNavigation(
                     items: visibleNavigationItems,
                     selectedIndex: selectedNavigation,
-                    onSelected: (index) {
-                      setState(() => selectedNavigation = index);
-                    },
+                    onSelected: _navigateTo,
                   ),
                 Expanded(
                   child: Stack(
@@ -642,7 +881,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             _selectPackage(value);
                           }
                         },
-                        onSearch: (_) => _navigateTo(3),
+                        onSearch: (_) => _navigateTo(4),
                         onPropertySelected: (property) =>
                             _showPropertyInventoryDetail(context, property),
                         onNotifications: () => showDialog<void>(
@@ -658,21 +897,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         _CompactNavigation(
                           items: visibleNavigationItems,
                           selectedIndex: selectedNavigation,
-                          onSelected: (index) {
-                            setState(() => selectedNavigation = index);
-                          },
+                          onSelected: _navigateTo,
                         ),
                       Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(
-                            desktop ? 28 : 16,
-                            8,
-                            desktop ? 28 : 16,
-                            36,
-                          ),
-                          child: KeyedSubtree(
-                            key: ValueKey(_liveRefreshTick),
-                            child: _buildSelectedPage(),
+                        child: Scrollbar(
+                          controller: _workspaceScrollController,
+                          thumbVisibility: desktop,
+                          trackVisibility: desktop,
+                          interactive: true,
+                          thickness: 8,
+                          radius: const Radius.circular(8),
+                          child: SingleChildScrollView(
+                            controller: _workspaceScrollController,
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
+                            physics: const ClampingScrollPhysics(),
+                            padding: EdgeInsets.fromLTRB(
+                              desktop ? 28 : 16,
+                              8,
+                              desktop ? 34 : 16,
+                              52,
+                            ),
+                            child: KeyedSubtree(
+                              key: ValueKey(_liveRefreshTick),
+                              child: _buildSelectedPage(),
+                            ),
                           ),
                         ),
                       ),
@@ -693,8 +942,8 @@ class _WorkspaceAtmosphere extends StatelessWidget{
   const _WorkspaceAtmosphere({required this.pageIndex});
   final int pageIndex;
   @override Widget build(BuildContext context){
-    final daily=pageIndex==0||pageIndex==8||pageIndex==9||pageIndex==11||pageIndex==12;
-    final map=pageIndex==2||pageIndex==7;
+    final daily=pageIndex==0||pageIndex==9||pageIndex==10||pageIndex==12||pageIndex==13;
+    final map=pageIndex==2||pageIndex==3||pageIndex==8;
     final asset=daily
       ?'assets/images/bridgepoint-daily-brief-background-v2.webp'
       :map?'assets/images/bridgepoint-map-background-v2.webp'
@@ -945,6 +1194,11 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           _IconButton(
+            icon: Icons.help_outline_rounded,
+            onTap: () => _showFaqDialog(context),
+          ),
+          const SizedBox(width: 10),
+          _IconButton(
             icon: Icons.notifications_none_rounded,
             onTap: onNotifications,
           ),
@@ -1118,7 +1372,8 @@ class _DailyBriefPage extends StatefulWidget{
 
 class _DailyBriefPageState extends State<_DailyBriefPage>{
   late Future<Map<String,dynamic>> request;
-  @override void initState(){super.initState();request=_callRpc('bridgepoint_daily_brief_v74',const {});}
+  late Future<Map<String,dynamic>> fieldNoteRequest;
+  @override void initState(){super.initState();request=_callRpc('bridgepoint_daily_brief_v74',const {});fieldNoteRequest=_callRpc('bridgepoint_field_note_of_day_v81',const {});}
   @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
     future:request,builder:(context,snapshot){
       final data=snapshot.data??const <String,dynamic>{};
@@ -1132,7 +1387,7 @@ class _DailyBriefPageState extends State<_DailyBriefPage>{
               Text('Welcome to BridgePoint Intelligence, ${data['display_name']??'there'}',style:const TextStyle(color:Colors.white,fontSize:20,fontWeight:FontWeight.w900)),
               const SizedBox(height:4),Text(snapshot.connectionState==ConnectionState.waiting?'Building your live Daily Brief…':'Here is what changed in the last 24 hours and what deserves attention now.',style:const TextStyle(color:AppTheme.textMuted,fontSize:11)),
             ])),
-            IconButton(tooltip:'Refresh Daily Brief',onPressed:()=>setState(()=>request=_callRpc('bridgepoint_daily_brief_v74',const {})),icon:const Icon(Icons.refresh_rounded,color:AppTheme.cyan)),
+            IconButton(tooltip:'Refresh Daily Brief',onPressed:()=>setState((){request=_callRpc('bridgepoint_daily_brief_v74',const {});fieldNoteRequest=_callRpc('bridgepoint_field_note_of_day_v81',const {});}),icon:const Icon(Icons.refresh_rounded,color:AppTheme.cyan)),
           ]),
           if(snapshot.hasError)...[const SizedBox(height:12),Text('The Daily Brief could not load yet. Your main workspace is still available.',style:TextStyle(color:AppTheme.amber))],
           if(snapshot.hasData)...[const SizedBox(height:18),Wrap(spacing:10,runSpacing:10,children:[
@@ -1149,9 +1404,79 @@ class _DailyBriefPageState extends State<_DailyBriefPage>{
           ],
           ],
         ]))),
+        const SizedBox(height:18),FutureBuilder<Map<String,dynamic>>(
+          future:fieldNoteRequest,builder:(context,noteSnapshot){
+            final note=noteSnapshot.data;
+            if(note==null||note['enabled']!=true)return const SizedBox.shrink();
+            return _FieldNoteCard(note:note);
+          },
+        ),
+        const SizedBox(height:18),const _BridgePointDifferencePanel(),
         const SizedBox(height:18),widget.overview,
       ]);
     });
+}
+
+class _FieldNoteCard extends StatelessWidget{
+  const _FieldNoteCard({required this.note});
+  final Map<String,dynamic> note;
+  @override Widget build(BuildContext context){
+    final category='${note['category']??'FIELD NOTE'}'.replaceAll('_',' ');
+    final safety=category=='SAFETY';
+    final accent=safety?AppTheme.amber:AppTheme.cyan;
+    return Transform.rotate(
+      angle:-.006,
+      child:Container(
+        width:double.infinity,
+        padding:const EdgeInsets.fromLTRB(22,20,22,20),
+        decoration:BoxDecoration(
+          color:const Color(0xFFF7EFCB),
+          borderRadius:BorderRadius.circular(4),
+          boxShadow:[BoxShadow(color:Colors.black.withOpacity(.28),blurRadius:18,offset:const Offset(0,8))],
+          border:Border(left:BorderSide(color:accent,width:5)),
+        ),
+        child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Icon(safety?Icons.health_and_safety_outlined:Icons.edit_note_rounded,color:const Color(0xFF23375B),size:30),
+          const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text('FIELD NOTE OF THE DAY • $category',style:const TextStyle(color:Color(0xFF826C2B),fontSize:9,fontWeight:FontWeight.w900,letterSpacing:.8)),
+            const SizedBox(height:6),Text('${note['title']??'A useful reminder'}',style:const TextStyle(color:Color(0xFF172441),fontSize:16,fontWeight:FontWeight.w900)),
+            const SizedBox(height:6),Text('${note['message']??''}',style:const TextStyle(color:Color(0xFF34415B),fontSize:11,height:1.5,fontStyle:FontStyle.italic)),
+            const SizedBox(height:10),Text('— ${note['signed_by']??'Kole Johnson, Founder'}',style:const TextStyle(color:Color(0xFF172441),fontSize:10,fontWeight:FontWeight.w900,fontStyle:FontStyle.italic)),
+          ])),
+          Tooltip(message:'Original BridgePoint guidance. Company owners and co-owners can turn Field Notes off in Team settings.',child:Icon(Icons.info_outline_rounded,color:const Color(0xFF826C2B).withOpacity(.75),size:18)),
+        ]),
+      ),
+    );
+  }
+}
+
+class _BridgePointDifferencePanel extends StatelessWidget{
+  const _BridgePointDifferencePanel();
+  @override Widget build(BuildContext context)=>Card(child:Padding(
+    padding:const EdgeInsets.all(18),
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const _PanelHeader(title:'Why BridgePoint feels different',subtitle:'One explainable workflow from changing evidence to real field action',action:'Tap to learn'),
+      const SizedBox(height:12),
+      LayoutBuilder(builder:(context,c){final width=c.maxWidth>=850?(c.maxWidth-24)/4:c.maxWidth>=520?(c.maxWidth-8)/2:c.maxWidth;return Wrap(spacing:8,runSpacing:8,children:[
+        _DifferenceItem(width:width,icon:Icons.fact_check_outlined,title:'Strict evidence',body:'Corroboration, recency, confidence and source diversity must clear the model gate before a lead ranks.'),
+        _DifferenceItem(width:width,icon:Icons.timeline_rounded,title:'One property story',body:'Signals, transfers, claims, notes and actions stay organized on a single property timeline.'),
+        _DifferenceItem(width:width,icon:Icons.radar_rounded,title:'Live context',body:'Official radar and changing source evidence sit beside property-level intelligence instead of in another app.'),
+        _DifferenceItem(width:width,icon:Icons.directions_walk_rounded,title:'Field-ready action',body:'Save the best properties, build a route, record a visit and schedule the next action without losing context.'),
+      ]);}),
+    ]),
+  ));
+}
+
+class _DifferenceItem extends StatelessWidget{
+  const _DifferenceItem({required this.width,required this.icon,required this.title,required this.body});
+  final double width;final IconData icon;final String title,body;
+  @override Widget build(BuildContext context)=>SizedBox(width:width,child:InkWell(
+    borderRadius:BorderRadius.circular(12),
+    onTap:()=>_showInfoDialog(context,title,body),
+    child:Container(padding:const EdgeInsets.all(13),decoration:BoxDecoration(color:AppTheme.panelSoft.withOpacity(.58),borderRadius:BorderRadius.circular(12),border:Border.all(color:Colors.white.withOpacity(.06))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Icon(icon,color:AppTheme.cyan,size:21),const SizedBox(height:8),Text(title,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:11)),const SizedBox(height:4),Text(body,maxLines:3,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
+    ])),
+  ));
 }
 
 class _WalkthroughDialog extends StatefulWidget{
@@ -1195,6 +1520,127 @@ class _NotificationCenterDialogState extends State<_NotificationCenterDialog>{
 }
 
 IconData _notificationIcon(String type){if(type.contains('CRITICAL'))return Icons.bolt_rounded;if(type.contains('FOLLOW'))return Icons.event_available_outlined;if(type.contains('SOURCE'))return Icons.hub_outlined;return Icons.wb_sunny_outlined;}
+
+Future<bool> _ensureFieldTrackingConsent(BuildContext context)async{
+  final legal=await _callRpc('bridgepoint_legal_state_v82',const {});
+  final documents=(legal['documents'] as List? ?? const [])
+      .whereType<Map>()
+      .map((d)=>Map<String,dynamic>.from(d))
+      .toList();
+  final notice=documents.firstWhere(
+    (d)=>d['document_key']=='FIELD_TRACKING_NOTICE',
+    orElse:()=>const <String,dynamic>{},
+  );
+  if(notice['accepted']==true)return true;
+  if(!context.mounted)return false;
+  var checked=false;
+  final agreed=await showDialog<bool>(context:context,barrierDismissible:false,builder:(dialogContext)=>StatefulBuilder(builder:(context,setLocal)=>AlertDialog(
+    backgroundColor:AppTheme.panel,title:const Row(children:[Icon(Icons.share_location_rounded,color:AppTheme.cyan),SizedBox(width:9),Expanded(child:Text('Live Field Assist consent'))]),
+    content:SizedBox(width:680,child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      SelectableText('${notice['content_markdown']??'Location is shared only during an active field shift, is visible to authorized company supervisors, and is deleted after seven days.'}'.replaceAll('# ',''),style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.55)),
+      const SizedBox(height:12),CheckboxListTile(contentPadding:EdgeInsets.zero,controlAffinity:ListTileControlAffinity.leading,value:checked,onChanged:(v)=>setLocal(()=>checked=v==true),title:const Text('I understand and choose to share my location for this field shift.',style:TextStyle(fontSize:11,fontWeight:FontWeight.w800))),
+    ]))),
+    actions:[TextButton(onPressed:()=>Navigator.pop(dialogContext,false),child:const Text('Not now')),FilledButton(onPressed:checked?()=>Navigator.pop(dialogContext,true):null,child:const Text('Accept & continue'))],
+  )));
+  if(agreed!=true)return false;
+  await _callRpc('bridgepoint_accept_legal_v82',{'p_document_keys':['FIELD_TRACKING_NOTICE'],'p_acceptance_source':'FIELD_SHIFT_CONSENT'});
+  return true;
+}
+
+void _showFaqDialog(BuildContext context)=>showDialog<void>(
+  context:context,builder:(context)=>const _FaqDialog(),
+);
+
+class _FaqDialog extends StatefulWidget{
+  const _FaqDialog();
+  @override State<_FaqDialog> createState()=>_FaqDialogState();
+}
+
+class _FaqDialogState extends State<_FaqDialog>{
+  String query='';
+  static const entries=<({String question,String answer})>[
+    (question:'What does an opportunity score mean?',answer:'The score ranks how actionable a property looks after BridgePoint checks evidence strength, recency, confidence, source diversity, property fit, and the model’s strict gates. It is a prioritization tool—not a guarantee of a sale, loss, permit, or claim.'),
+    (question:'What is confidence, and how is it different from score?',answer:'Score estimates opportunity priority. Confidence estimates how reliable and well-supported the evidence is. A high score with weak confidence should not clear the strict ranking gate.'),
+    (question:'Why do matches, signals, and patterns show different counts?',answer:'A signal is one supporting observation. A pattern connects multiple observations over time. A model match is direct evidence that satisfies a specific opportunity rule. Patterns can add context, but a property with no qualifying direct match should not outrank corroborated opportunities in strict mode.'),
+    (question:'Can a score go down?',answer:'Yes. BridgePoint V81 uses negative scoring. Missing direct matches, missing corroboration, weak source diversity, older evidence, and lower confidence subtract visible points. All Intelligence also keeps only the best qualifying opportunity per property, so the lead list stays finite and useful.'),
+    (question:'What do the map colors and symbols mean?',answer:'The same intelligence type always keeps the same color and icon. Round markers are ranked opportunities. Diamond markers are supporting signals. Tap any marker or legend item for the source, timing, evidence, confidence, and next step.'),
+    (question:'Is the radar live?',answer:'The radar layer uses the official NOAA/NWS Multi-Radar Multi-Sensor reflectivity service. It is live weather context, not a meteorologist-verified hail swath or proof that a specific property was damaged.'),
+    (question:'How often does BridgePoint update?',answer:'The workspace refreshes on the interval selected in Settings. Each source also follows its own lawful source schedule. The live strip shows the next app sync; source cards show their health and refresh behavior.'),
+    (question:'How do I save an opportunity and follow up?',answer:'Open an opportunity, choose Save opportunity, add a preset or custom note, and set the lead stage or next action. My Work keeps saved properties, follow-ups, claim tasks, and calendar work together.'),
+    (question:'How does the Company plan work?',answer:'BridgePoint Company includes five seats, All Intelligence models, shared opportunities, shared notes and field visits, and owner/manager/member/viewer roles. Claims remain private unless a customer explicitly authorizes sharing.'),
+    (question:'How does Live Field Assist protect privacy?',answer:'Field tracking is never hidden. A Company-plan user must explicitly start a field shift, sees a permanent sharing indicator, and can stop at any time. Owners, co-owners, and managers can see active teammates. Locations disappear from the live view after 15 minutes and are deleted after seven days.'),
+    (question:'What is a co-owner?',answer:'A co-owner is a separate verified backup account for a trusted person. They can manage the company workspace and help when the primary owner is unavailable. Only the primary owner can appoint a co-owner or change the primary owner.'),
+    (question:'Can I change my plan later?',answer:'Yes. Open Settings and choose Change plan / manage billing. Stripe securely handles plan changes, monthly or annual billing, payment methods, invoices, and cancellation.'),
+    (question:'How does the 7-day free trial work?',answer:'Eligible new customers can explore the included package for seven days. A payment method is not required to begin the trial. The first ten paying customers also receive 50% off their selected plan for the first six monthly payments when eligible.'),
+    (question:'How do notifications work?',answer:'Use the bell or Settings to choose Daily Brief, critical opportunity, saved follow-up, source-health, in-app, and device-push preferences. Device push also requires browser or operating-system permission.'),
+    (question:'What is the property timeline?',answer:'It is a chronological property story combining source evidence, signals, transitions, saved work, notes, and authorized claim events so users can understand what changed and when.'),
+    (question:'Why are other states visible but locked?',answer:'BridgePoint shows planned markets so customers can request them. A state cannot be sold or unlocked until its property inventory, automatic source pipelines, scoring, legal access, and quality checks are live.'),
+    (question:'What is the Homeowner plan?',answer:'BridgePoint Homeowner is a lower-cost workspace for monitoring one home with plain-language property context, live weather, a property timeline, maintenance or claim reminders, notes, and alerts.'),
+    (question:'Can I install BridgePoint on my device?',answer:'Yes. The hosted web app is installable from Chrome, Edge, and supported mobile browsers using Install app or Add to Home Screen. Native store releases require the normal Apple and Google signing and review steps.'),
+    (question:'What should I do if information looks old or wrong?',answer:'Open the source and timeline details first to check the source date. Then use Settings → Suggestions & feedback and choose Data request or Something is not working. Include the property and the field that needs review.'),
+    (question:'How does BridgePoint protect customer data?',answer:'Customer work is available only through authenticated, checked APIs. Direct access to private workspace tables is denied. Team roles control company access, and sensitive claim details remain private by default.'),
+  ];
+  @override Widget build(BuildContext context){
+    final needle=query.trim().toLowerCase();
+    final visible=entries.where((e)=>needle.isEmpty||e.question.toLowerCase().contains(needle)||e.answer.toLowerCase().contains(needle)).toList();
+    return Dialog(backgroundColor:AppTheme.panel,child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:820,maxHeight:760),child:Padding(
+      padding:const EdgeInsets.all(22),child:Column(children:[
+        Row(children:[const Icon(Icons.help_center_outlined,color:AppTheme.cyan),const SizedBox(width:10),const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text('Help & Frequently Asked Questions',style:TextStyle(color:Colors.white,fontSize:19,fontWeight:FontWeight.w900)),
+          SizedBox(height:3),Text('Plain-language answers for customers, teams, and homeowners.',style:TextStyle(color:AppTheme.textMuted,fontSize:10)),
+        ])),IconButton(tooltip:'Close',onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.close_rounded))]),
+        const SizedBox(height:14),TextField(onChanged:(v)=>setState(()=>query=v),decoration:const InputDecoration(prefixIcon:Icon(Icons.search_rounded),labelText:'Search questions',hintText:'Try “score,” “team,” “radar,” or “plan”',border:OutlineInputBorder())),
+        const SizedBox(height:12),Expanded(child:visible.isEmpty?const Center(child:Text('No matching question. Send your question from Settings → Suggestions & feedback.',textAlign:TextAlign.center,style:TextStyle(color:AppTheme.textMuted))):ListView.separated(
+          itemCount:visible.length,separatorBuilder:(_,__)=>const SizedBox(height:7),itemBuilder:(context,i){final item=visible[i];return Card(color:AppTheme.panelSoft.withOpacity(.7),child:ExpansionTile(
+            leading:const Icon(Icons.question_answer_outlined,color:AppTheme.cyan,size:19),title:Text(item.question,style:const TextStyle(fontSize:12,fontWeight:FontWeight.w800)),
+            children:[Padding(padding:const EdgeInsets.fromLTRB(18,0,18,16),child:Align(alignment:Alignment.centerLeft,child:Text(item.answer,style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.55))))],
+          ));},
+        )),
+      ]),
+    )));
+  }
+}
+
+class _LegalCenterDialog extends StatefulWidget{
+  const _LegalCenterDialog();
+  @override State<_LegalCenterDialog> createState()=>_LegalCenterDialogState();
+}
+class _LegalCenterDialogState extends State<_LegalCenterDialog>{
+  late Future<Map<String,dynamic>> request;
+  String privacyType='ACCESS';final privacyMessage=TextEditingController();bool sending=false;
+  @override void initState(){super.initState();request=_callRpc('bridgepoint_legal_state_v82',const {});}
+  @override void dispose(){privacyMessage.dispose();super.dispose();}
+  Future<void> sendPrivacyRequest()async{
+    setState(()=>sending=true);
+    try{await _callRpc('bridgepoint_submit_privacy_request_v82',{'p_request_type':privacyType,'p_message':privacyMessage.text.trim()});privacyMessage.clear();if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Privacy request received. BridgePoint will verify identity before acting.')));}
+    catch(e){if(mounted)_showInfoDialog(context,'Could not submit privacy request',e.toString());}
+    finally{if(mounted)setState(()=>sending=false);}
+  }
+  @override Widget build(BuildContext context)=>Dialog(backgroundColor:AppTheme.panel,child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:900,maxHeight:800),child:FutureBuilder<Map<String,dynamic>>(
+    future:request,builder:(context,snapshot){
+      final docs=(snapshot.data?['documents'] as List? ?? const []).whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();
+      return Padding(padding:const EdgeInsets.all(22),child:Column(children:[
+        Row(children:[const Icon(Icons.policy_outlined,color:AppTheme.cyan),const SizedBox(width:10),const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('Legal & Trust Center',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900)),SizedBox(height:3),Text('Plain-language controls backed by versioned acceptance records.',style:TextStyle(color:AppTheme.textMuted,fontSize:10))])),IconButton(onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.close_rounded))]),
+        const SizedBox(height:12),Expanded(child:snapshot.connectionState==ConnectionState.waiting?const Center(child:CircularProgressIndicator()):ListView(children:[
+          ...docs.map((d)=>Card(color:AppTheme.panelSoft.withOpacity(.72),child:ExpansionTile(
+            leading:Icon(d['accepted']==true?Icons.verified_user_rounded:Icons.policy_outlined,color:d['accepted']==true?AppTheme.green:AppTheme.amber),
+            title:Text('${d['title']}',style:const TextStyle(fontWeight:FontWeight.w900)),
+            subtitle:Text('Version ${d['document_version']} • ${d['accepted']==true?'Accepted':'Not accepted'}\n${d['summary']}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
+            children:[Padding(padding:const EdgeInsets.fromLTRB(18,0,18,18),child:SelectableText('${d['content_markdown']}'.replaceAll('# ',''),style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.55)))],
+          ))),
+          const SizedBox(height:10),Card(color:AppTheme.cyan.withOpacity(.05),child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const Text('Privacy request',style:TextStyle(fontWeight:FontWeight.w900)),const SizedBox(height:5),const Text('Request access, correction, deletion, a portable copy, or appeal a prior decision. We verify identity before changing or releasing data.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),const SizedBox(height:12),
+            DropdownButtonFormField<String>(value:privacyType,decoration:const InputDecoration(labelText:'Request type',border:OutlineInputBorder()),dropdownColor:AppTheme.panelSoft,items:const [
+              DropdownMenuItem(value:'ACCESS',child:Text('Access my data')),DropdownMenuItem(value:'CORRECTION',child:Text('Correct my data')),DropdownMenuItem(value:'DELETION',child:Text('Delete my data')),DropdownMenuItem(value:'PORTABILITY',child:Text('Portable copy')),DropdownMenuItem(value:'APPEAL',child:Text('Appeal a decision')),DropdownMenuItem(value:'OTHER',child:Text('Other privacy question')),
+            ],onChanged:sending?null:(v)=>setState(()=>privacyType=v??'ACCESS')),
+            const SizedBox(height:9),TextField(controller:privacyMessage,maxLines:3,decoration:const InputDecoration(labelText:'Details (optional)',border:OutlineInputBorder())),const SizedBox(height:9),FilledButton.icon(onPressed:sending?null:sendPrivacyRequest,icon:const Icon(Icons.send_outlined),label:Text(sending?'Sending…':'Submit verified request')),
+          ]))),
+          const SizedBox(height:12),const Text('Important: these safeguards reduce risk but are not a substitute for review by a licensed attorney familiar with your launch states, contracts, insurance workflows, privacy practices, and outreach methods.',style:TextStyle(color:AppTheme.amber,fontSize:10,height:1.5)),
+        ])),
+      ]));
+    },
+  )));
+}
 
 class _OverviewContent extends StatelessWidget {
   const _OverviewContent({
@@ -1357,7 +1803,7 @@ class _MetricGrid extends StatelessWidget {
               detail: 'Imported CT CAMA / parcel inventory',
               icon: Icons.home_work_outlined,
               accent: AppTheme.cyan,
-              onTap: () => onNavigate(3),
+              onTap: () => onNavigate(4),
             ),
             _MetricCard(
               width: itemWidth,
@@ -1368,7 +1814,7 @@ class _MetricGrid extends StatelessWidget {
               detail: 'Storm • Fire • FEMA • Grid • Transitions',
               icon: Icons.hub_outlined,
               accent: AppTheme.blue,
-              onTap: () => onNavigate(5),
+              onTap: () => onNavigate(6),
             ),
             _MetricCard(
               width: itemWidth,
@@ -1379,7 +1825,7 @@ class _MetricGrid extends StatelessWidget {
               detail: 'V36 compound property intelligence',
               icon: Icons.account_tree_outlined,
               accent: AppTheme.amber,
-              onTap: () => onNavigate(4),
+              onTap: () => onNavigate(5),
             ),
             _MetricCard(
               width: itemWidth,
@@ -1425,7 +1871,11 @@ class _MetricCard extends StatelessWidget {
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: onTap,
+          onTap: onTap ?? ()=>_showInfoDialog(
+            context,
+            label.replaceAll('_',' '),
+            '$detail\n\nCurrent value: $value\n\nThis card summarizes the live data shown on this page. Refreshing the page asks BridgePoint for the newest available result.',
+          ),
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -1444,7 +1894,7 @@ class _MetricCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Icon(
-                    Icons.more_horiz_rounded,
+                    onTap==null?Icons.info_outline_rounded:Icons.arrow_forward_rounded,
                     color: Colors.white.withOpacity(0.25),
                   ),
                 ],
@@ -3116,6 +3566,10 @@ class _LivePackageCard extends StatelessWidget {
 
 IconData _packageIcon(String key) {
   switch (key) {
+    case 'company':
+      return Icons.groups_2_outlined;
+    case 'homeowner':
+      return Icons.cottage_outlined;
     case 'home':
       return Icons.home_work_outlined;
     case 'commercial':
@@ -3313,6 +3767,209 @@ void _showPackageDetail(
   );
 }
 
+class _FieldModePage extends StatefulWidget {
+  const _FieldModePage({required this.modelKey,required this.packageName});
+  final String modelKey;
+  final String packageName;
+  @override State<_FieldModePage> createState()=>_FieldModePageState();
+}
+
+class _FieldModePageState extends State<_FieldModePage>{
+  late Future<Map<String,dynamic>> request;
+  late Future<Map<String,dynamic>> teamRequest;
+  final Set<String> selected=<String>{};
+  StreamSubscription<Position>? locationStream;
+  Timer? teamTimer;
+  Timer? locationHeartbeat;
+  String? shiftId;
+  bool sharingLocation=false;
+  bool locationBusy=false;
+  String? locationError;
+  @override void initState(){
+    super.initState();request=_load();teamRequest=_loadTeam();
+    teamTimer=Timer.periodic(const Duration(seconds:20),(_){if(mounted)setState(()=>teamRequest=_loadTeam());});
+  }
+  @override void didUpdateWidget(covariant _FieldModePage oldWidget){super.didUpdateWidget(oldWidget);if(oldWidget.modelKey!=widget.modelKey){selected.clear();request=_load();}}
+  Future<Map<String,dynamic>> _load()=>_callRpc('bridgepoint_flutter_opportunities_v57',{
+    'p_model_key':widget.modelKey,'p_limit':30,'p_offset':0,'p_priority':null,'p_stage':null,
+  });
+  Future<Map<String,dynamic>> _loadTeam()=>_callRpc('bridgepoint_field_team_v81',const {});
+  void _reload()=>setState(()=>request=_load());
+  String _key(Map<String,dynamic> o)=>'${o['opportunity_id']??o['property_id']}';
+  Future<void> _openRoute(List<Map<String,dynamic>> opportunities)async{
+    final chosen=opportunities.where((o)=>selected.contains(_key(o))).take(9).toList();
+    final addresses=chosen.map((o)=>'${o['full_address']??''}'.trim()).where((v)=>v.isNotEmpty).toList();
+    if(addresses.isEmpty){_showInfoDialog(context,'Choose route stops','Select at least one property with an address.');return;}
+    final destination=addresses.removeLast();
+    final uri=Uri.parse('https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${Uri.encodeComponent(destination)}${addresses.isEmpty?'':'&waypoints=${Uri.encodeComponent(addresses.join('|'))}'}');
+    if(!await launchUrl(uri,mode:LaunchMode.externalApplication)&&mounted){_showInfoDialog(context,'Directions unavailable','Could not open the device maps experience.');}
+  }
+  Future<void> _markVisited(Map<String,dynamic> opportunity)async{
+    try{
+      await _callRpc('bridgepoint_save_customer_note_v70',{
+        'p_property_id':opportunity['property_id'],'p_opportunity_id':opportunity['opportunity_id'],
+        'p_preset_key':'VISIT','p_note_text':'Field visit completed from Field Mode.','p_follow_up_at':null,
+      });
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Visit saved to the property timeline.')));
+    }catch(e){if(mounted)_showInfoDialog(context,'Could not mark visited',e.toString());}
+  }
+
+  Future<void> _recordPosition(Position position)async{
+    final activeShift=shiftId;
+    if(activeShift==null)return;
+    try{
+      await _callRpc('bridgepoint_record_field_location_v81',{
+        'p_field_shift_id':activeShift,'p_latitude':position.latitude,'p_longitude':position.longitude,
+        'p_accuracy_m':position.accuracy,'p_heading_degrees':position.heading.isFinite?position.heading:null,
+        'p_speed_mps':position.speed.isFinite&&position.speed>=0?position.speed:null,
+        'p_captured_at':position.timestamp.toUtc().toIso8601String(),
+      });
+      if(mounted)setState((){locationError=null;teamRequest=_loadTeam();});
+    }catch(e){if(mounted)setState(()=>locationError='Location could not sync: $e');}
+  }
+
+  Future<void> _startTracking()async{
+    setState((){locationBusy=true;locationError=null;});
+    try{
+      if(!await _ensureFieldTrackingConsent(context)){return;}
+      if(!await Geolocator.isLocationServiceEnabled())throw Exception('Turn on Location Services, then try again.');
+      var permission=await Geolocator.checkPermission();
+      if(permission==LocationPermission.denied)permission=await Geolocator.requestPermission();
+      if(permission==LocationPermission.denied)throw Exception('Location permission was not granted.');
+      if(permission==LocationPermission.deniedForever)throw Exception('Location is blocked for BridgePoint. Open this device’s site or app settings to allow it.');
+      final started=await _callRpc('bridgepoint_start_field_shift_v81',{'p_shift_label':'Field Mode'});
+      shiftId='${started['field_shift_id']}';
+      final first=await Geolocator.getCurrentPosition(locationSettings:const LocationSettings(accuracy:LocationAccuracy.high,timeLimit:Duration(seconds:20)));
+      await _recordPosition(first);
+      await locationStream?.cancel();
+      locationStream=Geolocator.getPositionStream(locationSettings:const LocationSettings(accuracy:LocationAccuracy.high,distanceFilter:25)).listen(_recordPosition,onError:(Object error){if(mounted)setState(()=>locationError='Location update paused: $error');});
+      locationHeartbeat?.cancel();
+      locationHeartbeat=Timer.periodic(const Duration(seconds:60),(_)async{
+        if(!sharingLocation)return;
+        try{await _recordPosition(await Geolocator.getCurrentPosition(locationSettings:const LocationSettings(accuracy:LocationAccuracy.high,timeLimit:Duration(seconds:20))));}catch(_){ }
+      });
+      if(mounted)setState((){sharingLocation=true;teamRequest=_loadTeam();});
+    }catch(e){if(mounted)setState(()=>locationError=e.toString().replaceFirst('Exception: ',''));}
+    finally{if(mounted)setState(()=>locationBusy=false);}
+  }
+
+  Future<void> _stopTracking({bool silent=false})async{
+    final activeShift=shiftId;
+    await locationStream?.cancel();locationStream=null;
+    locationHeartbeat?.cancel();locationHeartbeat=null;
+    shiftId=null;
+    if(activeShift!=null){try{await _callRpc('bridgepoint_stop_field_shift_v81',{'p_field_shift_id':activeShift});}catch(e){if(!silent&&mounted)_showInfoDialog(context,'Could not stop field shift',e.toString());}}
+    if(mounted)setState((){sharingLocation=false;locationBusy=false;teamRequest=_loadTeam();});
+  }
+
+  @override void dispose(){
+    teamTimer?.cancel();locationHeartbeat?.cancel();locationStream?.cancel();
+    final activeShift=shiftId;if(activeShift!=null)unawaited(_callRpc('bridgepoint_stop_field_shift_v81',{'p_field_shift_id':activeShift}));
+    super.dispose();
+  }
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+    future:request,builder:(context,snapshot){
+      final raw=snapshot.data?['opportunities'];
+      final opportunities=raw is List?raw.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList():<Map<String,dynamic>>[];
+      if(selected.isEmpty&&opportunities.isNotEmpty){for(final o in opportunities.take(8)){selected.add(_key(o));}}
+      final loading=snapshot.connectionState==ConnectionState.waiting;
+      return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        _PageHeading(title:'Field Mode',subtitle:'${widget.packageName} • top houses • simple routing • fast follow-up',onRefresh:_reload,loading:loading),
+        const SizedBox(height:18),FutureBuilder<Map<String,dynamic>>(
+          future:teamRequest,builder:(context,teamSnapshot)=>_LiveFieldAssistPanel(
+            data:teamSnapshot.data,loading:teamSnapshot.connectionState==ConnectionState.waiting,
+            sharing:sharingLocation,busy:locationBusy,error:locationError,
+            onStart:_startTracking,onStop:()=>_stopTracking(),onRefresh:(){setState(()=>teamRequest=_loadTeam());},
+          ),
+        ),
+        const SizedBox(height:18),
+        LayoutBuilder(builder:(context,constraints){final columns=constraints.maxWidth>=900?3:1;const gap=14.0;final width=(constraints.maxWidth-gap*(columns-1))/columns;return Wrap(spacing:gap,runSpacing:gap,children:[
+          _MetricCard(width:width,label:'TOP HOUSES',value:'${opportunities.length}',detail:'Strictly ranked for field work',icon:Icons.home_work_rounded,accent:AppTheme.cyan),
+          _MetricCard(width:width,label:'ROUTE STOPS',value:'${selected.length}',detail:'Choose up to 9 stops per route',icon:Icons.route_rounded,accent:AppTheme.blue),
+          _MetricCard(width:width,label:'FIELD WORKFLOW',value:'READY',detail:'Open • save • visit • follow up',icon:Icons.directions_walk_rounded,accent:AppTheme.green),
+        ]);}),
+        const SizedBox(height:16),
+        Card(child:Padding(padding:const EdgeInsets.all(16),child:Row(children:[
+          const Expanded(child:Text('Select the best houses, then open a driving route. Every card opens the evidence and reasoning first.',style:TextStyle(color:AppTheme.textMuted,fontSize:11,height:1.45))),
+          const SizedBox(width:12),FilledButton.icon(onPressed:opportunities.isEmpty?null:()=>_openRoute(opportunities),icon:const Icon(Icons.navigation_rounded),label:const Text('Start route')),
+        ]))),
+        const SizedBox(height:16),
+        if(snapshot.hasError)_DashboardError(message:snapshot.error.toString(),onRetry:_reload)
+        else if(loading&&opportunities.isEmpty)const Card(child:SizedBox(height:250,child:Center(child:CircularProgressIndicator(color:AppTheme.cyan))))
+        else if(opportunities.isEmpty)const Card(child:SizedBox(height:220,child:Center(child:Text('No strict opportunities are ready for field work.',style:TextStyle(color:AppTheme.textMuted)))))
+        else Card(child:Padding(padding:const EdgeInsets.all(15),child:Column(children:opportunities.map((o){
+          final key=_key(o);final checked=selected.contains(key);final color=_opportunityTypeColor(o);
+          return Container(margin:const EdgeInsets.only(bottom:10),decoration:BoxDecoration(color:AppTheme.panelSoft.withOpacity(.6),borderRadius:BorderRadius.circular(14),border:Border.all(color:checked?color.withOpacity(.6):Colors.white10)),child:InkWell(
+            onTap:()=>_showOpportunityDetail(context,o),borderRadius:BorderRadius.circular(14),child:Padding(padding:const EdgeInsets.all(13),child:Row(children:[
+              Checkbox(value:checked,activeColor:color,onChanged:(v)=>setState((){if(v==true){if(selected.length<9)selected.add(key);}else{selected.remove(key);}})),
+              Container(width:42,height:42,decoration:BoxDecoration(color:color.withOpacity(.14),borderRadius:BorderRadius.circular(11)),child:Icon(_opportunityMapIcon(o),color:color,size:21)),
+              const SizedBox(width:11),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${o['full_address']??'Address unavailable'}',style:const TextStyle(color:Colors.white,fontSize:12,fontWeight:FontWeight.w800)),const SizedBox(height:4),Text('${o['title']??o['model_name']??'Opportunity'} • ${o['explanation']??o['recommended_action']??'Open the evidence'}',maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.35))])),
+              Text('${(o['score'] as num?)?.toStringAsFixed(1)??'—'}',style:TextStyle(color:color,fontSize:17,fontWeight:FontWeight.w900)),
+              const SizedBox(width:8),PopupMenuButton<String>(tooltip:'Field actions',onSelected:(action){if(action=='open')_showOpportunityDetail(context,o);if(action=='save')_saveOpportunity(context,o);if(action=='note')_showAddNoteDialog(context,o);if(action=='visited')_markVisited(o);if(action=='directions')_openRoute([o]);},itemBuilder:(context)=>const [
+                PopupMenuItem(value:'open',child:Text('Explain this opportunity')),PopupMenuItem(value:'directions',child:Text('Directions')),
+                PopupMenuItem(value:'save',child:Text('Save to My Work')),PopupMenuItem(value:'note',child:Text('Add follow-up note')),PopupMenuItem(value:'visited',child:Text('Mark visited')),
+              ]),
+            ]))),
+          );
+        }).toList()))),
+      ]);
+    },
+  );
+}
+
+class _LiveFieldAssistPanel extends StatelessWidget{
+  const _LiveFieldAssistPanel({required this.data,required this.loading,required this.sharing,required this.busy,required this.error,required this.onStart,required this.onStop,required this.onRefresh});
+  final Map<String,dynamic>? data;
+  final bool loading,sharing,busy;
+  final String? error;
+  final VoidCallback onStart,onStop,onRefresh;
+  @override Widget build(BuildContext context){
+    final eligible=data?['eligible']==true;
+    final canView=data?['can_view_team']==true;
+    final teammates=(data?['team'] as List? ?? const []).whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();
+    final points=teammates.where((e)=>e['latitude'] is num&&e['longitude'] is num).toList();
+    if(loading&&data==null)return const Card(child:Padding(padding:EdgeInsets.all(18),child:LinearProgressIndicator(color:AppTheme.cyan,minHeight:2)));
+    if(!eligible)return Card(child:Padding(padding:const EdgeInsets.all(18),child:Row(children:[
+      Container(width:48,height:48,decoration:BoxDecoration(color:AppTheme.amber.withOpacity(.10),borderRadius:BorderRadius.circular(13)),child:const Icon(Icons.location_off_outlined,color:AppTheme.amber)),
+      const SizedBox(width:13),const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('Live Field Assist • Company plan',style:TextStyle(fontWeight:FontWeight.w900)),SizedBox(height:4),Text('Company teams can voluntarily share active field locations so supervisors can see who is nearby, coordinate help, and avoid duplicate visits.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45))])),
+      OutlinedButton.icon(onPressed:()=>_openBillingPortal(context),icon:const Icon(Icons.lock_outline_rounded),label:const Text('Company plan')),
+    ])));
+    return Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Row(children:[
+        Container(width:48,height:48,decoration:BoxDecoration(color:(sharing?AppTheme.green:AppTheme.cyan).withOpacity(.11),borderRadius:BorderRadius.circular(13)),child:Icon(sharing?Icons.share_location_rounded:Icons.location_searching_rounded,color:sharing?AppTheme.green:AppTheme.cyan)),
+        const SizedBox(width:13),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text(sharing?'Sharing your field location':'Live Field Assist',style:const TextStyle(fontWeight:FontWeight.w900,fontSize:14)),
+          const SizedBox(height:4),Text(sharing?'Visible to company owners, co-owners, and managers while Field Mode is open.':'Start a field shift only when you want company supervisors to see and assist you.',style:const TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+        ])),
+        IconButton(tooltip:'Refresh active team',onPressed:onRefresh,icon:const Icon(Icons.refresh_rounded,color:AppTheme.textMuted)),
+        const SizedBox(width:4),FilledButton.icon(
+          style:sharing?FilledButton.styleFrom(backgroundColor:AppTheme.red):null,
+          onPressed:busy?null:(sharing?onStop:onStart),icon:Icon(sharing?Icons.stop_circle_outlined:Icons.play_circle_outline_rounded),
+          label:Text(busy?'Starting…':sharing?'Stop sharing':'Start field shift'),
+        ),
+      ]),
+      if(error!=null)...[const SizedBox(height:10),_InlineError(message:error!)],
+      const SizedBox(height:12),Container(padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.05),borderRadius:BorderRadius.circular(10),border:Border.all(color:AppTheme.cyan.withOpacity(.12))),child:const Row(children:[
+        Icon(Icons.privacy_tip_outlined,color:AppTheme.cyan,size:18),SizedBox(width:9),Expanded(child:Text('Consent-based: no hidden tracking. Live locations leave the team view after 15 minutes and are permanently deleted after seven days. Leaving Field Mode ends sharing.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.45))),
+      ])),
+      if(canView&&points.isNotEmpty)...[
+        const SizedBox(height:14),SizedBox(height:220,child:ClipRRect(borderRadius:BorderRadius.circular(13),child:FlutterMap(
+          options:MapOptions(initialCenter:LatLng((points.first['latitude'] as num).toDouble(),(points.first['longitude'] as num).toDouble()),initialZoom:11),
+          children:[
+            TileLayer(urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',userAgentPackageName:'com.bridgepointintelligence.app'),
+            MarkerLayer(markers:points.map((member){
+              final status='${member['location_status']??'RECENT'}';final color=status=='LIVE'?AppTheme.green:AppTheme.amber;
+              final name='${member['display_name']??'Team member'}';final initial=name.isEmpty?'?':name.substring(0,1).toUpperCase();
+              return Marker(point:LatLng((member['latitude'] as num).toDouble(),(member['longitude'] as num).toDouble()),width:52,height:52,child:Tooltip(message:'$name • $status',child:Container(decoration:BoxDecoration(color:color,shape:BoxShape.circle,border:Border.all(color:Colors.white,width:3),boxShadow:[BoxShadow(color:Colors.black.withOpacity(.35),blurRadius:8)]),child:Center(child:Text(initial,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900))))));
+            }).toList()),
+          ],
+        ))),
+        const SizedBox(height:10),Wrap(spacing:8,runSpacing:8,children:points.map((member){final live=member['location_status']=='LIVE';return _OpportunityChip(label:'${member['display_name']??'Teammate'} • ${live?'LIVE':'RECENT'}',color:live?AppTheme.green:AppTheme.amber);}).toList()),
+      ] else if(canView)...[const SizedBox(height:12),const Text('No teammate is actively sharing a field location.',style:TextStyle(color:AppTheme.textMuted,fontSize:10))],
+    ])));
+  }
+}
+
 class _IntelligenceMapPage extends StatefulWidget {
   const _IntelligenceMapPage({
     required this.modelKey,
@@ -3330,6 +3987,9 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
   late Future<Map<String, dynamic>> _request;
   final MapController _mapController = MapController();
   double? _minimumScore;
+  String _visibleLayer=_displayPreferences.value.simplifiedViews?'opportunities':'both';
+  bool _showRadar=true;
+  bool _showExpansion=!_displayPreferences.value.simplifiedViews;
 
   @override
   void initState() {
@@ -3357,6 +4017,9 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
         }),
       ).timeout(const Duration(seconds: 30)),
       _callRpc('bridgepoint_flutter_geographic_catalog_v77',const {}),
+      _callRpc('bridgepoint_flutter_signal_map_v80',{
+        'p_min_lat':null,'p_max_lat':null,'p_min_lng':null,'p_max_lng':null,'p_limit':240,
+      }),
     ]);
     final response=results[0] as http.Response;
 
@@ -3369,7 +4032,11 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
     if (decoded is! Map) {
       throw const FormatException('Unexpected Intelligence Map response.');
     }
-    return <String,dynamic>{...Map<String,dynamic>.from(decoded),'coverage_catalog':results[1]};
+    return <String,dynamic>{
+      ...Map<String,dynamic>.from(decoded),
+      'coverage_catalog':results[1],
+      'signal_map':results[2],
+    };
   }
 
   void _reload() => setState(() => _request = _load());
@@ -3384,6 +4051,13 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
         final points = raw is List
             ? raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
             : <Map<String, dynamic>>[];
+        final signalMap=data?['signal_map'] is Map
+            ?Map<String,dynamic>.from(data!['signal_map'] as Map)
+            :<String,dynamic>{};
+        final signalRaw=signalMap['signals'];
+        final signalPoints=signalRaw is List
+            ?signalRaw.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList()
+            :<Map<String,dynamic>>[];
         final loading = snapshot.connectionState == ConnectionState.waiting;
         final coverage=data?['coverage_catalog'] is Map
             ?Map<String,dynamic>.from(data!['coverage_catalog'] as Map)
@@ -3403,7 +4077,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                   points.length;
 
         final markers = <Marker>[];
-        for (final point in points) {
+        if(_visibleLayer!='signals')for (final point in points) {
           final lat = (point['latitude'] as num?)?.toDouble();
           final lng = (point['longitude'] as num?)?.toDouble();
           if (lat == null || lng == null) continue;
@@ -3440,13 +4114,26 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
             ),
           );
         }
+        if(_visibleLayer!='opportunities')for(final signal in signalPoints){
+          final lat=(signal['latitude'] as num?)?.toDouble();
+          final lng=(signal['longitude'] as num?)?.toDouble();
+          if(lat==null||lng==null)continue;
+          final color=_opportunityTypeColor(signal);
+          markers.add(Marker(point:LatLng(lat,lng),width:30,height:30,child:Tooltip(
+            message:'${signal['signal_name']??signal['title']??'Signal'} • ${signal['full_address']??signal['municipality']??''}',
+            child:GestureDetector(onTap:()=>_showSignalDetail(context,signal),child:Transform.rotate(angle:.785398,child:Container(
+              decoration:BoxDecoration(color:color.withOpacity(.92),borderRadius:BorderRadius.circular(7),border:Border.all(color:Colors.white.withOpacity(.82),width:1.4),boxShadow:[BoxShadow(color:color.withOpacity(.33),blurRadius:9)]),
+              child:Transform.rotate(angle:-.785398,child:Icon(_opportunityMapIcon(signal),color:Colors.white,size:15)),
+            ))),
+          )));
+        }
         const nearbyCentroids=<String,LatLng>{
           'MA':LatLng(42.30,-71.80),'RI':LatLng(41.70,-71.55),
           'NY':LatLng(42.80,-75.20),'NJ':LatLng(40.10,-74.50),
           'PA':LatLng(41.00,-77.50),'VT':LatLng(44.00,-72.70),
           'NH':LatLng(43.80,-71.60),'ME':LatLng(45.20,-69.00),
         };
-        for(final market in coverageMarkets){
+        if(_showExpansion)for(final market in coverageMarkets){
           final code='${market['state_code']}';final center=nearbyCentroids[code];
           if(center==null||market['data_status']=='LIVE')continue;
           final requested=market['interest_registered']==true;
@@ -3486,8 +4173,8 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                       label: 'MAPPED',
                       value: '${markers.length}',
                       detail: data?['has_more'] == true
-                          ? 'Top intelligence points • more available'
-                          : 'Opportunity points returned',
+                          ? '${points.length} opportunities • ${signalPoints.length} signals • more available'
+                          : '${points.length} opportunities • ${signalPoints.length} signals',
                       icon: Icons.map_outlined,
                       accent: AppTheme.cyan,
                     ),
@@ -3495,7 +4182,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                       width: width,
                       label: 'HIGH PRIORITY',
                       value: '$highPriority',
-                      detail: 'Critical + high on current map',
+                      detail: 'Critical + high strict opportunities',
                       icon: Icons.priority_high_rounded,
                       accent: AppTheme.blue,
                     ),
@@ -3503,7 +4190,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                       width: width,
                       label: 'AVG SCORE',
                       value: points.isEmpty ? '—' : avgScore.toStringAsFixed(1),
-                      detail: 'Mapped opportunity intelligence',
+                      detail: '${signalMap['signal_type_count']??0} signal types represented',
                       icon: Icons.analytics_outlined,
                       accent: AppTheme.green,
                     ),
@@ -3519,8 +4206,8 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                   children: [
                     const Icon(Icons.layers_outlined, color: AppTheme.cyan, size: 18),
                     const SizedBox(width: 8),
-                    const Text(
-                      'OPPORTUNITIES',
+                    Text(
+                      _visibleLayer.toUpperCase(),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 10,
@@ -3530,15 +4217,21 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                     ),
                     const SizedBox(width: 14),
                     Expanded(child:SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[
-                      _MapLegendDot(color:AppTheme.amber,label:'Roofing'),const SizedBox(width:12),
-                      _MapLegendDot(color:AppTheme.red,label:'Fire'),const SizedBox(width:12),
-                      const _MapLegendDot(color:Color(0xFF9B7BFF),label:'Storm'),const SizedBox(width:12),
-                      _MapLegendDot(color:AppTheme.blue,label:'Flood/FEMA'),const SizedBox(width:12),
-                      _MapLegendDot(color:AppTheme.green,label:'Solar/Investor'),const SizedBox(width:12),
-                      _MapLegendDot(color:AppTheme.cyan,label:'Commercial/Other'),const SizedBox(width:12),
-                      _MapLegendDot(color:AppTheme.amber,label:'Locked state'),
+                      _MapLegendDot(color:_categoryColor('roofing'),label:'Roofing',icon:Icons.roofing_rounded),const SizedBox(width:12),
+                      _MapLegendDot(color:_categoryColor('fire'),label:'Fire',icon:Icons.local_fire_department_rounded),const SizedBox(width:12),
+                      _MapLegendDot(color:_categoryColor('severe_weather'),label:'Storm / hail',icon:Icons.thunderstorm_rounded),const SizedBox(width:12),
+                      _MapLegendDot(color:_categoryColor('flood'),label:'Flood / FEMA',icon:Icons.flood_rounded),const SizedBox(width:12),
+                      _MapLegendDot(color:_categoryColor('solar'),label:'Solar',icon:Icons.solar_power_rounded),const SizedBox(width:12),
+                      _MapLegendDot(color:_categoryColor('investment'),label:'Investor',icon:Icons.real_estate_agent_rounded),const SizedBox(width:12),
+                      _MapLegendDot(color:_categoryColor('commercial'),label:'Commercial',icon:Icons.business_rounded),const SizedBox(width:12),
+                      _MapLegendDot(color:_categoryColor('environmental'),label:'Environmental',icon:Icons.science_rounded),const SizedBox(width:12),
+                      _MapLegendDot(color:_categoryColor('property_transition'),label:'Transfer',icon:Icons.swap_horizontal_circle_rounded),
                     ]))),
                     const SizedBox(width:12),
+                    PopupMenuButton<String>(tooltip:'Choose visible intelligence',onSelected:(value)=>setState(()=>_visibleLayer=value),itemBuilder:(context)=>const [
+                      PopupMenuItem(value:'both',child:Text('Opportunities + signals')),PopupMenuItem(value:'opportunities',child:Text('Opportunities only')),PopupMenuItem(value:'signals',child:Text('Signals only')),
+                    ],child:Container(padding:const EdgeInsets.symmetric(horizontal:11,vertical:7),decoration:BoxDecoration(borderRadius:BorderRadius.circular(9),border:Border.all(color:Colors.white12)),child:Row(children:[const Icon(Icons.layers_rounded,size:15,color:AppTheme.cyan),const SizedBox(width:5),Text(_visibleLayer=='both'?'Both':_visibleLayer=='signals'?'Signals':'Opportunities',style:const TextStyle(color:Colors.white,fontSize:9,fontWeight:FontWeight.w700))]))),
+                    const SizedBox(width:8),
                     PopupMenuButton<double?>(
                       tooltip: 'Minimum opportunity score',
                       onSelected: (value) {
@@ -3590,12 +4283,24 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                           initialZoom: 6.3,
                           minZoom: 4,
                           maxZoom: 18,
+                          interactionOptions: InteractionOptions(
+                            flags: InteractiveFlag.all &
+                                ~InteractiveFlag.scrollWheelZoom,
+                          ),
                         ),
                         children: [
                           TileLayer(
                             urlTemplate:
                                 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                             userAgentPackageName: 'com.bridgepoint.data_studio',
+                          ),
+                          if(_showRadar)TileLayer(
+                            wmsOptions:WMSTileLayerOptions(
+                              baseUrl:'https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows?',
+                              layers:const ['conus_bref_qcd'],format:'image/png',transparent:true,version:'1.3.0',
+                            ),
+                            maxNativeZoom:12,
+                            userAgentPackageName:'com.bridgepoint.data_studio',
                           ),
                           MarkerLayer(markers: markers),
                           RichAttributionWidget(
@@ -3605,7 +4310,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                           ),
                         ],
                       ),
-                      if(!loading)const Positioned.fill(child:IgnorePointer(child:_MapScanOverlay())),
+                      if(!loading&&!_displayPreferences.value.reducedMotion)const Positioned.fill(child:IgnorePointer(child:_MapScanOverlay())),
                       if (loading)
                         Positioned.fill(
                           child: Container(
@@ -3657,6 +4362,10 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                             ),
                             const SizedBox(height:7),
                             _MapControlButton(icon:Icons.public_rounded,tooltip:'Show Northeast expansion',onTap:()=>_mapController.move(const LatLng(42.15,-72.90),6.3)),
+                            const SizedBox(height:7),
+                            _MapControlButton(icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,tooltip:_showRadar?'Hide live NOAA radar':'Show live NOAA radar',onTap:()=>setState(()=>_showRadar=!_showRadar)),
+                            const SizedBox(height:7),
+                            _MapControlButton(icon:_showExpansion?Icons.lock_outline_rounded:Icons.lock_open_rounded,tooltip:_showExpansion?'Hide future states':'Show future states',onTap:()=>setState(()=>_showExpansion=!_showExpansion)),
                           ],
                         ),
                       ),
@@ -3672,26 +4381,27 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
 }
 
 class _MapLegendDot extends StatelessWidget {
-  const _MapLegendDot({required this.color, required this.label});
+  const _MapLegendDot({required this.color, required this.label,this.icon=Icons.circle});
   final Color color;
   final String label;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(color: AppTheme.textMuted, fontSize: 9),
-        ),
-      ],
+    return Tooltip(
+      message:'Explain $label markers',
+      child:InkWell(
+        borderRadius:BorderRadius.circular(8),
+        onTap:()=>_showInfoDialog(context,'$label map intelligence','Every $label marker uses this same color and symbol throughout BridgePoint. Round markers are ranked opportunities; diamond markers are supporting signals. Tap any marker to see the property, source, timing, evidence, confidence, and recommended next step.'),
+        child:Padding(padding:const EdgeInsets.symmetric(horizontal:4,vertical:5),child:Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,color:color,size:13),
+            const SizedBox(width: 5),
+            Text(label,style: const TextStyle(color: AppTheme.textMuted, fontSize: 9)),
+          ],
+        )),
+      ),
     );
   }
 }
@@ -3732,39 +4442,48 @@ class _MapScanOverlayState extends State<_MapScanOverlay> with SingleTickerProvi
     ))));
 }
 
-IconData _opportunityMapIcon(Map<String, dynamic> opportunity) {
-  final value = '${opportunity['vertical_key'] ?? ''} '
-          '${opportunity['model_key'] ?? ''} '
-          '${opportunity['title'] ?? ''} '
-          '${opportunity['model_name'] ?? ''}'
-      .toLowerCase();
-  if (value.contains('roof')) return Icons.roofing_rounded;
-  if (value.contains('restoration')) return Icons.handyman_rounded;
-  if (value.contains('adjust')) return Icons.policy_rounded;
-  if (value.contains('invest')) return Icons.real_estate_agent_rounded;
-  if (value.contains('contract')) return Icons.construction_rounded;
-  if (value.contains('solar')) return Icons.solar_power_rounded;
-  if (value.contains('commercial') || value.contains('business')) {
-    return Icons.business_rounded;
-  }
-  if (value.contains('development')) return Icons.location_city_rounded;
-  if (value.contains('fire')) return Icons.local_fire_department_rounded;
-  if (value.contains('flood') || value.contains('water')) {
-    return Icons.flood_rounded;
-  }
-  return Icons.bolt_rounded;
+String _mapCategoryKey(Map<String,dynamic> item){
+  final value=[item['vertical_key'],item['opportunity_key'],item['model_key'],item['title'],item['model_name'],item['top_signal_type'],item['signal_key'],item['signal_name'],item['signal_family'],item['detector_key']].map((v)=>'$v'.toLowerCase()).join(' ');
+  if(value.contains('fire'))return 'fire';
+  if(value.contains('roof')||value.contains('restoration')||value.contains('contractor'))return 'roofing';
+  if(value.contains('hail')||value.contains('storm')||value.contains('wind')||value.contains('lightning')||value.contains('tornado')||value.contains('hurricane')||value.contains('winter weather'))return 'severe_weather';
+  if(value.contains('flood')||value.contains('fema')||value.contains('nfip')||value.contains('hydrolog')||value.contains('water'))return 'flood';
+  if(value.contains('solar'))return 'solar';
+  if(value.contains('foreclos')||value.contains('distress')||value.contains('invest')||value.contains('probate')||value.contains('estate transfer'))return 'investment';
+  if(value.contains('business')||value.contains('commercial'))return 'commercial';
+  if(value.contains('development')||value.contains('permit')||value.contains('construction'))return 'development';
+  if(value.contains('environment')||value.contains('remediation')||value.contains('cleanup')||value.contains('petroleum')||value.contains('spill')||value.contains(' ust'))return 'environmental';
+  if(value.contains('transfer')||value.contains('ownership')||value.contains('property change')||value.contains('property improvement'))return 'property_transition';
+  if(value.contains('grid')||value.contains('utility')||value.contains('outage')||value.contains('infrastructure'))return 'infrastructure';
+  if(value.contains('claim')||value.contains('insurance')||value.contains('adjust'))return 'claims';
+  final explicit='${item['signal_family']??item['vertical_key']??item['model_key']??'other'}'.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'),'_');
+  return explicit.isEmpty?'other':explicit;
 }
 
-Color _opportunityTypeColor(Map<String,dynamic> opportunity){
-  final value='${opportunity['vertical_key']??''} ${opportunity['model_key']??''} ${opportunity['title']??''} ${opportunity['model_name']??''} ${opportunity['top_signal_type']??''}'.toLowerCase();
-  if(value.contains('fire'))return AppTheme.red;
-  if(value.contains('storm')||value.contains('wind')||value.contains('hail')||value.contains('lightning'))return const Color(0xFF9B7BFF);
-  if(value.contains('flood')||value.contains('fema')||value.contains('water'))return AppTheme.blue;
-  if(value.contains('roof')||value.contains('restoration')||value.contains('contract'))return AppTheme.amber;
-  if(value.contains('solar')||value.contains('invest'))return AppTheme.green;
-  if(value.contains('commercial')||value.contains('business')||value.contains('development'))return AppTheme.cyan;
-  return const Color(0xFF5BC0EB);
-}
+int _stableTypeHash(String value){var hash=2166136261;for(final code in value.codeUnits){hash^=code;hash=(hash*16777619)&0x7fffffff;}return hash;}
+
+Color _categoryColor(String category)=>switch(category){
+  'roofing'=>AppTheme.amber,'fire'=>AppTheme.red,'severe_weather'=>const Color(0xFF9B7BFF),
+  'flood'=>AppTheme.blue,'solar'=>AppTheme.green,'investment'=>const Color(0xFF49D17D),
+  'commercial'=>AppTheme.cyan,'development'=>const Color(0xFFFF9557),
+  'environmental'=>const Color(0xFFB7D84B),'property_transition'=>const Color(0xFFFF78C6),
+  'infrastructure'=>const Color(0xFFE1D85A),'claims'=>const Color(0xFFD96BFF),
+  _=>HSLColor.fromAHSL(1,(_stableTypeHash(category)%360).toDouble(),.68,.56).toColor(),
+};
+
+IconData _categoryIcon(String category)=>switch(category){
+  'roofing'=>Icons.roofing_rounded,'fire'=>Icons.local_fire_department_rounded,
+  'severe_weather'=>Icons.thunderstorm_rounded,'flood'=>Icons.flood_rounded,
+  'solar'=>Icons.solar_power_rounded,'investment'=>Icons.real_estate_agent_rounded,
+  'commercial'=>Icons.business_rounded,'development'=>Icons.location_city_rounded,
+  'environmental'=>Icons.science_rounded,'property_transition'=>Icons.swap_horizontal_circle_rounded,
+  'infrastructure'=>Icons.electrical_services_rounded,'claims'=>Icons.policy_rounded,
+  _=>Icons.bolt_rounded,
+};
+
+IconData _opportunityMapIcon(Map<String,dynamic> item)=>_categoryIcon(_mapCategoryKey(item));
+
+Color _opportunityTypeColor(Map<String,dynamic> item)=>_categoryColor(_mapCategoryKey(item));
 
 IconData _opportunityTypeIcon(Map<String,dynamic> opportunity)=>_opportunityMapIcon(opportunity);
 
@@ -3806,17 +4525,18 @@ class _ReasoningPanel extends StatelessWidget{
   @override Widget build(BuildContext context){
     final explanation='${opportunity['explanation']??opportunity['score_explanation']??opportunity['reason']??'BridgePoint found enough independent evidence to place this property in the review queue.'}';
     final stage='${opportunity['stage']??opportunity['intelligence_stage']??'active intelligence'}'.replaceAll('_',' ').toLowerCase();
-    final events=opportunity['event_count']??opportunity['signal_count']??0;
+    final directSignals=opportunity['matched_signal_count']??opportunity['direct_signal_count']??opportunity['distinct_signal_count']??0;
+    final allSignals=opportunity['event_count']??opportunity['signal_count']??directSignals;
     final patterns=opportunity['matched_pattern_count']??opportunity['pattern_count']??0;
-    final sources=opportunity['source_count']??opportunity['verified_event_count']??0;
+    final directSources=opportunity['direct_source_count']??opportunity['verified_event_count']??0;
     final action='${opportunity['recommended_action']??'Review the evidence, confirm property fit, and choose the next customer action.'}';
     return Container(padding:const EdgeInsets.all(16),decoration:BoxDecoration(color:AppTheme.panelSoft,borderRadius:BorderRadius.circular(14),border:Border.all(color:AppTheme.cyan.withOpacity(.18))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       const Row(children:[Icon(Icons.psychology_alt_rounded,color:AppTheme.cyan,size:20),SizedBox(width:8),Text('BridgePoint Reasoning',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:13))]),
       const SizedBox(height:5),const Text('Score ranks the opportunity. Confidence tells you how reliable and consistent the supporting evidence is.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),const Divider(height:22),
       line(Icons.home_work_outlined,'Why this property',explanation,AppTheme.cyan),
       line(Icons.schedule_rounded,'Why now','The property is in the “$stage” stage and its latest evidence kept it inside BridgePoint’s strict review threshold.',AppTheme.amber),
-      line(Icons.fact_check_outlined,'Evidence you can verify','$events property-linked signals • $patterns corroborating compound patterns • $sources independent source families',AppTheme.blue),
-      line(Icons.schema_outlined,'How patterns count','A compound pattern is a corroborated sequence across evidence—not a substitute for evidence. BridgePoint now requires signals, source diversity, confidence, recency, and at least one matching pattern before an opportunity is ranked.',const Color(0xFF9B7BFF)),
+      line(Icons.fact_check_outlined,'Direct evidence you can verify','$directSignals named property-level signals from $directSources direct source(s). Open the property timeline to see each title, source, date, match method, and limitation.',AppTheme.blue),
+      line(Icons.schema_outlined,'Supporting context','$allSignals total property-linked observations and $patterns corroborating patterns help explain the property story. Area context and pattern volume never replace the required direct evidence.',const Color(0xFF9B7BFF)),
       line(Icons.arrow_circle_right_outlined,'Suggested next step',action,AppTheme.green),
     ]));
   }
@@ -3882,12 +4602,12 @@ void _showMapOpportunityDetail(
                           : '${confidence.toStringAsFixed(0)}%',
                     ),
                     _MiniStat(
-                      label: 'EVENTS',
-                      value: '${point['event_count'] ?? 0}',
+                      label: 'DIRECT SIGNALS',
+                      value: '${point['matched_signal_count'] ?? point['distinct_signal_count'] ?? 0}',
                     ),
                     _MiniStat(
-                      label: 'SIGNALS',
-                      value: '${point['distinct_signal_count'] ?? 0}',
+                      label: 'DIRECT SOURCES',
+                      value: '${point['direct_source_count'] ?? 0}',
                     ),
                   ],
                 ),
@@ -4301,6 +5021,7 @@ class _SignalListCard extends StatelessWidget {
     final confidence = (signal['confidence'] as num?)?.toDouble();
     final evidenceCount = (signal['evidence_count'] as num?)?.toInt() ?? 0;
     final detector = (signal['detector_key'] ?? '—').toString();
+    final signalColor=_opportunityTypeColor(signal);
 
     return InkWell(
       onTap: () => _showSignalDetail(context, signal),
@@ -4319,12 +5040,12 @@ class _SignalListCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: AppTheme.cyan.withOpacity(0.08),
+                color: signalColor.withOpacity(0.11),
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: const Icon(
-                Icons.radar_rounded,
-                color: AppTheme.cyan,
+              child: Icon(
+                _opportunityMapIcon(signal),
+                color: signalColor,
                 size: 20,
               ),
             ),
@@ -4375,7 +5096,7 @@ class _SignalListCard extends StatelessWidget {
                 children: [
                   _OpportunityChip(
                     label: family.replaceAll('_', ' ').toUpperCase(),
-                    color: AppTheme.blue,
+                    color: signalColor,
                   ),
                   _OpportunityChip(
                     label: status.toUpperCase(),
@@ -5919,16 +6640,37 @@ class _TimelineDetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = '${item['timeline_type'] ?? 'SIGNAL'}';
     final when = '${item['timeline_at'] ?? ''}';
+    final support='${item['support_level']??''}';
+    final confidence=item['confidence'] as num?;
+    final severity=item['severity'] as num?;
+    final modelUses=(item['model_uses'] as List? ?? const []).map((e)=>'$e').toList();
     final color=switch(type){'CLAIM'=>AppTheme.green,'NOTE'=>AppTheme.amber,'PATTERN'=>const Color(0xFF9B7BFF),'OPPORTUNITY'=>AppTheme.cyan,_=>AppTheme.blue};
     final icon=switch(type){'CLAIM'=>Icons.policy_rounded,'NOTE'=>Icons.sticky_note_2_outlined,'PATTERN'=>Icons.schema_rounded,'OPPORTUNITY'=>Icons.bolt_rounded,_=>Icons.radio_button_checked_rounded};
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withOpacity(.045)),
-        ),
+    return InkWell(
+      onTap:()=>_showInfoDialog(
+        context,
+        '${item['title']??type}',
+        '${item['description']??'This event is part of the property history.'}'
+        '\n\nWhat it means: ${item['why_it_matters']??'This dated observation adds context to the property story.'}'
+        '\n\nType: $type'
+        '\nEvidence level: ${support.isEmpty?'PROPERTY HISTORY':support.replaceAll('_',' ')}'
+        '\nDate: ${when.isEmpty?'Not available':when}'
+        '\nSource: ${item['source_label']??'BridgePoint intelligence'}'
+        '${item['match_method']!=null?'\nHow it was matched: ${item['match_method']}':''}'
+        '${confidence!=null?'\nConfidence: ${(confidence*100).toStringAsFixed(0)}%':''}'
+        '${severity!=null?'\nSeverity/strength: ${severity.toStringAsFixed(0)}':''}'
+        '${modelUses.isNotEmpty?'\nUsed directly by: ${modelUses.map((e)=>e.replaceAll('_',' ')).join(', ')}':''}'
+        '\n\nImportant limitation: ${item['limitations']??'Verify material facts with the cited source or a qualified inspection before acting.'}',
       ),
-      child: Row(
+      borderRadius:BorderRadius.circular(8),
+      child:Container(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.white.withOpacity(.045)),
+          ),
+        ),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon,color:color,size: 15),
@@ -5960,6 +6702,13 @@ class _TimelineDetailRow extends StatelessWidget {
                 if('${item['source_label']??''}'.isNotEmpty)...[
                   const SizedBox(height:3),Text('Source: ${item['source_label']}',style:TextStyle(color:color.withOpacity(.9),fontSize:8,fontWeight:FontWeight.w700)),
                 ],
+                if(support.isNotEmpty)...[
+                  const SizedBox(height:5),Wrap(spacing:5,runSpacing:4,children:[
+                    _OpportunityChip(label:support.replaceAll('_',' '),color:support=='DIRECT_MODEL_EVIDENCE'||support=='VERIFIED_OPPORTUNITY'?AppTheme.green:support=='AREA_CONTEXT'?AppTheme.blue:color),
+                    if(confidence!=null)_OpportunityChip(label:'${(confidence*100).toStringAsFixed(0)}% CONF',color:AppTheme.textMuted),
+                    if(severity!=null)_OpportunityChip(label:'SEV ${severity.toStringAsFixed(0)}',color:AppTheme.amber),
+                  ]),
+                ],
               ],
             ),
           ),
@@ -5968,6 +6717,7 @@ class _TimelineDetailRow extends StatelessWidget {
             color: color,
           ),
         ],
+        ),
       ),
     );
   }
@@ -5988,14 +6738,17 @@ class _DetailRowShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withOpacity(.045)),
+    return InkWell(
+      onTap:()=>_showInfoDialog(context,title,'$subtitle\n\nThe badges show how BridgePoint classified this evidence. Use it as supporting context—not as a guarantee—and confirm important decisions with the cited source or an inspection.'),
+      borderRadius:BorderRadius.circular(8),
+      child:Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.white.withOpacity(.045)),
+          ),
         ),
-      ),
-      child: Row(
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: AppTheme.cyan, size: 17),
@@ -6031,6 +6784,7 @@ class _DetailRowShell extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -6833,8 +7587,8 @@ class _OwnerCenterPage extends StatefulWidget{
 
 class _OwnerCenterPageState extends State<_OwnerCenterPage>{
   late Future<Map<String,dynamic>> request;
-  @override void initState(){super.initState();request=_callRpc('owner_dashboard_v63',const {});}
-  void refresh()=>setState(()=>request=_callRpc('owner_dashboard_v63',const {}));
+  @override void initState(){super.initState();request=_callRpc('owner_dashboard_v84',const {});}
+  void refresh()=>setState(()=>request=_callRpc('owner_dashboard_v84',const {}));
   Map<String,dynamic> map(dynamic value)=>value is Map?Map<String,dynamic>.from(value):<String,dynamic>{};
   List<Map<String,dynamic>> rows(dynamic value)=>value is List
       ?value.whereType<Map>().map((item)=>Map<String,dynamic>.from(item)).toList()
@@ -6844,7 +7598,7 @@ class _OwnerCenterPageState extends State<_OwnerCenterPage>{
   @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
     future:request,builder:(context,snapshot){
       final data=snapshot.data??const <String,dynamic>{};
-      final system=map(data['system']),customers=map(data['customers']),revenue=map(data['revenue']);
+      final system=map(data['system']),customers=map(data['customers']),revenue=map(data['revenue']),usage=map(data['usage']);
       final offer=map(data['founding_offer']),intel=map(data['intelligence']);
       final verticals=rows(data['top_opportunity_verticals']),failures=rows(data['recent_failures']);
       final healthy=(system['failed_runs_15m'] as num? ?? 0)==0;
@@ -6857,10 +7611,13 @@ class _OwnerCenterPageState extends State<_OwnerCenterPage>{
         ),
         const SizedBox(height:18),
         LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=1000?4:c.maxWidth>=620?2:1;const gap=14.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:[
-          _MetricCard(width:w,label:'CUSTOMERS',value:_formatInteger(customers['total_accounts']??0),detail:'${customers['new_7d']??0} joined in the last 7 days',icon:Icons.groups_rounded,accent:AppTheme.cyan),
+          _MetricCard(width:w,label:'USING NOW',value:_formatInteger(usage['active_now']??0),detail:'Active during the last 5 minutes',icon:Icons.online_prediction_rounded,accent:AppTheme.cyan),
+          _MetricCard(width:w,label:'TODAY / 7 DAYS',value:'${_formatInteger(usage['daily_active']??0)} / ${_formatInteger(usage['weekly_active']??0)}',detail:'Unique people who opened BridgePoint',icon:Icons.insights_rounded,accent:AppTheme.blue),
+          _MetricCard(width:w,label:'CUSTOMERS',value:_formatInteger(customers['total_accounts']??0),detail:'${customers['new_24h']??0} today • ${customers['new_7d']??0} this week',icon:Icons.groups_rounded,accent:AppTheme.green),
           _MetricCard(width:w,label:'ACTIVE MRR',value:money(revenue['active_mrr']),detail:'${customers['active_paid']??0} active paid accounts',icon:Icons.payments_rounded,accent:AppTheme.green),
           _MetricCard(width:w,label:'TRIAL PIPELINE',value:money(revenue['trial_pipeline_mrr']),detail:'${customers['active_trials']??0} active customer trials',icon:Icons.hourglass_top_rounded,accent:AppTheme.amber),
-          _MetricCard(width:w,label:'CRITICAL OPPORTUNITIES',value:_formatInteger(intel['critical_opportunities']??0),detail:'Highest-priority active intelligence',icon:Icons.bolt_rounded,accent:AppTheme.red),
+          _MetricCard(width:w,label:'VERIFIED OPPORTUNITIES',value:_formatInteger(intel['verified_unique_opportunities']??0),detail:'Unique properties with named direct evidence',icon:Icons.verified_rounded,accent:AppTheme.red),
+          _MetricCard(width:w,label:'30-DAY USERS',value:_formatInteger(usage['monthly_active']??0),detail:'${usage['page_views_7d']??0} page views this week',icon:Icons.calendar_month_rounded,accent:const Color(0xFF9B7BFF)),
         ]);}),
         const SizedBox(height:18),
         LayoutBuilder(builder:(context,c){final wide=c.maxWidth>=980;final w=wide?(c.maxWidth-16)/2:c.maxWidth;return Wrap(spacing:16,runSpacing:16,children:[
@@ -6876,9 +7633,11 @@ class _OwnerCenterPageState extends State<_OwnerCenterPage>{
             const _PanelHeader(title:'Automation & Intelligence',subtitle:'Whether the data-to-opportunity system is moving',action:'Live'),const SizedBox(height:14),
             _OwnerStatusRow('Active scheduled jobs','${system['active_jobs']??0}',AppTheme.cyan),
             _OwnerStatusRow('Failed runs in 15 minutes','${system['failed_runs_15m']??0}',healthy?AppTheme.green:AppTheme.red),
+            _OwnerStatusRow('Verified unique opportunities',_formatInteger(intel['verified_unique_opportunities']??0),AppTheme.amber),
+            _OwnerStatusRow('Elite verified opportunities',_formatInteger(intel['elite_opportunities']??0),AppTheme.green),
+            _OwnerStatusRow('Minimum direct signals','${intel['minimum_direct_signals']??'—'}',AppTheme.cyan),
             _OwnerStatusRow('Property scores',_formatInteger(intel['property_scores_v37']??0),AppTheme.blue),
             _OwnerStatusRow('Detected patterns',_formatInteger(intel['patterns_v36']??0),AppTheme.green),
-            _OwnerStatusRow('Active opportunities',_formatInteger(intel['opportunities_v38']??0),AppTheme.amber),
           ])))),
           SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             const _PanelHeader(title:'Opportunity Mix',subtitle:'Where BridgePoint currently sees the most actionable volume',action:'Top models'),const SizedBox(height:12),
@@ -6904,10 +7663,65 @@ class _OwnerCenterPageState extends State<_OwnerCenterPage>{
             )),
           ])))),
         ]);}),
+        const SizedBox(height:18),
+        Card(child:Padding(padding:const EdgeInsets.all(18),child:LayoutBuilder(builder:(context,c)=>Wrap(
+          alignment:WrapAlignment.spaceBetween,crossAxisAlignment:WrapCrossAlignment.center,spacing:18,runSpacing:12,children:[
+            SizedBox(width:c.maxWidth>=760?c.maxWidth-260:c.maxWidth,child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+              Text('Stripe payout readiness',style:TextStyle(color:Colors.white,fontSize:14,fontWeight:FontWeight.w900)),
+              SizedBox(height:5),
+              Text('Connect and verify the bank account that receives BridgePoint revenue. Bank details stay inside Stripe and are never entered into this app.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+            ])),
+            FilledButton.icon(onPressed:()=>_openOwnerPayoutSettings(context),icon:const Icon(Icons.account_balance_outlined),label:const Text('Open secure payout setup')),
+          ],
+        )))),
+        const SizedBox(height:18),const _EmergencyAdminPanel(),
         if(snapshot.hasError)...[const SizedBox(height:16),_DashboardError(message:snapshot.error.toString(),onRetry:refresh)],
       ]);
     },
   );
+}
+
+class _EmergencyAdminPanel extends StatefulWidget{
+  const _EmergencyAdminPanel();
+  @override State<_EmergencyAdminPanel> createState()=>_EmergencyAdminPanelState();
+}
+class _EmergencyAdminPanelState extends State<_EmergencyAdminPanel>{
+  late Future<Map<String,dynamic>> request;final email=TextEditingController();final confirmation=TextEditingController();bool busy=false;
+  @override void initState(){super.initState();request=_callRpc('bridgepoint_emergency_admin_state_v82',const {});}
+  @override void dispose(){email.dispose();confirmation.dispose();super.dispose();}
+  void refresh()=>setState(()=>request=_callRpc('bridgepoint_emergency_admin_state_v82',const {}));
+  Future<void> invite()async{
+    if(email.text.trim().isEmpty||confirmation.text!='GRANT BACKUP ADMIN')return;
+    setState(()=>busy=true);
+    try{
+      final result=await Supabase.instance.client.functions.invoke('bridgepoint-emergency-admin-v82',body:{'email':email.text.trim(),'confirmation':confirmation.text});
+      if(result.status<200||result.status>=300)throw Exception('${result.data}');
+      email.clear();confirmation.clear();if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Emergency administrator invitation sent.')));refresh();}
+    }catch(e){if(mounted)_showInfoDialog(context,'Could not prepare backup administrator',e.toString());}
+    finally{if(mounted)setState(()=>busy=false);}
+  }
+  Future<void> revoke(Map<String,dynamic> admin)async{
+    final controller=TextEditingController();
+    final confirmed=await showDialog<bool>(context:context,builder:(dialogContext)=>AlertDialog(backgroundColor:AppTheme.panel,title:const Text('Revoke backup administrator?'),content:Column(mainAxisSize:MainAxisSize.min,children:[const Text('This immediately removes platform and company co-owner access. Type REVOKE BACKUP ADMIN to confirm.',style:TextStyle(color:AppTheme.textMuted,height:1.5)),const SizedBox(height:12),TextField(controller:controller,decoration:const InputDecoration(labelText:'Confirmation',border:OutlineInputBorder()))]),actions:[TextButton(onPressed:()=>Navigator.pop(dialogContext,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(dialogContext,controller.text=='REVOKE BACKUP ADMIN'),child:const Text('Revoke'))]));
+    controller.dispose();if(confirmed!=true)return;
+    try{await _callRpc('bridgepoint_revoke_emergency_admin_v82',{'p_auth_user_id':admin['auth_user_id'],'p_confirmation':'REVOKE BACKUP ADMIN'});if(mounted)refresh();}catch(e){if(mounted)_showInfoDialog(context,'Could not revoke access',e.toString());}
+  }
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(future:request,builder:(context,snapshot){
+    final data=snapshot.data??const <String,dynamic>{};final admins=(data['active_backup_admins'] as List? ?? const []).whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();final pending=data['pending_invitation'];
+    return Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const _PanelHeader(title:'Emergency Co-owner',subtitle:'One separate verified backup account • free All Intelligence • no shared password',action:'Owner only'),const SizedBox(height:12),
+      const _ExplainerBanner(icon:Icons.admin_panel_settings_outlined,title:'Backup access is prepared and waiting for an email',message:'When you choose a trusted person, enter their email below. After they verify their own account, they become your company co-owner and a backup platform administrator. The primary owner cannot be removed by the co-owner.'),
+      if(snapshot.hasError)...[const SizedBox(height:10),_InlineError(message:snapshot.error.toString())],
+      if(admins.isNotEmpty)...[const SizedBox(height:12),...admins.map((admin)=>ListTile(contentPadding:EdgeInsets.zero,leading:const CircleAvatar(child:Icon(Icons.shield_person_outlined)),title:Text('${admin['display_name']??admin['email']}'),subtitle:Text('${admin['email']??''} • ${admin['platform_role']??'platform_admin'}'),trailing:OutlinedButton(onPressed:()=>revoke(admin),child:const Text('Revoke'))))]
+      else if(pending is Map)...[const SizedBox(height:12),_SettingsStatusRow(label:'Invitation pending',value:'${pending['invited_email']}',color:AppTheme.amber)]
+      else ...[const SizedBox(height:14),LayoutBuilder(builder:(context,c)=>Wrap(spacing:10,runSpacing:10,children:[
+        SizedBox(width:c.maxWidth>=760?(c.maxWidth-20)*.45:c.maxWidth,child:TextField(controller:email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Trusted person’s email',border:OutlineInputBorder()))),
+        SizedBox(width:c.maxWidth>=760?(c.maxWidth-20)*.32:c.maxWidth,child:TextField(controller:confirmation,decoration:const InputDecoration(labelText:'Type GRANT BACKUP ADMIN',border:OutlineInputBorder()))),
+        FilledButton.icon(onPressed:busy?null:invite,icon:const Icon(Icons.person_add_alt_1_rounded),label:Text(busy?'Preparing…':'Send secure invite')),
+      ]))],
+      const SizedBox(height:10),const Text('For strongest recovery, require multi-factor authentication on both accounts and never give anyone your password or recovery codes.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+    ])));
+  });
 }
 
 class _OwnerStatusRow extends StatelessWidget{
@@ -7423,6 +8237,14 @@ void _showSourceDetail(
                 ),
               ),
               const SizedBox(height: 18),
+              if('${source['source_code']}'=='CT_DCP_HIC_REGISTRY')...[
+                SizedBox(width:double.infinity,child:FilledButton.icon(
+                  onPressed:()=>_showContractorRegistryDialog(context),
+                  icon:const Icon(Icons.verified_user_outlined),
+                  label:const Text('Check a Connecticut contractor'),
+                )),
+                const SizedBox(height:12),
+              ],
               Flexible(
                 child: SingleChildScrollView(
                   child: _JsonIntelligenceList(
@@ -7436,6 +8258,63 @@ void _showSourceDetail(
         ),
       ),
     ),
+  );
+}
+
+void _showContractorRegistryDialog(BuildContext context)=>showDialog<void>(
+  context:context,builder:(context)=>const _ContractorRegistryDialog(),
+);
+
+class _ContractorRegistryDialog extends StatefulWidget{
+  const _ContractorRegistryDialog();
+  @override State<_ContractorRegistryDialog> createState()=>_ContractorRegistryDialogState();
+}
+
+class _ContractorRegistryDialogState extends State<_ContractorRegistryDialog>{
+  final query=TextEditingController();
+  final city=TextEditingController();
+  Future<Map<String,dynamic>>? request;
+  @override void dispose(){query.dispose();city.dispose();super.dispose();}
+  void search(){
+    final q=query.text.trim();final c=city.text.trim();
+    if(q.isEmpty&&c.isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Enter a contractor name, registration number, or city.')));
+      return;
+    }
+    setState(()=>request=_callRpc('bridgepoint_search_ct_contractors_v85',{
+      'p_query':q.isEmpty?null:q,'p_city':c.isEmpty?null:c,'p_limit':50,
+    }));
+  }
+  @override Widget build(BuildContext context)=>Dialog(
+    backgroundColor:AppTheme.panel,
+    child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:860,maxHeight:780),child:Padding(
+      padding:const EdgeInsets.all(22),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Row(children:[const Icon(Icons.verified_user_outlined,color:AppTheme.cyan),const SizedBox(width:9),const Expanded(child:Text('Connecticut Contractor Check',style:TextStyle(fontSize:19,fontWeight:FontWeight.w900))),IconButton(onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.close_rounded))]),
+        const SizedBox(height:5),const Text('Search the official Connecticut DCP Home Improvement Contractor registry before hiring, dispatching, or referring work.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+        const SizedBox(height:14),Wrap(spacing:10,runSpacing:10,children:[
+          SizedBox(width:380,child:TextField(controller:query,onSubmitted:(_)=>search(),decoration:const InputDecoration(labelText:'Name or registration number',prefixIcon:Icon(Icons.search_rounded),border:OutlineInputBorder()))),
+          SizedBox(width:260,child:TextField(controller:city,onSubmitted:(_)=>search(),decoration:const InputDecoration(labelText:'Exact city (optional)',prefixIcon:Icon(Icons.location_city_outlined),border:OutlineInputBorder()))),
+          SizedBox(height:56,child:FilledButton.icon(onPressed:search,icon:const Icon(Icons.fact_check_outlined),label:const Text('Check'))),
+        ]),
+        const SizedBox(height:12),const _ExplainerBanner(icon:Icons.info_outline_rounded,title:'What this proves',message:'This confirms the registration record and its reported status. It does not prove technical skill, insurance, workmanship, complaint history, or suitability. Verify the official record and current insurance before work.'),
+        const SizedBox(height:12),Expanded(child:request==null
+          ?const Center(child:Text('Enter a name, registration number, or city to begin.',style:TextStyle(color:AppTheme.textMuted)))
+          :FutureBuilder<Map<String,dynamic>>(future:request,builder:(context,snapshot){
+            if(snapshot.connectionState==ConnectionState.waiting)return const Center(child:CircularProgressIndicator());
+            if(snapshot.hasError)return _DashboardError(message:snapshot.error.toString(),onRetry:search);
+            final items=(snapshot.data?['results'] as List? ?? const []).whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();
+            if(items.isEmpty)return const Center(child:Text('No matching registration record was found. Try the official registration number or a shorter name.',style:TextStyle(color:AppTheme.textMuted)));
+            return ListView.separated(itemCount:items.length,separatorBuilder:(_,__)=>const Divider(height:1),itemBuilder:(context,index){
+              final item=items[index];final active=item['active']==true;return ListTile(
+                leading:CircleAvatar(backgroundColor:(active?AppTheme.green:AppTheme.amber).withOpacity(.12),child:Icon(active?Icons.verified_rounded:Icons.warning_amber_rounded,color:active?AppTheme.green:AppTheme.amber)),
+                title:Text('${item['display_name']??'Unnamed registrant'}',style:const TextStyle(fontWeight:FontWeight.w800)),
+                subtitle:Text('${item['full_credential_code']??'No code'} • ${item['credential']??'Home Improvement Contractor'}\n${item['city']??'City not listed'}, ${item['state_code']??'CT'} • Expires ${item['expiration_date']??'not listed'}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.45)),
+                trailing:_OpportunityChip(label:active?'ACTIVE':'${item['status']??'CHECK'}',color:active?AppTheme.green:AppTheme.amber),
+              );
+            });
+          })),
+      ]),
+    )),
   );
 }
 
@@ -7498,35 +8377,39 @@ class _MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.035),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.textMuted,
-              fontSize: 8,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.6,
+    return InkWell(
+      onTap:()=>_showInfoDialog(context,label,'Current value: $value\n\nThis value describes the selected record. It is shown with its surrounding evidence so you can understand why BridgePoint surfaced it.'),
+      borderRadius:BorderRadius.circular(9),
+      child:Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.035),
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppTheme.textMuted,
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+              ),
             ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
+            const SizedBox(height: 3),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -7572,6 +8455,11 @@ class _PageHeading extends StatelessWidget {
             ],
           ),
         ),
+        Tooltip(message:'Explain this page',child:IconButton(
+          onPressed:()=>_showInfoDialog(context,title,'$subtitle\n\nTap any summary card, list row, map marker, legend item, status, or timeline event for a plain-language explanation and the next available action.'),
+          icon:const Icon(Icons.help_outline_rounded,color:AppTheme.cyan),
+        )),
+        const SizedBox(width:4),
         _IconButton(
           icon: Icons.refresh_rounded,
           onTap: loading ? () {} : onRefresh,
@@ -7600,6 +8488,122 @@ class _InlineError extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TeamSettingsPanel extends StatefulWidget {
+  const _TeamSettingsPanel();
+  @override State<_TeamSettingsPanel> createState()=>_TeamSettingsPanelState();
+}
+
+class _TeamSettingsPanelState extends State<_TeamSettingsPanel>{
+  late Future<Map<String,dynamic>> request;
+  final companyName=TextEditingController();
+  final inviteEmail=TextEditingController();
+  String inviteRole='MEMBER';
+  bool busy=false;
+  bool fieldNotes=true;
+
+  @override void initState(){super.initState();request=_load();}
+  @override void dispose(){companyName.dispose();inviteEmail.dispose();super.dispose();}
+  Future<Map<String,dynamic>> _load()=>_callRpc('bridgepoint_team_workspace_v80',const {});
+  void refresh()=>setState(()=>request=_load());
+
+  Future<void> _createCompany()async{
+    final name=companyName.text.trim();
+    if(name.length<2){_showInfoDialog(context,'Company name required','Enter the name teammates should see in their shared workspace.');return;}
+    setState(()=>busy=true);
+    try{await _callRpc('bridgepoint_create_company_workspace_v80',{'p_organization_name':name});if(mounted){Navigator.pop(context);refresh();}}
+    catch(e){if(mounted)_showInfoDialog(context,'Could not create company workspace',e.toString());}
+    finally{if(mounted)setState(()=>busy=false);}
+  }
+
+  void _showCreateCompany(){showDialog<void>(context:context,builder:(dialogContext)=>AlertDialog(
+    backgroundColor:AppTheme.panel,title:const Text('Create Company workspace'),
+    content:SizedBox(width:460,child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+      const Text('Includes five seats, All Intelligence, shared opportunities and notes, Live Field Assist, and owner/co-owner backup controls.',style:TextStyle(color:AppTheme.textMuted,height:1.5)),
+      const SizedBox(height:14),TextField(controller:companyName,decoration:const InputDecoration(labelText:'Company name',border:OutlineInputBorder())),
+      const SizedBox(height:10),const Text('Your seven-day trial starts when this workspace is created.',style:TextStyle(color:AppTheme.green,fontSize:10)),
+    ])),
+    actions:[TextButton(onPressed:busy?null:()=>Navigator.pop(dialogContext),child:const Text('Cancel')),FilledButton(onPressed:busy?null:_createCompany,child:Text(busy?'Creating…':'Create workspace'))],
+  ));}
+
+  Future<void> _invite()async{
+    final email=inviteEmail.text.trim();
+    if(!email.contains('@')){_showInfoDialog(context,'Email required','Enter the teammate’s email address.');return;}
+    setState(()=>busy=true);
+    try{
+      final result=await Supabase.instance.client.functions.invoke('bridgepoint-team-invite-v80',body:{'email':email,'member_role':inviteRole});
+      if(result.status<200||result.status>=300)throw Exception('${result.data}');
+      inviteEmail.clear();
+      if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Team invitation sent.')));refresh();}
+    }catch(e){if(mounted)_showInfoDialog(context,'Could not invite teammate',e.toString());}
+    finally{if(mounted)setState(()=>busy=false);}
+  }
+
+  Future<void> _updateMember(Map<String,dynamic> member,String role,bool active)async{
+    setState(()=>busy=true);
+    try{await _callRpc('bridgepoint_update_team_member_v80',{'p_user_id':member['user_id'],'p_member_role':role,'p_active':active});if(mounted)refresh();}
+    catch(e){if(mounted)_showInfoDialog(context,'Could not update teammate',e.toString());}
+    finally{if(mounted)setState(()=>busy=false);}
+  }
+
+  Future<void> _setFieldNotes(bool value)async{
+    setState(()=>fieldNotes=value);
+    try{await _callRpc('bridgepoint_set_field_note_enabled_v81',{'p_enabled':value});}
+    catch(e){if(mounted){setState(()=>fieldNotes=!value);_showInfoDialog(context,'Could not update Field Notes',e.toString());}}
+  }
+
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+    future:request,builder:(context,snapshot){
+      final data=snapshot.data??const <String,dynamic>{};
+      final hasWorkspace=data['has_company_workspace']==true;
+      final role='${data['current_role']??'MEMBER'}';
+      final canManage=data['can_manage']==true;
+      final canAdmin=data['can_administer']==true;
+      final members=(data['members'] as List? ?? const []).whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();
+      final invitations=(data['pending_invitations'] as List? ?? const []).whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList();
+      if(snapshot.hasError)return _SettingsSection(icon:Icons.groups_2_outlined,title:'Company & team',subtitle:'Shared workspaces and seat management.',children:[_InlineError(message:snapshot.error.toString()),const SizedBox(height:8),OutlinedButton.icon(onPressed:refresh,icon:const Icon(Icons.refresh_rounded),label:const Text('Try again'))]);
+      if(snapshot.connectionState==ConnectionState.waiting&&!snapshot.hasData)return const _SettingsSection(icon:Icons.groups_2_outlined,title:'Company & team',subtitle:'Loading your workspace…',children:[LinearProgressIndicator(color:AppTheme.cyan,minHeight:2)]);
+      if(!hasWorkspace)return _SettingsSection(icon:Icons.groups_2_outlined,title:'Company & team',subtitle:'Five seats, shared field work, and backup leadership on the Company plan.',children:[
+        const Text('Create a company workspace to invite teammates, appoint a co-owner, share opportunities and notes, and use consent-based Live Field Assist.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.5)),
+        const SizedBox(height:12),SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:_showCreateCompany,icon:const Icon(Icons.add_business_rounded),label:const Text('Start Company trial'))),
+        const SizedBox(height:8),SizedBox(width:double.infinity,child:OutlinedButton.icon(onPressed:()=>_openBillingPortal(context),icon:const Icon(Icons.workspace_premium_outlined),label:const Text('View Company plan'))),
+      ]);
+      final used=(data['active_members'] as num?)?.toInt()??members.length;
+      final limit=(data['seat_limit'] as num?)?.toInt()??5;
+      return _SettingsSection(icon:Icons.groups_2_outlined,title:'${data['organization_name']??'Company'} team',subtitle:'Your role: ${role.replaceAll('_',' ')} • shared Company workspace',children:[
+        Row(children:[Expanded(child:LinearProgressIndicator(value:limit==0?0:(used/limit).clamp(0,1),color:used>=limit?AppTheme.amber:AppTheme.green,backgroundColor:AppTheme.panelSoft,minHeight:8)),const SizedBox(width:10),Text('$used of $limit seats',style:const TextStyle(color:AppTheme.textMuted,fontSize:10,fontWeight:FontWeight.w800))]),
+        const SizedBox(height:12),...members.map((member){
+          final name='${member['display_name']??member['email']??'Teammate'}'.trim();
+          final initial=name.isEmpty?'?':name.substring(0,1).toUpperCase();
+          final memberRole='${member['member_role']??'MEMBER'}';
+          final isPrimary=memberRole=='OWNER';
+          return Container(margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:AppTheme.panelSoft.withOpacity(.55),borderRadius:BorderRadius.circular(11),border:Border.all(color:Colors.white.withOpacity(.06))),child:Row(children:[
+            CircleAvatar(radius:17,backgroundColor:AppTheme.cyan.withOpacity(.12),child:Text(initial,style:const TextStyle(color:AppTheme.cyan,fontWeight:FontWeight.w900))),
+            const SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(name,style:const TextStyle(fontSize:11,fontWeight:FontWeight.w800)),Text('${member['email']??''}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9))])),
+            if(!canManage||isPrimary)_OpportunityChip(label:memberRole.replaceAll('_',' '),color:isPrimary?AppTheme.amber:AppTheme.cyan)
+            else PopupMenuButton<String>(tooltip:'Change team role',onSelected:(value){if(value=='REMOVE'){_updateMember(member,memberRole,false);}else{_updateMember(member,value,true);}},itemBuilder:(context)=>[
+              if(role=='OWNER')const PopupMenuItem(value:'CO_OWNER',child:Text('Make co-owner')),
+              const PopupMenuItem(value:'MANAGER',child:Text('Manager')),const PopupMenuItem(value:'MEMBER',child:Text('Member')),const PopupMenuItem(value:'VIEWER',child:Text('Viewer')),
+              const PopupMenuDivider(),const PopupMenuItem(value:'REMOVE',child:Text('Remove access')),
+            ],child:_OpportunityChip(label:memberRole.replaceAll('_',' '),color:memberRole=='CO_OWNER'?AppTheme.amber:AppTheme.cyan)),
+          ]));
+        }),
+        if(canManage)...[
+          const Divider(height:24),TextField(controller:inviteEmail,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Invite teammate by email',border:OutlineInputBorder(),prefixIcon:Icon(Icons.alternate_email_rounded))),
+          const SizedBox(height:8),Row(children:[Expanded(child:DropdownButtonFormField<String>(value:inviteRole,decoration:const InputDecoration(labelText:'Role',border:OutlineInputBorder()),dropdownColor:AppTheme.panelSoft,items:[
+            if(role=='OWNER')const DropdownMenuItem(value:'CO_OWNER',child:Text('Co-owner (backup admin)')),
+            const DropdownMenuItem(value:'MANAGER',child:Text('Manager')),const DropdownMenuItem(value:'MEMBER',child:Text('Sales / field member')),const DropdownMenuItem(value:'VIEWER',child:Text('Viewer')),
+          ],onChanged:busy?null:(v)=>setState(()=>inviteRole=v??'MEMBER'))),const SizedBox(width:8),FilledButton.icon(onPressed:busy||used+invitations.length>=limit?null:_invite,icon:const Icon(Icons.person_add_alt_1_rounded),label:Text(busy?'Sending…':'Invite'))]),
+          if(invitations.isNotEmpty)...[const SizedBox(height:10),Text('${invitations.length} invitation${invitations.length==1?'':'s'} pending',style:const TextStyle(color:AppTheme.amber,fontSize:10,fontWeight:FontWeight.w800))],
+        ],
+        if(canAdmin)...[
+          const Divider(height:24),SwitchListTile(contentPadding:EdgeInsets.zero,value:fieldNotes,title:const Text('Field Note of the Day',style:TextStyle(fontSize:11,fontWeight:FontWeight.w800)),subtitle:const Text('Show original safety, ethics, service, and encouragement notes on the Daily Brief.',style:TextStyle(color:AppTheme.textMuted,fontSize:9)),onChanged:_setFieldNotes),
+        ],
+        const SizedBox(height:8),SizedBox(width:double.infinity,child:OutlinedButton.icon(onPressed:()=>_openBillingPortal(context),icon:const Icon(Icons.swap_horiz_rounded),label:const Text('Change Company plan / billing'))),
+      ]);
+    },
+  );
 }
 
 class _SettingsPage extends StatefulWidget {
@@ -7634,11 +8638,14 @@ class _SettingsPageState extends State<_SettingsPage> {
   String _feedbackCategory = 'SUGGESTION';
   final _feedback = TextEditingController();
   bool _sendingFeedback = false;
+  late _DisplayPreferences _accessibility;
+  bool _savingAccessibility=false;
 
   @override
   void initState() {
     super.initState();
     _refreshSeconds = widget.refreshSeconds;
+    _accessibility=_displayPreferences.value;
   }
 
   @override
@@ -7657,6 +8664,19 @@ class _SettingsPageState extends State<_SettingsPage> {
       _feedback.clear();if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Thank you—your suggestion was received.')));
     }catch(e){if(mounted)_showInfoDialog(context,'Could not send suggestion',e.toString());}
     finally{if(mounted)setState(()=>_sendingFeedback=false);}
+  }
+
+  Future<void> _saveAccessibility(_DisplayPreferences next)async{
+    setState((){_accessibility=next;_savingAccessibility=true;});
+    _displayPreferences.value=next;
+    try{
+      final saved=await _callRpc('bridgepoint_update_display_preferences_v80',{
+        'p_large_text':next.largeText,'p_high_contrast':next.highContrast,
+        'p_reduced_motion':next.reducedMotion,'p_simplified_views':next.simplifiedViews,
+      });
+      _applyDisplayPreferences(saved);
+    }catch(e){if(mounted)_showInfoDialog(context,'Could not save display settings',e.toString());}
+    finally{if(mounted)setState(()=>_savingAccessibility=false);}
   }
 
   @override
@@ -7774,6 +8794,23 @@ class _SettingsPageState extends State<_SettingsPage> {
                   ),
                 ),
                 SizedBox(
+                  width:width,
+                  child:_SettingsSection(
+                    icon:Icons.accessibility_new_rounded,
+                    title:'Display & accessibility',
+                    subtitle:'Make BridgePoint easier to see, calmer to use, or less detailed. These choices follow your account on every device.',
+                    children:[
+                      _SettingsSwitch('Larger text',_accessibility.largeText,(v)=>_saveAccessibility(_accessibility.copyWith(largeText:v))),
+                      _SettingsSwitch('Stronger contrast',_accessibility.highContrast,(v)=>_saveAccessibility(_accessibility.copyWith(highContrast:v))),
+                      _SettingsSwitch('Reduce motion and scanning effects',_accessibility.reducedMotion,(v)=>_saveAccessibility(_accessibility.copyWith(reducedMotion:v))),
+                      _SettingsSwitch('Simplified views (hide optional map layers)',_accessibility.simplifiedViews,(v)=>_saveAccessibility(_accessibility.copyWith(simplifiedViews:v))),
+                      if(_savingAccessibility)const Padding(padding:EdgeInsets.only(top:6),child:LinearProgressIndicator(color:AppTheme.cyan,minHeight:2)),
+                      const SizedBox(height:8),
+                      const Text('Map layers can also be shown or hidden at any time from the Intelligence Map. Buttons remain large and keyboard accessible.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+                    ],
+                  ),
+                ),
+                SizedBox(
                   width: width,
                   child: _SettingsSection(
                     icon: Icons.map_rounded,
@@ -7854,7 +8891,7 @@ class _SettingsPageState extends State<_SettingsPage> {
                           const SizedBox(height: 12),
                           SizedBox(width:double.infinity,child:OutlinedButton.icon(
                             onPressed:()=>_openBillingPortal(context),
-                            icon:const Icon(Icons.credit_card_rounded),label:const Text('Manage billing'),
+                            icon:const Icon(Icons.swap_horiz_rounded),label:const Text('Change plan / manage billing'),
                           )),
                           SizedBox(width:double.infinity,child:TextButton.icon(
                             onPressed:()=>Supabase.instance.client.auth.signOut(),
@@ -7879,6 +8916,24 @@ class _SettingsPageState extends State<_SettingsPage> {
                         actions:[FilledButton(onPressed:()=>Navigator.pop(context),child:const Text('Got it'))])),
                       icon:const Icon(Icons.waving_hand_outlined),label:const Text('Preview signup & welcome'))),
                     const SizedBox(height:8),const Text('To see the live personalized welcome, choose Daily Brief in the left menu. To see alerts, tap the bell.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+                  ],
+                )),
+                SizedBox(width:width,child:const _TeamSettingsPanel()),
+                SizedBox(width:width,child:_SettingsSection(
+                  icon:Icons.help_center_outlined,title:'Help & FAQ',
+                  subtitle:'Search plain-language answers without leaving your workspace.',
+                  children:[
+                    SizedBox(width:double.infinity,child:FilledButton.icon(
+                      onPressed:()=>_showFaqDialog(context),icon:const Icon(Icons.question_answer_outlined),label:const Text('Open Help & FAQ'))),
+                    const SizedBox(height:8),const Text('If the answer is not there, use Suggestions & feedback below and choose Question.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
+                  ],
+                )),
+                SizedBox(width:width,child:_SettingsSection(
+                  icon:Icons.policy_outlined,title:'Legal & Trust Center',
+                  subtitle:'Versioned terms, privacy choices, data limits, field conduct, and acceptance history.',
+                  children:[
+                    SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:()=>showDialog<void>(context:context,builder:(context)=>const _LegalCenterDialog()),icon:const Icon(Icons.verified_user_outlined),label:const Text('Open Legal & Trust Center'))),
+                    const SizedBox(height:8),const Text('File a privacy access, correction, deletion, portability, or appeal request from the Legal & Trust Center. Identity verification is required.',style:TextStyle(color:AppTheme.textMuted,fontSize:10,height:1.45)),
                   ],
                 )),
                 SizedBox(width:width,child:_SettingsSection(
@@ -8020,6 +9075,7 @@ IconData _sourceIcon(Map<String, dynamic> source) {
   final category = (source['source_category'] ?? '').toString().toUpperCase();
   final value='${source['source_code']??''} ${source['source_name']??''} ${source['provider']??''} $category $explicit'.toLowerCase();
 
+  if(value.contains('verified_user')||value.contains('contractor trust')||value.contains('hic registry'))return Icons.verified_user_outlined;
   if(value.contains('fema')||value.contains('flood'))return Icons.flood_outlined;
   if(value.contains('nfirs')||value.contains('fire'))return Icons.local_fire_department_outlined;
   if(value.contains('noaa')||value.contains('storm')||value.contains('weather'))return Icons.thunderstorm_outlined;
@@ -8117,7 +9173,11 @@ class _PanelHeader extends StatelessWidget {
           ),
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () => _showInfoDialog(
+            context,
+            title,
+            '$subtitle\n\nOpen the rows or cards below for property-level detail, supporting evidence, timing, confidence, sources, and suggested next steps.',
+          ),
           child: Text(action),
         ),
       ],

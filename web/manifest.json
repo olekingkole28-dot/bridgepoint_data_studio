@@ -1,11 +1,40 @@
 {
   "name": "BridgePoint Intelligence",
   "short_name": "BridgePoint",
-  "start_url": ".",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#07111F",
   "theme_color": "#07111F",
-  "description": "Live property intelligence and ranked opportunities",
+  "description": "Explainable live property intelligence, strict ranked opportunities, field workflows, radar, timelines, notes, and alerts.",
   "orientation": "any",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "categories": ["business", "productivity", "navigation"],
+  "icons": [
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }

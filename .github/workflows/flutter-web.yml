@@ -1,9 +1,15 @@
-name: Flutter Web Review Build
+name: Flutter Web Release
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: bridgepoint-pages-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -25,9 +31,35 @@ jobs:
           else
             echo "No test directory yet; continuing to the release build."
           fi
-      - run: flutter build web --release
+      - name: Build installable web app
+        run: flutter build web --release --base-href "/bridgepoint_data_studio/"
       - uses: actions/upload-artifact@v4
         with:
           name: bridgepoint-flutter-web-review
           path: build/web
           retention-days: 14
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish BridgePoint Intelligence
+        id: deployment
+        uses: actions/deploy-pages@v4
