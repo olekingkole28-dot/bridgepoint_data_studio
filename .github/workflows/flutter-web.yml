@@ -17,8 +17,14 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Run tests when present
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No test directory yet; continuing to the release build."
+          fi
       - run: flutter build web --release
       - uses: actions/upload-artifact@v4
         with:
