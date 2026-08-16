@@ -80,8 +80,10 @@ jobs:
         run: python tool/apply_global_search_location_v192.py
       - name: Protect customer property details from formula/internal leakage
         run: python tool/apply_customer_safe_json_v193.py
-      - name: Disable no-op click handlers
+      - name: Disable no-op click handlers and repair combined compile points
         run: python tool/fix_dead_click_handlers_v194b.py
+      - name: Surface 60-day social readiness and approval ETA polish
+        run: python tool/apply_social_readiness_eta_polish_v196.py
       - name: Run strict click-path and release contract audit
         run: python tool/audit_release_clicks_v194.py
       - name: Capture final generated source for audit
@@ -113,6 +115,7 @@ jobs:
               "'action':'continue'",'Save my info for next time','Your nickname',
               'All My States','Current recorded owner','BUILDING NOW','bridgepoint_expansion_eta_v188',
               '_bridgePointPageAccent','_bridgePointCustomerSafeKey','bridgepoint_property_suggestions_v192',
+              '60-DAY SOCIAL LAUNCH BANK','Activate 60-day calendar','Owner approval required',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
