@@ -56,14 +56,8 @@ jobs:
         run: python tool/fix_live_radar_wms_v177.py
       - name: Repair live location weather
         run: python tool/apply_live_location_weather_v173.py
-      - name: Add satellite labels and center on customer location
+      - name: Add satellite labels and initial customer location
         run: python tool/apply_map_labels_location_domain_v180.py
-      - name: Capture generated source for repair audit
-        uses: actions/upload-artifact@v4
-        with:
-          name: bridgepoint-generated-pre-media
-          path: lib/main.dart
-          retention-days: 1
       - name: Repair property media everywhere
         run: python tool/apply_property_media_everywhere_v174.py
       - name: Repair interactive widgets and alerts
@@ -72,6 +66,28 @@ jobs:
         run: python tool/apply_molly_live_walkthrough_v176.py
       - name: Make expansion approvals continue immediately
         run: python tool/fix_expansion_approve_continue_v178.py
+      - name: Add secure remembered sign-in and nickname
+        run: python tool/apply_auth_nickname_v181b.py
+      - name: Add front-first street property media and aerial zoom controls
+        run: python tool/apply_property_street_media_v186.py
+      - name: Add multistate property workspace and current-owner UI
+        run: python tool/apply_multistate_owner_ui_v188.py
+      - name: Add premium page accents and expansion ETA/status UI
+        run: python tool/apply_premium_navigation_expansion_v189.py
+      - name: Add animated NOAA weather timeline
+        run: python tool/apply_noaa_weather_loop_v190.py
+      - name: Make global property search multistate and map recenter location-aware
+        run: python tool/apply_global_search_location_v192.py
+      - name: Protect customer property details from formula/internal leakage
+        run: python tool/apply_customer_safe_json_v193.py
+      - name: Run strict click-path and release contract audit
+        run: python tool/audit_release_clicks_v194.py
+      - name: Capture final generated source for audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-generated-final
+          path: lib/main.dart
+          retention-days: 3
       - name: Validate guarded release markers
         run: |
           printf '{"version":"%s","built_at":"%s","public_origin":"https://bridgepointintelligence.online/"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
@@ -86,12 +102,15 @@ jobs:
               'ENTERPRISE TECHNOLOGY','MY DASHBOARD WIDGETS','Customize Dashboard',
               '_PropertyMediaCard','Property Image History','Image history •',
               '_bridgePointRelease','Questions or Concerns: 203-605-2389',
-              'LIVE NOAA RADAR • TAP TO ZOOM','class _BridgePointLiveLocation',
+              'NOAA WEATHER MOTION','Pause weather motion','class _BridgePointLiveLocation',
               'Start live location','_PropertyMediaThumb','PINCH / SCROLL TO ZOOM',
+              'Open aerial • pinch / scroll to zoom','bridgepoint-property-street-media-v186',
               'tap a widget to open its tool','MOLLY LIVE WALKTHROUGH',
               'https://bridgepointintelligence.online/',
-              'World_Boundaries_and_Places','_centerMapOnDevice()',
-              'noaa-radar-preview-','noaa-radar-dialog-',"'action':'continue'",
+              'World_Boundaries_and_Places','Center on my current location',
+              "'action':'continue'",'Save my info for next time','Your nickname',
+              'All My States','Current recorded owner','BUILDING NOW','bridgepoint_expansion_eta_v188',
+              '_bridgePointPageAccent','_bridgePointCustomerSafeKey','bridgepoint_property_suggestions_v192',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
