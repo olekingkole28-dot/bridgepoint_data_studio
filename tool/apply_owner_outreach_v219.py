@@ -57,7 +57,7 @@ new_metric_tail = """          _MetricCard(width:w,label:'30-DAY USERS',value:_f
                 ]),
               )),
             ] else const Padding(padding:EdgeInsets.only(top:8),child:Text('Replies will appear here automatically as outreach begins.',style:TextStyle(color:AppTheme.textMuted,fontSize:10))),
-            const SizedBox(height:4),Text('$marker',style:const TextStyle(fontSize:0,color:Colors.transparent)),
+            const SizedBox(height:4),const Text('bridgepoint-v219-owner-outreach',style:TextStyle(fontSize:0,color:Colors.transparent)),
           ])))),
 """
 if old_metric_tail not in body:
