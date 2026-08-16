@@ -1,0 +1,150 @@
+from pathlib import Path
+import sys
+
+p=Path(sys.argv[1] if len(sys.argv)>1 else 'lib/main.dart')
+s=p.read_text()
+
+def once(old,new,label):
+    global s
+    if old not in s:
+        raise SystemExit(f'MISSING {label}')
+    if s.count(old)!=1:
+        raise SystemExit(f'NONUNIQUE {label}: {s.count(old)}')
+    s=s.replace(old,new,1)
+
+def replace_block(start_marker,end_marker,new,label):
+    global s
+    a=s.find(start_marker)
+    if a<0: raise SystemExit(f'MISSING start {label}')
+    b=s.find(end_marker,a)
+    if b<0: raise SystemExit(f'MISSING end {label}')
+    s=s[:a]+new+s[b:]
+
+def class_range(name):
+    a=s.find('class '+name)
+    if a<0: raise SystemExit('missing class '+name)
+    j=s.find('{',a); d=0
+    for k in range(j,len(s)):
+        if s[k]=='{':d+=1
+        elif s[k]=='}':
+            d-=1
+            if d==0:return a,k+1
+    raise SystemExit('unclosed '+name)
+
+def replace_class(name,new):
+    global s
+    a,b=class_range(name);s=s[:a]+new+s[b:]
+
+# Readability: normal mode is no longer tiny; accessibility Large Text remains a stronger setting.
+once("textScaler: TextScaler.linear(preferences.largeText ? 1.18 : 1),","textScaler: TextScaler.linear(preferences.largeText ? 1.22 : 1.07),",'default text scale')
+
+# Fix recursive street-map URL.
+once("String _bridgePointBaseMapUrl()=>_displayPreferences.value.mapBaseStyle=='street'\n  ? _bridgePointBaseMapUrl()\n  : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';","String _bridgePointBaseMapUrl()=>_displayPreferences.value.mapBaseStyle=='street'\n  ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'\n  : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';",'street map recursion')
+
+# Faster Properties UI page size.
+once("static const int _pageSize=50;","static const int _pageSize=30;",'property page size')
+
+# Navigation: owner controls first for owner; settings last for everyone. Page resolution switches by label so owner insertion does not break indexes.
+nav_old="""  static const navigationItems = <_NavigationItem>[
+    _NavigationItem('Daily Brief', Icons.wb_sunny_outlined),
+    _NavigationItem('Opportunities', Icons.bolt_rounded),
+    _NavigationItem('Field Mode', Icons.directions_walk_rounded),
+    _NavigationItem('Intelligence Map', Icons.map_rounded),
+    _NavigationItem('Properties', Icons.home_work_rounded),
+    _NavigationItem('Signals', Icons.radar_rounded),
+    _NavigationItem('Sources', Icons.hub_rounded),
+    _NavigationItem('My Work', Icons.work_history_rounded),
+    _NavigationItem('Permit Context', Icons.construction_rounded),
+    _NavigationItem('Coverage', Icons.public_rounded),
+    _NavigationItem('Packages', Icons.inventory_2_outlined),
+    _NavigationItem('Models', Icons.psychology_alt_rounded),
+    _NavigationItem('Settings', Icons.settings_rounded),
+    _NavigationItem('Weather Center', Icons.cloud_outlined),
+    _NavigationItem('My Home', Icons.home_rounded),
+    _NavigationItem('Community', Icons.groups_2_outlined),
+    _NavigationItem('About BridgePoint', Icons.hub_outlined),
+  ];
+
+  bool get _effectiveOwnerMode=>widget.ownerMode&&!_ownerCustomerPreview;
+
+  List<_NavigationItem> get visibleNavigationItems=>[
+    ...navigationItems,
+    if(_effectiveOwnerMode)...const [
+      _NavigationItem('Owner Center',Icons.admin_panel_settings_rounded),
+      _NavigationItem('Owner Demo',Icons.slideshow_rounded),
+      _NavigationItem('Founder Command',Icons.tune_rounded),
+    ],
+  ];"""
+nav_new="""  static const navigationItems = <_NavigationItem>[
+    _NavigationItem('Daily Brief', Icons.wb_sunny_outlined),
+    _NavigationItem('Opportunities', Icons.bolt_rounded),
+    _NavigationItem('Intelligence Map', Icons.map_rounded),
+    _NavigationItem('Properties', Icons.home_work_rounded),
+    _NavigationItem('My Home', Icons.home_rounded),
+    _NavigationItem('My Work', Icons.work_history_rounded),
+    _NavigationItem('Field Mode', Icons.directions_walk_rounded),
+    _NavigationItem('Weather Center', Icons.cloud_outlined),
+    _NavigationItem('Signals', Icons.radar_rounded),
+    _NavigationItem('Community', Icons.groups_2_outlined),
+    _NavigationItem('Pattern Intelligence', Icons.auto_graph_rounded),
+    _NavigationItem('Packages', Icons.inventory_2_outlined),
+    _NavigationItem('About BridgePoint', Icons.info_outline_rounded),
+    _NavigationItem('Sources', Icons.hub_rounded),
+    _NavigationItem('Permit Context', Icons.construction_rounded),
+    _NavigationItem('Coverage', Icons.public_rounded),
+    _NavigationItem('Models', Icons.psychology_alt_rounded),
+    _NavigationItem('Settings', Icons.settings_rounded),
+  ];
+
+  bool get _effectiveOwnerMode=>widget.ownerMode&&!_ownerCustomerPreview;
+
+  List<_NavigationItem> get visibleNavigationItems=>[
+    if(_effectiveOwnerMode)...const [
+      _NavigationItem('Owner Center',Icons.admin_panel_settings_rounded),
+      _NavigationItem('Founder Command',Icons.tune_rounded),
+      _NavigationItem('Owner Demo',Icons.slideshow_rounded),
+    ],
+    ...navigationItems,
+  ];"""
+once(nav_old,nav_new,'navigation ordering')
+
+# Replace selected-page switch with label-based routing.
+start=s.find('  Widget _buildSelectedPage() {')
+end=s.find('\n  @override\n  Widget build(BuildContext context)',start)
+if start<0 or end<0: raise SystemExit('missing buildSelectedPage')
+new_selected="""  Widget _buildSelectedPage() {
+    final label=visibleNavigationItems[selectedNavigation].label;
+    switch(label){
+      case 'Daily Brief': return _DailyBriefPage(key:ValueKey('brief-$_liveRefreshTick-$selectedPackage'),onNavigateLabel:_navigateTrainingLabel,overview:_OverviewContent(selectedPackage:selectedPackage,dashboardRequest:dashboardRequest,sourcesRequest:sourcesRequest,onRefresh:_refreshDashboard,onNavigate:_navigateTo));
+      case 'Opportunities': return _OpportunitiesPage(modelKey:packageModelKeys[selectedPackage]??'all',packageName:selectedPackage);
+      case 'Field Mode': return _FieldModePage(modelKey:packageModelKeys[selectedPackage]??'all',packageName:selectedPackage);
+      case 'Intelligence Map': return _IntelligenceMapPage(modelKey:packageModelKeys[selectedPackage]??'all',packageName:selectedPackage);
+      case 'Properties': return const _PropertiesPage();
+      case 'Signals': return const _SignalsPage();
+      case 'Sources': return _SourcesPage(sourcesRequest:sourcesRequest,onRefresh:_refreshDashboard);
+      case 'My Work': return const _MyWorkPage();
+      case 'Permit Context': return const _PermitContextPage();
+      case 'Coverage': return const _CoveragePage();
+      case 'Packages': return const _PackagesPage();
+      case 'Models': return const _ModelsPage();
+      case 'Weather Center': return _WeatherCenterPage(onOpenMap:()=>_navigateTrainingLabel('Intelligence Map'));
+      case 'My Home': return _MyHomePage(onOpenWeather:()=>_navigateTrainingLabel('Weather Center'),onOpenMap:()=>_navigateTrainingLabel('Intelligence Map'));
+      case 'Community': return const _CommunityPage();
+      case 'Pattern Intelligence': return const _PatternIntelligencePageV212();
+      case 'About BridgePoint': return const _AboutBridgePointPage();
+      case 'Settings': return _SettingsPage(ownerMode:_effectiveOwnerMode,settingsRequest:settingsRequest,healthRequest:healthRequest,refreshSeconds:_refreshSeconds,onRefreshSecondsChanged:_setRefreshSeconds,onRefresh:(){setState((){settingsRequest=_loadRuntimeSettings();healthRequest=_loadSystemHealth();});});
+      case 'Owner Center': return _effectiveOwnerMode?const _OwnerCenterPage():const _ComingSoonPage(title:'Owner Center',icon:Icons.admin_panel_settings_rounded);
+      case 'Owner Demo': return _effectiveOwnerMode?_OwnerDemoPage(onNavigateLabel:_navigateTrainingLabel):const _ComingSoonPage(title:'Owner Demo',icon:Icons.slideshow_rounded);
+      case 'Founder Command': return _effectiveOwnerMode?_FounderCommandPage(onReplayWalkthrough:()=>_openWalkthrough(replay:true),onOpenDemo:()=>_navigateTrainingLabel('Owner Demo'),onStartCustomerPreview:_startCustomerPreview,onNavigateLabel:_navigateTrainingLabel):const _ComingSoonPage(title:'Founder Command',icon:Icons.tune_rounded);
+      default:return _ComingSoonPage(title:label,icon:visibleNavigationItems[selectedNavigation].icon);
+    }
+  }
+"""
+s=s[:start]+new_selected+s[end:]
+
+# Richer walkthrough order and coverage.
+once("'Daily Brief','Opportunities','Intelligence Map','Properties','Weather Center',\n      'Field Mode','My Work','Community','My Home','Packages','Settings',","'Daily Brief','Opportunities','Intelligence Map','Properties','My Home','My Work','Field Mode','Weather Center',\n      'Signals','Community','Pattern Intelligence','Packages','About BridgePoint','Sources','Models','Settings',",'walkthrough coverage')
+
+# Keep top Share; owner gets Expansion shortcut at lower-right, customers get no owner control.
+share_fab="""                    Positioned(
+                      right: desktop ? 22 : 14,
