@@ -1,6 +1,7 @@
 -- BridgePoint expansion runtime ambiguity + state-scope hotfix v178
 -- Persists production fixes for approval generation, approval continuation,
--- and protection against authoritative-but-off-state discovery results.
+-- protection against authoritative-but-off-state discovery results, and
+-- expansion imagery acceptance consistency.
 
 do $fix$
 declare ddl text;
@@ -79,5 +80,17 @@ begin
     ddl := replace(ddl,old_block,new_block);
     execute ddl;
   end if;
+end
+$fix$;
+
+do $fix$
+declare ddl text;
+begin
+  select pg_get_functiondef(p.oid) into ddl
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='automation' and p.proname='sync_expansion_media_sources_v161';
+  if ddl is null then raise exception 'sync_expansion_media_sources_v161 missing'; end if;
+  ddl:=replace(ddl,'c.decision_status in(''APPROVED'',''SELECTED'',''AUTO_SELECTED'')','c.decision_status in(''ACCEPTED'',''APPROVED'',''SELECTED'',''AUTO_SELECTED'')');
+  execute ddl;
 end
 $fix$;
