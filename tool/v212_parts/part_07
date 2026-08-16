@@ -1,0 +1,106 @@
+
+# Final v212 syntax repair layer. This executes after the original v212 write and
+# rewrites only the generated blocks that need clearer Dart structure.
+
+old_noaa="""      if(!silent&&mounted){final radar=_bpMap(payload['radar']);final alerts=_bpMap(payload['alerts']);await _showInfoDialog(context,'NOAA live connection','Radar service: ${radar['status']??'unknown'}
+NWS alerts service: ${alerts['status']??'unknown'}
+Active U.S. alerts: ${alerts['active_count']??'—'}
+Checked: ${_bpDateTime(payload['checked_at'])}
+
+This live service check is separate from BridgePoint historical Storm Events.');}"""
+new_noaa=r"""      if(!silent&&mounted){final radar=_bpMap(payload['radar']);final alerts=_bpMap(payload['alerts']);await _showInfoDialog(context,'NOAA live connection','Radar service: ${radar['status']??'unknown'}\nNWS alerts service: ${alerts['status']??'unknown'}\nActive U.S. alerts: ${alerts['active_count']??'—'}\nChecked: ${_bpDateTime(payload['checked_at'])}\n\nThis live service check is separate from BridgePoint historical Storm Events.');}"""
+once(old_noaa,new_noaa,'NOAA generated newline escaping')
+
+replace_class('_PersistentPropertyTrackersV212State',r'''class _PersistentPropertyTrackersV212State extends State<_PersistentPropertyTrackersV212>{
+  late Future<Map<String,dynamic>> request;
+  @override void initState(){super.initState();request=_callRpc('bridgepoint_my_property_trackers_v212',const {});}
+  Future<void> add(String type)async{
+    final property=await showDialog<Map<String,dynamic>>(context:context,builder:(_)=>_BridgePointPropertyFinderDialog(title:type=='HOME'?'Choose my home':type=='BUSINESS'?'Choose my business':'Add a property I track'));
+    if(property==null)return;
+    await _callRpc('bridgepoint_save_property_tracker_v212',{'p_property_id':property['property_id'],'p_tracker_type':type,'p_label':type=='HOME'?'My Home':type=='BUSINESS'?'My Business':'Tracked Property','p_primary':type!='PORTFOLIO'});
+    if(mounted)setState(()=>request=_callRpc('bridgepoint_my_property_trackers_v212',const {}));
+  }
+  Future<void> remove(String id)async{
+    await _callRpc('bridgepoint_remove_property_tracker_v212',{'p_tracked_property_id':id});
+    if(mounted)setState(()=>request=_callRpc('bridgepoint_my_property_trackers_v212',const {}));
+  }
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+    future:request,
+    builder:(context,snapshot){
+      final rows=_bpRows(snapshot.data?['trackers']);
+      return Card(
+        color:AppTheme.panelSoft.withOpacity(.55),
+        child:Padding(
+          padding:const EdgeInsets.all(12),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const Row(children:[Icon(Icons.bookmark_added_outlined,color:AppTheme.cyan,size:18),SizedBox(width:7),Expanded(child:Text('MY PROPERTY TRACKERS',style:TextStyle(fontSize:10,fontWeight:FontWeight.w900))),Text('SAVED TO YOUR ACCOUNT',style:TextStyle(color:AppTheme.green,fontSize:8,fontWeight:FontWeight.w900))]),
+            const SizedBox(height:7),
+            const Text('Your Home, Business and multi-property portfolio stay attached to your account across sign-outs and devices.',style:TextStyle(color:AppTheme.textMuted,fontSize:9.5,height:1.45)),
+            const SizedBox(height:8),
+            Wrap(spacing:7,runSpacing:7,children:[
+              OutlinedButton.icon(onPressed:()=>add('HOME'),icon:const Icon(Icons.home_rounded,size:16),label:const Text('Set My Home')),
+              OutlinedButton.icon(onPressed:()=>add('BUSINESS'),icon:const Icon(Icons.business_rounded,size:16),label:const Text('Set My Business')),
+              OutlinedButton.icon(onPressed:()=>add('PORTFOLIO'),icon:const Icon(Icons.domain_add_rounded,size:16),label:const Text('Add property')),
+            ]),
+            if(rows.isNotEmpty)...[
+              const SizedBox(height:8),
+              ...rows.map((row)=>ListTile(
+                dense:true,
+                contentPadding:EdgeInsets.zero,
+                leading:Icon(row['tracker_type']=='HOME'?Icons.home_rounded:row['tracker_type']=='BUSINESS'?Icons.business_rounded:Icons.apartment_rounded,color:AppTheme.cyan),
+                title:Text('${row['label']??row['tracker_type']} • ${row['address']??'Property'}',style:const TextStyle(fontSize:9.5,fontWeight:FontWeight.w800)),
+                subtitle:Text('${row['municipality']??''} ${row['state_code']??''}',style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5)),
+                trailing:IconButton(tooltip:'Remove tracker',onPressed:()=>remove('${row['tracked_property_id']}'),icon:const Icon(Icons.close_rounded,size:17)),
+              )),
+            ],
+          ]),
+        ),
+      );
+    },
+  );
+}''')
+
+replace_class('_PatternIntelligencePageV212State',r'''class _PatternIntelligencePageV212State extends State<_PatternIntelligencePageV212>{
+  late Future<Map<String,dynamic>> request;
+  @override void initState(){super.initState();request=_callRpc('bridgepoint_pattern_intelligence_v212',{'p_state_codes':null,'p_limit':100,'p_offset':0});}
+  void refresh()=>setState(()=>request=_callRpc('bridgepoint_pattern_intelligence_v212',{'p_state_codes':null,'p_limit':100,'p_offset':0}));
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+    future:request,
+    builder:(context,snapshot){
+      final rows=_bpRows(snapshot.data?['patterns']);
+      final loading=snapshot.connectionState==ConnectionState.waiting;
+      return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        _PageHeading(title:'Pattern Intelligence',subtitle:'Institutional BridgePoint moat • protected pattern outputs • proprietary methodology stays private',onRefresh:refresh,loading:loading),
+        const SizedBox(height:10),
+        const _ExplainerBanner(icon:Icons.security_rounded,title:'You buy the intelligence—not BridgePoint’s internal recipe',message:'Eligible Pattern Intelligence customers receive property pattern profiles, concentration, recency, confidence and supporting counts. Raw model weights, learning logic, private implementation details and unrestricted backend access stay protected.'),
+        const SizedBox(height:12),
+        if(snapshot.hasError)
+          Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const Text('BridgePoint Pattern Intelligence subscription required',style:TextStyle(fontSize:14,fontWeight:FontWeight.w900)),
+            const SizedBox(height:6),
+            const Text('This is a premium institutional product for investors, hedge funds, insurers and analytics teams. Open Packages to request controlled access.',style:TextStyle(color:AppTheme.textMuted,height:1.5)),
+            const SizedBox(height:8),
+            Text('Protected backend response: ${snapshot.error}',maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:8)),
+          ])))
+        else if(loading&&!snapshot.hasData)
+          const LinearProgressIndicator(color:AppTheme.cyan)
+        else ...[
+          Wrap(spacing:8,runSpacing:8,children:[
+            _OpportunityChip(label:'${rows.length} PATTERN OUTPUTS',color:AppTheme.cyan),
+            const _OpportunityChip(label:'METHODOLOGY PROTECTED',color:AppTheme.green),
+            const _OpportunityChip(label:'$2,499 / MONTH',color:AppTheme.amber),
+          ]),
+          const SizedBox(height:10),
+          ...rows.take(100).map((row)=>Card(child:ListTile(
+            leading:CircleAvatar(backgroundColor:AppTheme.cyan.withOpacity(.12),child:Text('${row['pattern_score']??'—'}',style:const TextStyle(color:AppTheme.cyan,fontSize:9,fontWeight:FontWeight.w900))),
+            title:Text('${row['pattern_name']??row['pattern_key']} • ${row['full_address']??'Property'}',style:const TextStyle(fontWeight:FontWeight.w900,fontSize:10.5)),
+            subtitle:Text('${row['state_code']??''} • ${row['pattern_family']??''} • ${row['signal_count']??0} signals • ${row['distinct_sources']??0} sources • ${row['confidence_pct']??'—'}% confidence • ${row['recency_band']??''}',style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5)),
+          ))),
+        ],
+      ]);
+    },
+  );
+}''')
+
+p.write_text(s)
+print('v212 syntax repair applied',len(s))
