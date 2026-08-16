@@ -6,8 +6,8 @@ import sys
 # v212 is intentionally the final generated-source layer. Reconstruct it from the
 # small source-controlled parts so older release patches cannot overwrite it.
 parts=sorted(Path('tool/v212_parts').glob('part_*'))
-if len(parts)!=8:
-    raise SystemExit(f'Expected 8 v212 patch parts, found {len(parts)}')
+if len(parts)!=9:
+    raise SystemExit(f'Expected 9 v212 patch parts, found {len(parts)}')
 patcher=Path('/tmp/apply_stability_ux_v212.py')
 patcher.write_text(''.join(x.read_text(encoding='utf-8') for x in parts),encoding='utf-8')
 subprocess.run([sys.executable,str(patcher),'lib/main.dart'],check=True)
