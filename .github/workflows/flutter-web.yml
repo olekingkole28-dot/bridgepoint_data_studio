@@ -45,6 +45,9 @@ jobs:
           python tool/apply_training_demo_founder_v159.py
           python tool/repair_generated_release_v160.py
           python tool/fix_legal_gate_v160.py
+          python tool/apply_package_colors_molly_update_v162.py
+          python tool/apply_pwa_auto_update_v162.py
+          printf '{"version":"%s","built_at":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
           grep -q "Send to CRM" lib/main.dart
           grep -q "Download CSV" lib/main.dart
           grep -q "Print / Save PDF" lib/main.dart
@@ -79,6 +82,12 @@ jobs:
           grep -q "FULL-ACCESS OWNERS" lib/main.dart
           grep -q "Preview as customer" lib/main.dart
           grep -q "requiredKeys" lib/main.dart
+          grep -q "MOLLY'S TIP" lib/main.dart
+          grep -q "ENTERPRISE TECHNOLOGY" lib/main.dart
+          grep -q "bridgepoint_auto_update_restoring" web/index.html
+          grep -q "bridgepoint-release.json" web/index.html
+          grep -q "_bridgePointRelease" lib/main.dart
+          test -s web/bridgepoint-release.json
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -93,7 +102,7 @@ jobs:
             echo "No test directory yet; continuing to the release build."
           fi
       - name: Build installable web app
-        run: flutter build web --release --base-href "/bridgepoint_data_studio/"
+        run: flutter build web --release --base-href "/bridgepoint_data_studio/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
       - uses: actions/upload-artifact@v4
         with:
           name: bridgepoint-flutter-web-review
