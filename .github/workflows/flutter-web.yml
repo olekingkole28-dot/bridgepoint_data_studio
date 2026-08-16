@@ -27,6 +27,8 @@ jobs:
           grep -q "Show United States live weather" lib/main.dart
           grep -q "One-click State Expansion" lib/main.dart
           grep -q "ENTERPRISE TECHNOLOGY" lib/main.dart
+          echo "--- patched source around owner expansion analyzer hotspot ---"
+          nl -ba lib/main.dart | sed -n '7998,8008p'
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
