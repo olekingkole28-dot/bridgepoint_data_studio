@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 path = Path('lib/main.dart')
 body = path.read_text(encoding='utf-8')
@@ -8,13 +9,14 @@ if marker in body:
     print('Account email v221 already applied.')
     raise SystemExit(0)
 
-live_url = "const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';\n"
-if live_url not in body:
+live_url_pattern = r"(const\s+_bridgePointLiveUrl\s*=\s*'[^']+';\s*\n)"
+if not re.search(live_url_pattern, body):
     raise SystemExit('v221 live URL anchor not found')
-body = body.replace(
-    live_url,
-    live_url + "const _bridgePointOutreachEmail = 'bridgepointintelligence@gmail.com';\n",
-    1,
+body = re.sub(
+    live_url_pattern,
+    r"\1const _bridgePointOutreachEmail = 'bridgepointintelligence@gmail.com';\n",
+    body,
+    count=1,
 )
 
 account_anchor = """                          const SizedBox(height:8),const Text('Your nickname follows your BridgePoint account and can be changed anytime.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),const SizedBox(height:10),
