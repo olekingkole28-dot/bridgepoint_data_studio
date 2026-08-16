@@ -43,6 +43,7 @@ jobs:
           python tool/apply_about_bridgepoint_v151.py
           python tool/apply_routes_offline_v157.py
           python tool/apply_training_demo_founder_v159.py
+          python tool/repair_generated_release_v160.py
           grep -q "Send to CRM" lib/main.dart
           grep -q "Download CSV" lib/main.dart
           grep -q "Print / Save PDF" lib/main.dart
