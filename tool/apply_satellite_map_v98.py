@@ -82,10 +82,10 @@ Map<String, String> _apiHeaders() {
 """,
 'apply-map-style-and-url')
 
-# Both the owner/team map and Intelligence Map should honor the same account preference.
+# All BridgePoint maps should honor the same account preference.
 count=text.count("'https://tile.openstreetmap.org/{z}/{x}/{y}.png'")
-if count!=2:
-    raise SystemExit(f'base-map-url: expected exactly 2 map tile URLs, found {count}')
+if count!=3:
+    raise SystemExit(f'base-map-url: expected exactly 3 map tile URLs, found {count}')
 text=text.replace("'https://tile.openstreetmap.org/{z}/{x}/{y}.png'","_bridgePointBaseMapUrl()")
 
 replace_once(
