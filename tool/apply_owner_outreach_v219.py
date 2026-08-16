@@ -13,6 +13,7 @@ old_data = """      final offer=map(data['founding_offer']),intel=map(data['inte
 """
 new_data = """      final offer=map(data['founding_offer']),intel=map(data['intelligence']);
       final outreach=map(data['outreach']);
+      final strategic=map(outreach['strategic']);
       final outreachReplies=rows(outreach['recent_replies']);
       final verticals=rows(data['top_opportunity_verticals']),failures=rows(data['recent_failures']);
 """
@@ -30,6 +31,7 @@ new_metric_tail = """          _MetricCard(width:w,label:'30-DAY USERS',value:_f
           _MetricCard(width:w,label:'EMAILS SENT',value:_formatInteger(outreach['emails_sent']??0),detail:'${_formatInteger(outreach['emails_delivered']??0)} delivered',icon:Icons.outgoing_mail,accent:AppTheme.blue),
           _MetricCard(width:w,label:'OUTREACH REPLIES',value:_formatInteger(outreach['replies']??0),detail:'${_formatInteger(outreach['interested']??0)} interested • ${_formatInteger(outreach['not_interested']??0)} not interested',icon:Icons.mark_email_read_rounded,accent:AppTheme.green),
           _MetricCard(width:w,label:'OUTREACH CONVERSIONS',value:_formatInteger(outreach['trials_started']??0),detail:'${_formatInteger(outreach['paid_customers']??0)} paid customers',icon:Icons.trending_up_rounded,accent:AppTheme.amber),
+          _MetricCard(width:w,label:'STRATEGIC TARGETS',value:_formatInteger(strategic['total']??0),detail:'${_formatInteger(strategic['high_priority']??0)} high priority • ${_formatInteger(strategic['sent']??0)} sent',icon:Icons.account_balance_rounded,accent:const Color(0xFF9B7BFF)),
         ]);}),
         const SizedBox(height:18),
         LayoutBuilder(builder:(context,c){final wide=c.maxWidth>=980;final w=wide?(c.maxWidth-16)/2:c.maxWidth;return Wrap(spacing:16,runSpacing:16,children:[
@@ -44,9 +46,16 @@ new_metric_tail = """          _MetricCard(width:w,label:'30-DAY USERS',value:_f
             _OwnerStatusRow('Trials / paid','${outreach['trials_started']??0} / ${outreach['paid_customers']??0}',AppTheme.green),
             _OwnerStatusRow('Last send',outreach['last_sent_at']?.toString()??'Waiting for first send',AppTheme.cyan),
             _OwnerStatusRow('Last reply',outreach['last_reply_at']?.toString()??'No replies yet',AppTheme.cyan),
+            const Divider(height:24),
+            const Text('Strategic / Capital Outreach',style:TextStyle(fontWeight:FontWeight.w900)),const SizedBox(height:8),
+            _OwnerStatusRow('Strategic targets','${strategic['total']??0}',const Color(0xFF9B7BFF)),
+            _OwnerStatusRow('High priority','${strategic['high_priority']??0}',AppTheme.amber),
+            _OwnerStatusRow('Capital / technology buyers','${strategic['capital_targets']??0} / ${strategic['technology_buyers']??0}',AppTheme.blue),
+            _OwnerStatusRow('Staged / sent','${strategic['staged']??0} / ${strategic['sent']??0}',AppTheme.cyan),
+            _OwnerStatusRow('Replies / interested','${strategic['replies']??0} / ${strategic['interested']??0}',AppTheme.green),
             if(outreachReplies.isNotEmpty)...[
               const Divider(height:24),
-              const Text('Latest replies',style:TextStyle(fontWeight:FontWeight.w900)),const SizedBox(height:8),
+              const Text('Latest customer replies',style:TextStyle(fontWeight:FontWeight.w900)),const SizedBox(height:8),
               ...outreachReplies.take(6).map((item)=>Container(
                 margin:const EdgeInsets.only(bottom:8),padding:const EdgeInsets.all(10),
                 decoration:BoxDecoration(color:AppTheme.panelSoft.withOpacity(.55),borderRadius:BorderRadius.circular(10)),
