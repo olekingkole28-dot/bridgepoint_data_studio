@@ -54,6 +54,12 @@ jobs:
         run: python tool/apply_release_map_radar_v172.py
       - name: Repair live location weather
         run: python tool/apply_live_location_weather_v173.py
+      - name: Capture generated source for repair audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-generated-pre-media
+          path: lib/main.dart
+          retention-days: 1
       - name: Repair property media everywhere
         run: python tool/apply_property_media_everywhere_v174.py
       - name: Repair interactive widgets and alerts
