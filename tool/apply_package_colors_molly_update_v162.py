@@ -11,7 +11,6 @@ def replace_once(old,new,label):
         raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
     text=text.replace(old,new,1)
 
-# Build marker supplied by CI so installed users/owner can verify the running release.
 replace_once(
 """const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';
 """,
@@ -20,15 +19,13 @@ const _bridgePointRelease = String.fromEnvironment('BRIDGEPOINT_RELEASE', defaul
 """,
 'release-constant')
 
-# Restore owner/customer workspace selection across automatic app updates/reloads.
 replace_once(
 """    if(widget.ownerMode)selectedPackage='All Intelligence';
     dashboardRequest = _loadDashboard();
 """,
 """    if(widget.ownerMode)selectedPackage='All Intelligence';
     dashboardRequest = _loadDashboard();
-"""+
-"""    unawaited(_restoreWorkspaceState());
+    unawaited(_restoreWorkspaceState());
 """,
 'workspace-restore-init')
 
@@ -96,7 +93,6 @@ replace_once(
 """,
 'persist-navigation')
 
-# Package accents: technology is gold; every customer package has a distinct full-card tint.
 package_marker="""class _LivePackageCard extends StatelessWidget {
 """
 if text.count(package_marker)!=1:
@@ -124,6 +120,7 @@ text=text.replace(package_marker,helper+package_marker,1)
 
 replace_once(
 """    final type = '${package['package_type'] ?? 'standard'}';
+    final technology='${package['package_key']??''}'.startsWith('technology_');
 
     return Card(
       child: InkWell(
@@ -134,10 +131,10 @@ replace_once(
     final accent=_bridgePointPackageAccent(key,type);
 
     return Card(
-      color:accent.withOpacity(technology?.20:.13),
+      color:accent.withOpacity(technology ? .20 : .13),
       shape:RoundedRectangleBorder(
         borderRadius:BorderRadius.circular(18),
-        side:BorderSide(color:accent.withOpacity(technology?.52:.30),width:technology?1.35:1),
+        side:BorderSide(color:accent.withOpacity(technology ? .52 : .30),width:technology?1.35:1),
       ),
       child: InkWell(
 """,
@@ -184,32 +181,22 @@ replace_once(
 """,
 'package-type-color')
 
-# A clear gold technology badge, while regular packages retain FEATURED status.
+# Replace the technology chip installed by v94 so it uses the dedicated gold accent.
 replace_once(
-"""                  if (featured)
-                    const _OpportunityChip(
-                      label: 'FEATURED',
-                      color: AppTheme.green,
-                    ),
+"""                  if (technology)
+                    const _OpportunityChip(label:'ENTERPRISE TECHNOLOGY',color:AppTheme.amber),
 """,
-"""                  if(technology)
-                    const _OpportunityChip(label:'TECHNOLOGY',color:Color(0xFFFFC857))
-                  else if (featured)
-                    const _OpportunityChip(
-                      label: 'FEATURED',
-                      color: AppTheme.green,
-                    ),
+"""                  if (technology)
+                    const _OpportunityChip(label:'ENTERPRISE TECHNOLOGY',color:Color(0xFFFFC857)),
 """,
-'package-tech-badge')
+'package-tech-chip-gold')
 
-# Molly becomes a subtle professional training signature, not a cartoon mascot.
 old_tip="""const Row(children:[Icon(Icons.lightbulb_outline_rounded,color:AppTheme.amber,size:16),SizedBox(width:6),Text('TIP / TRICK',style:TextStyle(color:AppTheme.amber,fontSize:8,fontWeight:FontWeight.w900))])"""
 new_tip="""const Row(children:[Icon(Icons.pets_outlined,color:AppTheme.amber,size:16),SizedBox(width:6),Text(\"MOLLY'S TIP\",style:TextStyle(color:AppTheme.amber,fontSize:8,fontWeight:FontWeight.w900,letterSpacing:.4))])"""
 if old_tip not in text:
     raise SystemExit('Molly walkthrough tip marker missing')
 text=text.replace(old_tip,new_tip,1)
 
-# Footer shows the actual build identifier so owner/customers can verify an automatic update landed.
 footer_anchor="""            const Text('•', style: TextStyle(color: AppTheme.textMuted, fontSize: 9)),
             TextButton(
               style: TextButton.styleFrom(
