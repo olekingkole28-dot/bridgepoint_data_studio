@@ -43,6 +43,7 @@ account_replacement = """                          const SizedBox(height:8),cons
                             padding: EdgeInsets.only(top:4,bottom:8),
                             child: Text('Your login email and outbound business mailbox are shown separately so account access and customer outreach are never confused.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
                           ),
+                          const Text('bridgepoint-v221-account-email',style:TextStyle(fontSize:0,color:Colors.transparent)),
                           const _SettingsStatusRow(
                             label: 'Free trial',
 """
@@ -58,17 +59,6 @@ outreach_replacement = """            const _OwnerStatusRow('Default sending mai
 if outreach_anchor not in body:
     raise SystemExit('v221 owner outreach anchor not found')
 body = body.replace(outreach_anchor, outreach_replacement, 1)
-
-signout_anchor = """                          SizedBox(width:double.infinity,child:TextButton.icon(
-                            onPressed:()=>Supabase.instance.client.auth.signOut(),
-                            icon:const Icon(Icons.logout_rounded),label:const Text('Sign out'),
-                          )),
-"""
-signout_replacement = signout_anchor + """                          const Text('bridgepoint-v221-account-email',style:TextStyle(fontSize:0,color:Colors.transparent)),
-"""
-if signout_anchor not in body:
-    raise SystemExit('v221 marker placement anchor not found')
-body = body.replace(signout_anchor, signout_replacement, 1)
 
 path.write_text(body, encoding='utf-8')
 print('Applied BridgePoint account and outreach email identity v221.')
