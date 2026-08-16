@@ -37,6 +37,8 @@ jobs:
           python tool/apply_social_connect_v123.py
           python tool/apply_launch_readiness_v121.py
           python tool/apply_weather_home_community_v145.py
+          python tool/repair_weather_home_v147.py
+          python tool/apply_numbered_sales_posts_v146.py
           grep -q "Send to CRM" lib/main.dart
           grep -q "Download CSV" lib/main.dart
           grep -q "Print / Save PDF" lib/main.dart
@@ -58,6 +60,8 @@ jobs:
           grep -q "My Home" lib/main.dart
           grep -q "Community Property Observations" lib/main.dart
           grep -q "Property photo not available yet" lib/main.dart
+          grep -q "TODAY’S SIX SALES POSTS" lib/main.dart
+          grep -q "Post #\$slot to ALL connected socials" lib/main.dart
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
