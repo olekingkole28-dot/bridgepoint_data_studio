@@ -86,7 +86,7 @@ jobs:
         run: python tool/apply_social_readiness_eta_polish_v196.py
       - name: Restore Share, expose package delivery readiness, and animate Molly
         run: python tool/apply_share_packages_molly_v207.py
-      - name: Run strict click-path and release contract audit
+      - name: Apply v212 and run strict release contract audit
         run: python tool/audit_release_clicks_v194.py
       - name: Capture final generated source for audit
         uses: actions/upload-artifact@v4
@@ -115,11 +115,14 @@ jobs:
               'https://bridgepointintelligence.online/',
               'World_Boundaries_and_Places','Center on my current location',
               "'action':'continue'",'Save my info for next time','Your nickname',
-              'All My States','Current recorded owner','BUILDING NOW','bridgepoint_expansion_eta_v188',
+              'All My States','Current recorded owner','BUILDING NOW','bridgepoint_expansion_progress_v212',
               '_bridgePointPageAccent','_bridgePointCustomerSafeKey','bridgepoint_property_suggestions_v192',
               '60-DAY SOCIAL LAUNCH BANK','Activate 60-day calendar','Owner approval required',
-              'bridgepoint-share-fab-v207','Molly dog bone activity animation',
-              'BUILDING VERIFIED DELIVERY • NOT BILLING YET','Building verified feed',
+              'Molly dog bone activity animation','BUILDING VERIFIED DELIVERY • NOT BILLING YET','Building verified feed',
+              'bridgepoint-v212-stability-connected-release','Pattern Intelligence','bridgepoint_pattern_intelligence_v212',
+              'Test NOAA live','bridgepoint-noaa-live-health-v212','MOST ACTIVE SIGNAL TYPES',
+              'MY PROPERTY TRACKERS','Community Observation Map','BridgePoint Community Chat','Show more plans',
+              'DRAG TO PAN • PINCH / SCROLL TO ZOOM',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
@@ -132,7 +135,7 @@ jobs:
             print('Missing guarded release markers:')
             for item in missing: print(' -',item)
             raise SystemExit(1)
-          print('All guarded release markers are present.')
+          print('All guarded v212 release markers are present.')
           PY
           test -s web/bridgepoint-release.json
       - uses: subosito/flutter-action@v2
