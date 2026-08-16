@@ -50,6 +50,7 @@ jobs:
           python tool/apply_pwa_auto_update_v162.py
           python tool/apply_dashboard_widgets_property_media_v164.py
           python tool/repair_dashboard_media_v166.py
+          python tool/apply_property_imagery_history_ui_v169.py
           python tool/apply_molly_companion_v165.py
           printf '{"version":"%s","built_at":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
           python - <<'PY'
@@ -61,7 +62,8 @@ jobs:
               'Connection looks spotty — switch to Offline Mode?','Skip for now',
               'Founder Command Center','Preview as customer',"MOLLY'S TIP",
               'ENTERPRISE TECHNOLOGY','MY DASHBOARD WIDGETS','Customize Dashboard',
-              '_PropertyMediaCard','_bridgePointRelease','Questions or Concerns: 203-605-2389',
+              '_PropertyMediaCard','Property Image History','Image history •',
+              '_bridgePointRelease','Questions or Concerns: 203-605-2389',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
