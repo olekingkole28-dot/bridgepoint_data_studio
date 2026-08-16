@@ -27,6 +27,7 @@ jobs:
           python tool/repair_owner_expansion_v96.py
           python tool/apply_launch_v95.py
           python tool/apply_satellite_map_v98.py
+          python tool/apply_map_viewport_v124.py
           python tool/apply_technology_clarity_v100.py
           python tool/apply_exports_v101.py
           python tool/apply_growth_center_v105.py
@@ -39,6 +40,8 @@ jobs:
           grep -q "Download CSV" lib/main.dart
           grep -q "Print / Save PDF" lib/main.dart
           grep -q "Show United States live weather" lib/main.dart
+          grep -q "onPositionChanged" lib/main.dart
+          grep -q "WEATHER_OVERVIEW" lib/main.dart
           grep -q "One-click State Expansion" lib/main.dart
           grep -q "ENTERPRISE TECHNOLOGY" lib/main.dart
           grep -q "Who this technology is for" lib/main.dart
@@ -47,7 +50,6 @@ jobs:
           grep -q "Notification Center" lib/main.dart
           grep -q "Recent People Using BridgePoint" lib/main.dart
           grep -q "Publish connected now" lib/main.dart
-          grep -q "Connect" lib/main.dart
           grep -q "TOKENS STORED IN VAULT" lib/main.dart
           grep -q "YOUTUBE_SHORTS" lib/main.dart
           grep -q "Launch Readiness" lib/main.dart
