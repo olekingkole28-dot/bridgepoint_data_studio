@@ -24,10 +24,12 @@ jobs:
           python tool/apply_launch_v94.py
           python tool/repair_owner_expansion_v96.py
           python tool/apply_launch_v95.py
+          python tool/apply_satellite_map_v98.py
           grep -q "Send to CRM" lib/main.dart
           grep -q "Show United States live weather" lib/main.dart
           grep -q "One-click State Expansion" lib/main.dart
           grep -q "ENTERPRISE TECHNOLOGY" lib/main.dart
+          grep -q "Satellite (default)" lib/main.dart
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
