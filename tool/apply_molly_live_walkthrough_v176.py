@@ -134,7 +134,7 @@ coach=r'''                      if(_walkthroughActive&&_walkthroughSteps.isNotEm
 '''
 text=text.replace(sync,sync+coach,1)
 
-class_marker='class _CustomerPreviewBanner extends StatelessWidget{'
+class_marker='class _CustomerPreviewBanner extends StatelessWidget {'
 if class_marker not in text:raise SystemExit('customer preview class marker missing')
 widget=r'''
 class _WalkthroughCoachBanner extends StatelessWidget{
