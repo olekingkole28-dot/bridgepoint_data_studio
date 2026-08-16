@@ -19,14 +19,14 @@ required=[
  'Save my info for next time','Your nickname','bridgepoint_property_browser_v188','All My States',
  'Current recorded owner','Open aerial • pinch / scroll to zoom','bridgepoint-property-street-media-v186',
  'World_Boundaries_and_Places','Center on my current location','NOAA WEATHER MOTION','Pause weather motion',
- 'BUILDING NOW','bridgepoint_expansion_eta_v188','_bridgePointPageAccent','_bridgePointCustomerSafeKey',
+ 'BUILDING NOW','_bridgePointPageAccent','_bridgePointCustomerSafeKey',
  'https://bridgepointintelligence.online/',
  # v212 production/UX contract
  'bridgepoint-v212-stability-connected-release','Pattern Intelligence','_PatternIntelligencePageV212',
  'bridgepoint_pattern_intelligence_v212','bridgepoint_expansion_progress_v212','MOST ACTIVE SIGNAL TYPES',
  'bridgepoint_top_signal_types_v212','MY PROPERTY TRACKERS','bridgepoint_my_property_trackers_v212',
  'Community Observation Map','BridgePoint Community Chat','bridgepoint_community_channels_v212',
- 'Test NOAA live','bridgepoint-noaa-live-health-v212','Open Expansion','_BrandContactProfileV212',
+ 'Test NOAA live','bridgepoint-noaa-live-health-v212','_BrandContactProfileV212',
  'Show more plans','DRAG TO PAN • PINCH / SCROLL TO ZOOM',
 ]
 for x in required:
