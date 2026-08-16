@@ -1,0 +1,69 @@
+                      if(_showRadar)Positioned(left:14,top:162,child:FilledButton.icon(
+                        style:FilledButton.styleFrom(backgroundColor:const Color(0xFF071321).withOpacity(.96),foregroundColor:AppTheme.cyan,padding:const EdgeInsets.symmetric(horizontal:10,vertical:8)),
+                        onPressed:_checkingNoaa?null:()=>_checkNoaaHealth(),icon:Icon(_bpMap(_noaaHealth?['radar'])['ok']==true?Icons.check_circle_rounded:Icons.network_check_rounded,size:16),label:Text(_checkingNoaa?'Checking NOAA…':'Test NOAA live',style:const TextStyle(fontSize:9,fontWeight:FontWeight.w900)),
+                      )),
+                      if (loading && data == null)"""
+once(preview_end,preview_new,'noaa action button')
+
+# Expansion uses owner progress v212 with true overall and task-action percentages.
+once("next['eta']=await _callRpc('bridgepoint_expansion_eta_v188',{'p_run_id':run['run_id']});","next['eta']=await _callRpc('bridgepoint_expansion_progress_v212',{'p_run_id':run['run_id']});",'expansion progress rpc')
+once("final progress=steps.isEmpty?0.0:(done/steps.length).clamp(0.0,1.0);","final progress=((eta['overall_progress_pct'] as num?)?.toDouble()??(steps.isEmpty?0.0:(done*100/steps.length)))/100;\n        final actions=rows(eta['actions']);",'expansion overall')
+exp_progress_line="""          const SizedBox(height:8),LinearProgressIndicator(value:progress,minHeight:7,color:_bridgePointPageAccent(13),backgroundColor:AppTheme.panelSoft),const SizedBox(height:5),Text('${(progress*100).round()}% governed steps complete • ${approvals.length} approval${approvals.length==1?'':'s'} waiting • ${incidents.length} incident${incidents.length==1?'':'s'}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),"""
+exp_progress_new="""          const SizedBox(height:8),LinearProgressIndicator(value:progress.clamp(0.0,1.0),minHeight:9,color:AppTheme.green,backgroundColor:AppTheme.panelSoft),const SizedBox(height:6),Row(children:[Text('${(progress*100).toStringAsFixed(1)}% OVERALL',style:const TextStyle(color:AppTheme.green,fontSize:11,fontWeight:FontWeight.w900)),const Spacer(),_OpportunityChip(label:'${eta['activity_state']??'CHECKING'} • ${eta['last_activity_at']==null?'—':_bpDateTime(eta['last_activity_at'])}',color:eta['activity_state']=='ACTIVE'?AppTheme.green:AppTheme.amber)]),const SizedBox(height:5),Text('${approvals.length} approval${approvals.length==1?'':'s'} waiting • ${incidents.length} incident${incidents.length==1?'':'s'} • percentages come from actual completed work / live throughput',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),
+          if(actions.isNotEmpty)...[const SizedBox(height:12),const Text('LIVE ACTION PROGRESS',style:TextStyle(color:AppTheme.cyan,fontSize:9,fontWeight:FontWeight.w900,letterSpacing:.7)),...actions.map((a){final pct=((a['progress_pct'] as num?)?.toDouble()??0).clamp(0,100);return Container(margin:const EdgeInsets.only(top:7),padding:const EdgeInsets.all(9),decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.04),borderRadius:BorderRadius.circular(9),border:Border.all(color:AppTheme.cyan.withOpacity(.12))),child:Column(children:[Row(children:[Expanded(child:Text('${a['task_type']}'.replaceAll('_',' '),style:const TextStyle(fontSize:9.5,fontWeight:FontWeight.w900))),Text('${pct.toStringAsFixed(1)}%',style:const TextStyle(color:AppTheme.cyan,fontSize:9,fontWeight:FontWeight.w900))]),const SizedBox(height:5),LinearProgressIndicator(value:pct/100,minHeight:4,color:AppTheme.cyan,backgroundColor:Colors.white10),const SizedBox(height:4),Align(alignment:Alignment.centerLeft,child:Text('${a['completed']??0}/${a['total']??0} complete • ${a['running']??0} running • ${a['failed']??0} failed',style:const TextStyle(color:AppTheme.textMuted,fontSize:8))) ]));})],"""
+once(exp_progress_line,exp_progress_new,'expansion action visualization')
+
+# Signals page: add automatic activity board below heading within the Signals class only.
+sig_start=s.index('class _SignalsPageState extends State<_SignalsPage>')
+sig_end=s.index('class _',sig_start+50)
+# find the next top-level class after this state, not createState or nested references
+while s[sig_end:sig_end+30].startswith('class _SignalsPageState'):
+    sig_end=s.index('class _',sig_end+10)
+sig_chunk=s[sig_start:sig_end]
+needle_sig="""            const SizedBox(height: 18),
+            LayoutBuilder("""
+if needle_sig not in sig_chunk: raise SystemExit('MISS signals top activity')
+sig_chunk=sig_chunk.replace(needle_sig,"""            const SizedBox(height:12),const _TopSignalTypesV212(),
+            const SizedBox(height: 18),
+            LayoutBuilder(""",1)
+s=s[:sig_start]+sig_chunk+s[sig_end:]
+
+# Community page gets a live observation map + package channels before the property-specific feed.
+comm_anchor="""    const SizedBox(height:10),const _ExplainerBanner(icon:Icons.hub_outlined,title:'Every good observation can make BridgePoint smarter',message:'Published community observations show what was observed, when, and the verified contributor label. BridgePoint adds a separate “what this may mean” interpretation. Corroborated, trusted observations can become proprietary evidence and signals; disputed or removed observations are suppressed from learning.'),
+    const SizedBox(height:12),Card("""
+comm_new="""    const SizedBox(height:10),const _ExplainerBanner(icon:Icons.hub_outlined,title:'Every good observation can make BridgePoint smarter',message:'Published community observations show what was observed, when, and the verified contributor label. BridgePoint adds a separate “what this may mean” interpretation. Corroborated, trusted observations can become proprietary evidence and signals; disputed or removed observations are suppressed from learning.'),
+    const SizedBox(height:12),const _CommunityMapAndChatV212(),
+    const SizedBox(height:12),Card("""
+once(comm_anchor,comm_new,'community map chat')
+
+# My Home gets persistent Home / Business / Portfolio trackers.
+myhome_anchor="""        Row(children:[
+          const Expanded(child:_PanelHeader(
+            title:'My Home',
+            subtitle:'Home Passport • home health • maintenance • documents • weather • neighborhood intelligence',
+            action:'Homeowner advantage',
+          )),
+          OutlinedButton.icon(onPressed:_findHome,icon:const Icon(Icons.add_home_work_outlined),label:Text(homes.isEmpty?'Add my home':'Change / add home')),
+        ]),"""
+myhome_new=myhome_anchor+"\n        const SizedBox(height:10),const _PersistentPropertyTrackersV212(),"
+once(myhome_anchor,myhome_new,'persistent property trackers')
+
+# About page gets contact/social profile panel and a clear 'why built' visual card.
+about_anchor="""      const SizedBox(height:18),
+      Container(
+        width:double.infinity,padding:const EdgeInsets.all(19),"""
+about_new="""      const SizedBox(height:18),
+      const _BrandContactProfileV212(),
+      const SizedBox(height:18),
+      Container(
+        width:double.infinity,padding:const EdgeInsets.all(19),"""
+once(about_anchor,about_new,'about contacts')
+
+# Packages page: featured-first, filters, show-more, enterprise/technology folders.
+new_packages=r'''class _PackagesPageState extends State<_PackagesPage>{
+  late Future<Map<String,dynamic>> _request;bool showMore=false;String filter='Featured';
+  @override void initState(){super.initState();_request=_load();}
+  Future<Map<String,dynamic>> _load()async{final response=await http.post(Uri.parse('$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_packages'),headers:_apiHeaders(),body:'{}').timeout(const Duration(seconds:20));if(response.statusCode<200||response.statusCode>=300)throw Exception('BridgePoint Packages API ${response.statusCode}: ${response.body}');final d=jsonDecode(response.body);if(d is! Map)throw const FormatException('Unexpected BridgePoint Packages response.');return Map<String,dynamic>.from(d);}
+  void _reload()=>setState(()=>_request=_load());
+  bool _tech(Map<String,dynamic> p)=>'${p['package_key']}'.startsWith('technology_');
+  bool _enterprise(Map<String,dynamic> p)=>'${p['package_type']}'.toLowerCase()=='enterprise'||'${p['package_key']}'=='pattern_intelligence';
