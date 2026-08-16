@@ -49,6 +49,7 @@ jobs:
           python tool/apply_package_colors_molly_update_v162.py
           python tool/apply_pwa_auto_update_v162.py
           python tool/apply_dashboard_widgets_property_media_v164.py
+          python tool/repair_dashboard_media_v166.py
           python tool/apply_molly_companion_v165.py
           printf '{"version":"%s","built_at":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
           python - <<'PY'
