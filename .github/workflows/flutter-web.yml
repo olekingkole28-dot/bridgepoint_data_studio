@@ -135,7 +135,7 @@ jobs:
               'NOAA SATELLITE CLOUD MOTION','global_visible_imagery_mosaic','Buy Pattern Intelligence',
               'WHY BRIDGEPOINT WAS BUILT','Add / edit socials','bridgepoint_brand_contact_v215',
               'bridgepoint_setup_checklist_v215','bridgepoint-noaa-cloud-frames-v215',
-              'bridgepoint-v217-cloud-clarity','bridgepoint-v218-mobile-map-readable-evidence',
+              'bridgepoint-v217-cloud-clarity','bridgepoint-v218-mobile-layout-readable-evidence',
               '_bridgePointReadableEvidenceV218','_compactMapV218',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
