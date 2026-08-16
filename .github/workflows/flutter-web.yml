@@ -20,6 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply guarded BridgePoint launch fixes
         run: |
+          python tool/repair_v94_script.py
           python tool/apply_launch_v94.py
           python tool/apply_launch_v95.py
           grep -q "Send to CRM" lib/main.dart
