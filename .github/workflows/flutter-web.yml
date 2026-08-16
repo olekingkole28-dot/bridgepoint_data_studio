@@ -68,6 +68,8 @@ jobs:
         run: python tool/apply_interactive_widgets_alerts_v175.py
       - name: Install Molly live walkthrough
         run: python tool/apply_molly_live_walkthrough_v176.py
+      - name: Make expansion approvals continue immediately
+        run: python tool/fix_expansion_approve_continue_v178.py
       - name: Validate guarded release markers
         run: |
           printf '{"version":"%s","built_at":"%s","public_origin":"https://olekingkole28-dot.github.io/bridgepoint-live/"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
@@ -86,7 +88,7 @@ jobs:
               'Start live location','_PropertyMediaThumb','PINCH / SCROLL TO ZOOM',
               'tap a widget to open its tool','MOLLY LIVE WALKTHROUGH',
               'https://olekingkole28-dot.github.io/bridgepoint-live/',
-              'noaa-radar-preview-','noaa-radar-dialog-',
+              'noaa-radar-preview-','noaa-radar-dialog-',"'action':'continue'",
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
