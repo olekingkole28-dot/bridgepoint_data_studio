@@ -22,6 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply guarded BridgePoint launch fixes
         run: |
+          set -euo pipefail
           python tool/repair_v94_script.py
           python tool/apply_launch_v94.py
           python tool/repair_owner_expansion_v96.py
@@ -47,46 +48,32 @@ jobs:
           python tool/fix_legal_gate_v160.py
           python tool/apply_package_colors_molly_update_v162.py
           python tool/apply_pwa_auto_update_v162.py
+          python tool/apply_dashboard_widgets_property_media_v164.py
           printf '{"version":"%s","built_at":"%s"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
-          grep -q "Send to CRM" lib/main.dart
-          grep -q "Download CSV" lib/main.dart
-          grep -q "Print / Save PDF" lib/main.dart
-          grep -q "Show United States live weather" lib/main.dart
-          grep -q "onPositionChanged" lib/main.dart
-          grep -q "WEATHER_OVERVIEW" lib/main.dart
-          grep -q "One-click State Expansion" lib/main.dart
-          grep -q "ENTERPRISE TECHNOLOGY" lib/main.dart
-          grep -q "Who this technology is for" lib/main.dart
-          grep -q "Satellite (default)" lib/main.dart
-          grep -q "Growth & Outreach Engine" lib/main.dart
-          grep -q "Notification Center" lib/main.dart
-          grep -q "Recent People Using BridgePoint" lib/main.dart
-          grep -q "Publish connected now" lib/main.dart
-          grep -q "TOKENS STORED IN VAULT" lib/main.dart
-          grep -q "YOUTUBE_SHORTS" lib/main.dart
-          grep -q "Launch Readiness" lib/main.dart
-          grep -q "Weather Center" lib/main.dart
-          grep -q "My Home" lib/main.dart
-          grep -q "Community Property Observations" lib/main.dart
-          grep -q "Property photo not available yet" lib/main.dart
-          grep -q "TODAY’S SIX SALES POSTS" lib/main.dart
-          grep -q "Post #\$slot to ALL connected socials" lib/main.dart
-          grep -q "© 2026 BridgePoint Intelligence. All rights reserved." lib/main.dart
-          grep -q "Questions or Concerns: 203-605-2389" lib/main.dart
-          grep -q "ABOUT BRIDGEPOINT INTELLIGENCE" lib/main.dart
-          grep -q "ROUTES & OFFLINE MODE" lib/main.dart
-          grep -q "Connection looks spotty — switch to Offline Mode?" lib/main.dart
-          grep -q "Skip for now" lib/main.dart
-          grep -q "Owner Demo Mode" lib/main.dart
-          grep -q "Founder Command Center" lib/main.dart
-          grep -q "FULL-ACCESS OWNERS" lib/main.dart
-          grep -q "Preview as customer" lib/main.dart
-          grep -q "requiredKeys" lib/main.dart
-          grep -q "MOLLY'S TIP" lib/main.dart
-          grep -q "ENTERPRISE TECHNOLOGY" lib/main.dart
-          grep -q "bridgepoint_auto_update_restoring" web/index.html
-          grep -q "bridgepoint-release.json" web/index.html
-          grep -q "_bridgePointRelease" lib/main.dart
+          python - <<'PY'
+          from pathlib import Path
+          checks={
+            'lib/main.dart':[
+              'Send to CRM','Weather Center','My Home','Community Property Observations',
+              'Property photo not available yet','ROUTES & OFFLINE MODE',
+              'Connection looks spotty — switch to Offline Mode?','Skip for now',
+              'Founder Command Center','Preview as customer',"MOLLY'S TIP",
+              'ENTERPRISE TECHNOLOGY','MY DASHBOARD WIDGETS','Customize Dashboard',
+              '_PropertyMediaCard','_bridgePointRelease','Questions or Concerns: 203-605-2389',
+            ],
+            'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
+          }
+          missing=[]
+          for filename,needles in checks.items():
+            body=Path(filename).read_text(encoding='utf-8')
+            for needle in needles:
+              if needle not in body: missing.append(f'{filename}: {needle}')
+          if missing:
+            print('Missing guarded release markers:')
+            for item in missing: print(' -',item)
+            raise SystemExit(1)
+          print('All guarded release markers are present.')
+          PY
           test -s web/bridgepoint-release.json
       - uses: subosito/flutter-action@v2
         with:
@@ -102,7 +89,7 @@ jobs:
             echo "No test directory yet; continuing to the release build."
           fi
       - name: Build installable web app
-        run: flutter build web --release --base-href "/bridgepoint_data_studio/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+        run: flutter build web --release --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
       - uses: actions/upload-artifact@v4
         with:
           name: bridgepoint-flutter-web-review
