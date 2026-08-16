@@ -56,6 +56,8 @@ jobs:
         run: python tool/fix_live_radar_wms_v177.py
       - name: Repair live location weather
         run: python tool/apply_live_location_weather_v173.py
+      - name: Add satellite labels and center on customer location
+        run: python tool/apply_map_labels_location_domain_v180.py
       - name: Capture generated source for repair audit
         uses: actions/upload-artifact@v4
         with:
@@ -72,7 +74,7 @@ jobs:
         run: python tool/fix_expansion_approve_continue_v178.py
       - name: Validate guarded release markers
         run: |
-          printf '{"version":"%s","built_at":"%s","public_origin":"https://olekingkole28-dot.github.io/bridgepoint-live/"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
+          printf '{"version":"%s","built_at":"%s","public_origin":"https://bridgepointintelligence.online/"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
           python - <<'PY'
           from pathlib import Path
           checks={
@@ -87,7 +89,8 @@ jobs:
               'LIVE NOAA RADAR • TAP TO ZOOM','class _BridgePointLiveLocation',
               'Start live location','_PropertyMediaThumb','PINCH / SCROLL TO ZOOM',
               'tap a widget to open its tool','MOLLY LIVE WALKTHROUGH',
-              'https://olekingkole28-dot.github.io/bridgepoint-live/',
+              'https://bridgepointintelligence.online/',
+              'World_Boundaries_and_Places','_centerMapOnDevice()',
               'noaa-radar-preview-','noaa-radar-dialog-',"'action':'continue'",
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
