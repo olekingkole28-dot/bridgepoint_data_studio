@@ -1,0 +1,5 @@
+
+# Dart treats $ as interpolation inside strings; keep the visible institutional price literal.
+once("const _OpportunityChip(label:'$2,499 / MONTH'","const _OpportunityChip(label:'\\$2,499 / MONTH'",'pattern price dollar escape')
+p.write_text(s)
+print('v212 price literal repair applied',len(s))
