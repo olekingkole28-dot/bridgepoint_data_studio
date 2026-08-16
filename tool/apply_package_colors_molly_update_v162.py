@@ -181,7 +181,6 @@ replace_once(
 """,
 'package-type-color')
 
-# Replace the technology chip installed by v94 so it uses the dedicated gold accent.
 replace_once(
 """                  if (technology)
                     const _OpportunityChip(label:'ENTERPRISE TECHNOLOGY',color:AppTheme.amber),
@@ -190,12 +189,6 @@ replace_once(
                     const _OpportunityChip(label:'ENTERPRISE TECHNOLOGY',color:Color(0xFFFFC857)),
 """,
 'package-tech-chip-gold')
-
-old_tip="""const Row(children:[Icon(Icons.lightbulb_outline_rounded,color:AppTheme.amber,size:16),SizedBox(width:6),Text('TIP / TRICK',style:TextStyle(color:AppTheme.amber,fontSize:8,fontWeight:FontWeight.w900))])"""
-new_tip="""const Row(children:[Icon(Icons.pets_outlined,color:AppTheme.amber,size:16),SizedBox(width:6),Text(\"MOLLY'S TIP\",style:TextStyle(color:AppTheme.amber,fontSize:8,fontWeight:FontWeight.w900,letterSpacing:.4))])"""
-if old_tip not in text:
-    raise SystemExit('Molly walkthrough tip marker missing')
-text=text.replace(old_tip,new_tip,1)
 
 footer_anchor="""            const Text('•', style: TextStyle(color: AppTheme.textMuted, fontSize: 9)),
             TextButton(
@@ -224,6 +217,6 @@ if footer_anchor not in text:
 text=text.replace(footer_anchor,footer_replacement,1)
 
 if text==original:
-    raise SystemExit('No package colors/Molly/update changes applied')
+    raise SystemExit('No package colors/update changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied package colors + Molly tips + workspace persistence + release marker v162')
+print('Applied package colors + workspace persistence + release marker v162')
