@@ -84,6 +84,8 @@ jobs:
         run: python tool/fix_dead_click_handlers_v194b.py
       - name: Surface 60-day social readiness and approval ETA polish
         run: python tool/apply_social_readiness_eta_polish_v196.py
+      - name: Restore Share, expose package delivery readiness, and animate Molly
+        run: python tool/apply_share_packages_molly_v207.py
       - name: Run strict click-path and release contract audit
         run: python tool/audit_release_clicks_v194.py
       - name: Capture final generated source for audit
@@ -116,6 +118,8 @@ jobs:
               'All My States','Current recorded owner','BUILDING NOW','bridgepoint_expansion_eta_v188',
               '_bridgePointPageAccent','_bridgePointCustomerSafeKey','bridgepoint_property_suggestions_v192',
               '60-DAY SOCIAL LAUNCH BANK','Activate 60-day calendar','Owner approval required',
+              'bridgepoint-share-fab-v207','Molly dog bone activity animation',
+              'BUILDING VERIFIED DELIVERY • NOT BILLING YET','Building verified feed',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
