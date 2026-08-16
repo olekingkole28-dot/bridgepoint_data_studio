@@ -6,62 +6,8 @@ original=text
 
 marker='class _PropertyMediaCard extends StatefulWidget'
 if marker not in text:raise SystemExit('property media card marker missing')
-helpers=r'''
-Future<void> _showZoomablePropertyImage(BuildContext context,String url,{String title='Property Image',String? subtitle})async{
-  if(url.trim().isEmpty)return;
-  await showDialog<void>(context:context,builder:(d)=>Dialog(
-    backgroundColor:AppTheme.panel,insetPadding:const EdgeInsets.all(12),
-    child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:1180,maxHeight:900),child:Padding(
-      padding:const EdgeInsets.all(14),child:Column(children:[
-        Row(children:[
-          const Icon(Icons.zoom_in_map_rounded,color:AppTheme.cyan),const SizedBox(width:8),
-          Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Text(title,style:const TextStyle(fontSize:16,fontWeight:FontWeight.w900)),
-            if(subtitle!=null&&subtitle!.isNotEmpty)Text(subtitle!,style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5)),
-          ])),
-          const Text('PINCH / SCROLL TO ZOOM',style:TextStyle(color:AppTheme.textMuted,fontSize:7.5,fontWeight:FontWeight.w800)),
-          IconButton(onPressed:()=>Navigator.pop(d),icon:const Icon(Icons.close_rounded)),
-        ]),
-        const SizedBox(height:8),
-        Expanded(child:ClipRect(child:InteractiveViewer(
-          minScale:.7,maxScale:10,boundaryMargin:const EdgeInsets.all(220),
-          child:Center(child:Image.network(
-            url,fit:BoxFit.contain,
-            errorBuilder:(_,__,___)=>const _PropertyMediaMissing(message:'Property photo not available yet',compact:true),
-          )),
-        ))),
-      ]),
-    )),
-  ));
-}
 
-class _PropertyMediaThumb extends StatefulWidget{
-  const _PropertyMediaThumb({required this.propertyId});final String propertyId;
-  @override State<_PropertyMediaThumb> createState()=>_PropertyMediaThumbState();
-}
-class _PropertyMediaThumbState extends State<_PropertyMediaThumb>{
-  late Future<Map<String,dynamic>> request;
-  @override void initState(){super.initState();request=widget.propertyId.isEmpty?Future.value(<String,dynamic>{}):_callRpc('bridgepoint_property_media_bundle_v169',{'p_property_id':widget.propertyId});}
-  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
-    future:request,builder:(context,snapshot){
-      final primary=_bpMap(snapshot.data?['primary']);
-      final url='${primary['thumbnail_url']??primary['media_url']??''}'.trim();
-      if(url.isEmpty)return Container(width:58,height:58,decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.08),borderRadius:BorderRadius.circular(11)),child:const Icon(Icons.home_work_outlined,color:AppTheme.cyan,size:20));
-      return GestureDetector(
-        onTap:()=>_showZoomablePropertyImage(context,'${primary['media_url']??url}',title:'${primary['display_label']??'Property Image'}',subtitle:'${primary['source_name']??primary['provider']??''}'),
-        child:Stack(children:[
-          ClipRRect(borderRadius:BorderRadius.circular(11),child:Image.network(url,width:58,height:58,fit:BoxFit.cover,errorBuilder:(_,__,___)=>Container(width:58,height:58,color:AppTheme.panelSoft,child:const Icon(Icons.photo_outlined,color:AppTheme.textMuted,size:18)))),
-          const Positioned(right:3,bottom:3,child:Icon(Icons.zoom_in_rounded,color:Colors.white,size:15)),
-        ]),
-      );
-    },
-  );
-}
-
-'''
-text=text.replace(marker,helpers+marker,1)
-
-# Replace historical-image browser with a zoomable grid.
+# Replace historical-image browser first so later helper insertion is not overwritten.
 hs=text.find('Future<void> _showPropertyImageHistory(')
 he=text.find('class _PropertyMediaCard',hs)
 if hs>=0 and he>hs:
@@ -111,6 +57,61 @@ if hs>=0 and he>hs:
 
 '''
     text=text[:hs]+fn+text[he:]
+
+# Add reusable zoom viewer and lean Properties-list thumbnail after history replacement.
+marker='class _PropertyMediaCard extends StatefulWidget'
+helpers=r'''
+Future<void> _showZoomablePropertyImage(BuildContext context,String url,{String title='Property Image',String? subtitle})async{
+  if(url.trim().isEmpty)return;
+  await showDialog<void>(context:context,builder:(d)=>Dialog(
+    backgroundColor:AppTheme.panel,insetPadding:const EdgeInsets.all(12),
+    child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:1180,maxHeight:900),child:Padding(
+      padding:const EdgeInsets.all(14),child:Column(children:[
+        Row(children:[
+          const Icon(Icons.zoom_in_map_rounded,color:AppTheme.cyan),const SizedBox(width:8),
+          Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text(title,style:const TextStyle(fontSize:16,fontWeight:FontWeight.w900)),
+            if(subtitle!=null&&subtitle!.isNotEmpty)Text(subtitle!,style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5)),
+          ])),
+          const Text('PINCH / SCROLL TO ZOOM',style:TextStyle(color:AppTheme.textMuted,fontSize:7.5,fontWeight:FontWeight.w800)),
+          IconButton(onPressed:()=>Navigator.pop(d),icon:const Icon(Icons.close_rounded)),
+        ]),
+        const SizedBox(height:8),
+        Expanded(child:ClipRect(child:InteractiveViewer(
+          minScale:.7,maxScale:10,boundaryMargin:const EdgeInsets.all(220),
+          child:Center(child:Image.network(url,fit:BoxFit.contain,errorBuilder:(_,__,___)=>const _PropertyMediaMissing(message:'Property photo not available yet',compact:true))),
+        ))),
+      ]),
+    )),
+  ));
+}
+
+class _PropertyMediaThumb extends StatefulWidget{
+  const _PropertyMediaThumb({required this.propertyId});final String propertyId;
+  @override State<_PropertyMediaThumb> createState()=>_PropertyMediaThumbState();
+}
+class _PropertyMediaThumbState extends State<_PropertyMediaThumb>{
+  late Future<Map<String,dynamic>> request;
+  @override void initState(){super.initState();request=widget.propertyId.isEmpty?Future.value(<String,dynamic>{}):_callRpc('bridgepoint_property_media_bundle_v169',{'p_property_id':widget.propertyId});}
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+    future:request,builder:(context,snapshot){
+      final primary=_bpMap(snapshot.data?['primary']);
+      final url='${primary['thumbnail_url']??primary['media_url']??''}'.trim();
+      if(url.isEmpty)return Container(width:58,height:58,decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.08),borderRadius:BorderRadius.circular(11)),child:const Icon(Icons.home_work_outlined,color:AppTheme.cyan,size:20));
+      return GestureDetector(
+        onTap:()=>_showZoomablePropertyImage(context,'${primary['media_url']??url}',title:'${primary['display_label']??'Property Image'}',subtitle:'${primary['source_name']??primary['provider']??''}'),
+        child:Stack(children:[
+          ClipRRect(borderRadius:BorderRadius.circular(11),child:Image.network(url,width:58,height:58,fit:BoxFit.cover,errorBuilder:(_,__,___)=>Container(width:58,height:58,color:AppTheme.panelSoft,child:const Icon(Icons.photo_outlined,color:AppTheme.textMuted,size:18)))),
+          const Positioned(right:3,bottom:3,child:Icon(Icons.zoom_in_rounded,color:Colors.white,size:15)),
+        ]),
+      );
+    },
+  );
+}
+
+'''
+if marker not in text:raise SystemExit('property media card missing after history replacement')
+text=text.replace(marker,helpers+marker,1)
 
 # Primary media is tap-to-zoom.
 cs=text.find('class _PropertyMediaCard extends StatefulWidget')
