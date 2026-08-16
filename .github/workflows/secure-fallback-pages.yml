@@ -1,0 +1,60 @@
+name: Publish Secure BridgePoint Fallback
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/secure-fallback-pages.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: bridgepoint-secure-fallback-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore audited v217 Flutter web build
+        uses: actions/download-artifact@v4
+        with:
+          name: bridgepoint-flutter-web-review
+          path: site
+          run-id: 31961555787
+          github-token: ${{ github.token }}
+
+      - name: Prepare secure fallback build
+        run: |
+          set -euo pipefail
+          test -s site/index.html
+          test -s site/main.dart.js
+          test -s site/bridgepoint-release.json
+          grep -q 'ba5643a8c129edbc49301651c3881a504d94eaf6' site/bridgepoint-release.json
+          sed -i 's#<base href="/">#<base href="./">#' site/index.html
+          touch site/.nojekyll
+          echo "Audited BridgePoint v217 staged for GitHub-owned HTTPS fallback."
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publish secure fallback
+        id: deployment
+        uses: actions/deploy-pages@v4
