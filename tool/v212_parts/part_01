@@ -1,0 +1,112 @@
+                      bottom: desktop ? 22 : 14,
+                      child: SafeArea(
+                        child: Tooltip(
+                          message:'Share BridgePoint',
+                          child:FloatingActionButton.small(
+                            heroTag:'bridgepoint-share-fab-v207',
+                            onPressed:()=>_showShareBridgePointDialog(context),
+                            backgroundColor:AppTheme.cyan,
+                            foregroundColor:const Color(0xFF06111F),
+                            elevation:7,
+                            child:const Icon(Icons.ios_share_rounded,size:21),
+                          ),
+                        ),
+                      ),
+                    ),"""
+owner_fab="""                    if(_effectiveOwnerMode)Positioned(
+                      right:desktop?22:14,bottom:desktop?22:14,
+                      child:SafeArea(child:Tooltip(message:'Automatic State Expansion • Owner only',child:FloatingActionButton.small(
+                        heroTag:'bridgepoint-expansion-fab-v212',onPressed:()=>_navigateTrainingLabel('Owner Center'),backgroundColor:AppTheme.green,foregroundColor:const Color(0xFF06111F),elevation:7,
+                        child:const Icon(Icons.public_rounded,size:21),
+                      ))),
+                    ),"""
+once(share_fab,owner_fab,'owner expansion fab')
+
+# Top actions now visibly explain themselves on desktop; mobile uses a labeled Actions menu.
+top_actions="""          _IconButton(
+            icon: Icons.ios_share_rounded,
+            onTap: () => _showShareBridgePointDialog(context),
+          ),
+          const SizedBox(width: 10),
+          _IconButton(
+            icon: Icons.school_outlined,
+            onTap: onTraining,
+          ),
+          const SizedBox(width: 10),
+          _IconButton(
+            icon: Icons.help_outline_rounded,
+            onTap: () => _showFaqDialog(context),
+          ),
+          const SizedBox(width: 10),
+          _IconButton(
+            icon: Icons.notifications_none_rounded,
+            onTap: onNotifications,
+          ),"""
+top_actions_new="""          if(desktop)...[
+            _TopActionV212(icon:Icons.ios_share_rounded,label:'Share',onTap:()=>_showShareBridgePointDialog(context)),const SizedBox(width:7),
+            _TopActionV212(icon:Icons.school_outlined,label:'Walkthrough',onTap:onTraining),const SizedBox(width:7),
+            _TopActionV212(icon:Icons.help_outline_rounded,label:'Help',onTap:()=>_showFaqDialog(context)),const SizedBox(width:7),
+            _TopActionV212(icon:Icons.notifications_none_rounded,label:'Alerts',onTap:onNotifications),
+          ] else ...[
+            PopupMenuButton<String>(tooltip:'Quick actions',onSelected:(v){if(v=='share')_showShareBridgePointDialog(context);if(v=='walk')onTraining();if(v=='help')_showFaqDialog(context);if(v=='alerts')onNotifications();},itemBuilder:(context)=>const [
+              PopupMenuItem(value:'share',child:ListTile(leading:Icon(Icons.ios_share_rounded),title:Text('Share BridgePoint'))),
+              PopupMenuItem(value:'walk',child:ListTile(leading:Icon(Icons.school_outlined),title:Text('Walkthrough'))),
+              PopupMenuItem(value:'help',child:ListTile(leading:Icon(Icons.help_outline_rounded),title:Text('Help'))),
+              PopupMenuItem(value:'alerts',child:ListTile(leading:Icon(Icons.notifications_none_rounded),title:Text('Alerts'))),
+            ],child:Container(padding:const EdgeInsets.symmetric(horizontal:9,vertical:8),decoration:BoxDecoration(color:AppTheme.panel,borderRadius:BorderRadius.circular(10),border:Border.all(color:Colors.white12)),child:const Row(mainAxisSize:MainAxisSize.min,children:[Icon(Icons.apps_rounded,size:18),SizedBox(width:5),Text('Actions',style:TextStyle(fontSize:10,fontWeight:FontWeight.w800))]))),
+          ],"""
+once(top_actions,top_actions_new,'top action labels')
+
+# Map: smaller marker payloads, location on map-ready, wheel zoom enabled.
+once("final opportunityLimit=_viewportZoom>=12?350:_viewportZoom>=9?220:_viewportZoom>=7?140:80;\n    final signalLimit=_viewportZoom>=12?180:_viewportZoom>=9?120:_viewportZoom>=7?80:45;","final opportunityLimit=_viewportZoom>=12?160:_viewportZoom>=9?90:_viewportZoom>=7?50:28;\n    final signalLimit=_viewportZoom>=12?100:_viewportZoom>=9?60:_viewportZoom>=7?38:22;",'map fetch declutter')
+once("        final markers = <Marker>[];\n        if(_visibleLayer!='signals')for (final point in points) {","        final markerPointLimit=_viewportZoom>=12?120:_viewportZoom>=9?65:_viewportZoom>=7?36:18;\n        final markerSignalLimit=_viewportZoom>=12?70:_viewportZoom>=9?42:_viewportZoom>=7?26:14;\n        final visibleOpportunityPoints=points.take(markerPointLimit).toList();\n        final visibleSignalPoints=signalPoints.take(markerSignalLimit).toList();\n        final markers = <Marker>[];\n        if(_visibleLayer!='signals')for (final point in visibleOpportunityPoints) {",'map opportunity take')
+once("if(_visibleLayer!='opportunities')for(final signal in signalPoints){","if(_visibleLayer!='opportunities')for(final signal in visibleSignalPoints){",'map signal take')
+once("                          interactionOptions: const InteractionOptions(\n                            flags: InteractiveFlag.all &\n                                ~InteractiveFlag.scrollWheelZoom,\n                          ),","                          interactionOptions:const InteractionOptions(flags:InteractiveFlag.all),\n                          onMapReady:()=>unawaited(_centerMapOnDevice(force:true)),",'map ready location')
+
+# NOAA live health state/method + actionable preview button.
+once("  int _radarRevision=0;\n  Timer? _viewportRefreshTimer;","  int _radarRevision=0;\n  Map<String,dynamic>? _noaaHealth;\n  bool _checkingNoaa=false;\n  Timer? _viewportRefreshTimer;",'noaa state')
+once("    _startRadarLoop();\n  }","    _startRadarLoop();\n    unawaited(_checkNoaaHealth(silent:true));\n  }",'noaa init')
+needle="""  Future<void> _centerMapOnDevice({bool force=false})async{
+    if((_didAutoCenterOnDevice&&!force)||!mounted)return;
+    try{
+      final cached=_BridgePointLiveLocation.position.value;
+      final pos=cached??await _BridgePointLiveLocation.start();
+      if(!mounted)return;
+      _didAutoCenterOnDevice=true;
+      _mapController.move(LatLng(pos.latitude,pos.longitude),12.2);
+    }catch(_){
+      // Location is optional. Keep BridgePoint's normal geographic fallback when unavailable.
+    }
+  }
+"""
+health_method=needle+"""
+  Future<void> _checkNoaaHealth({bool silent=false})async{
+    if(_checkingNoaa)return;setState(()=>_checkingNoaa=true);
+    try{
+      final r=await Supabase.instance.client.functions.invoke('bridgepoint-noaa-live-health-v212',body:const {});
+      final payload=_edgeFunctionPayload(r.data);
+      if(r.status<200||r.status>=300||payload['complete']!=true)throw Exception('${payload['error']??'NOAA check failed'}');
+      if(mounted)setState(()=>_noaaHealth=payload);
+      if(!silent&&mounted){final radar=_bpMap(payload['radar']);final alerts=_bpMap(payload['alerts']);await _showInfoDialog(context,'NOAA live connection','Radar service: ${radar['status']??'unknown'}\nNWS alerts service: ${alerts['status']??'unknown'}\nActive U.S. alerts: ${alerts['active_count']??'—'}\nChecked: ${_bpDateTime(payload['checked_at'])}\n\nThis live service check is separate from BridgePoint historical Storm Events.');}
+    }catch(e){if(mounted&&!silent)_showInfoDialog(context,'NOAA connection check failed','$e');}
+    finally{if(mounted)setState(()=>_checkingNoaa=false);}
+  }
+"""
+once(needle,health_method,'noaa health method')
+noaa_label="""                                  child:const Row(mainAxisSize:MainAxisSize.min,children:[
+                                    _PulseDot(color:AppTheme.green),SizedBox(width:5),
+                                    Text('NOAA WEATHER • TAP TO EXPAND',style:TextStyle(color:Colors.white,fontSize:7.5,fontWeight:FontWeight.w900)),
+                                  ]),"""
+noaa_label_new="""                                  child:Row(mainAxisSize:MainAxisSize.min,children:[
+                                    _PulseDot(color:_bpMap(_noaaHealth?['radar'])['ok']==true?AppTheme.green:AppTheme.amber),const SizedBox(width:5),
+                                    Text(_checkingNoaa?'CHECKING NOAA…':(_noaaHealth==null?'NOAA • TAP TO EXPAND':'NOAA LIVE • ${_bpMap(_noaaHealth?['alerts'])['active_count']??'—'} ALERTS'),style:const TextStyle(color:Colors.white,fontSize:7.5,fontWeight:FontWeight.w900)),
+                                  ]),"""
+once(noaa_label,noaa_label_new,'noaa live label')
+# Add a check button just below the preview.
+preview_end="""                            ),
+                          ),
+                        ),
+                      if (loading && data == null)"""
+preview_new="""                            ),
+                          ),
+                        ),
