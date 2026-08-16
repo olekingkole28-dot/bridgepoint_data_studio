@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: Apply guarded BridgePoint launch fixes
@@ -25,11 +27,18 @@ jobs:
           python tool/repair_owner_expansion_v96.py
           python tool/apply_launch_v95.py
           python tool/apply_satellite_map_v98.py
+          python tool/apply_technology_clarity_v100.py
+          python tool/apply_exports_v101.py
+          python tool/apply_growth_center_v105.py
           grep -q "Send to CRM" lib/main.dart
+          grep -q "Download CSV" lib/main.dart
+          grep -q "Print / Save PDF" lib/main.dart
           grep -q "Show United States live weather" lib/main.dart
           grep -q "One-click State Expansion" lib/main.dart
           grep -q "ENTERPRISE TECHNOLOGY" lib/main.dart
+          grep -q "Who this technology is for" lib/main.dart
           grep -q "Satellite (default)" lib/main.dart
+          grep -q "Growth & Outreach Engine" lib/main.dart
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
