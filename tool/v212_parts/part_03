@@ -1,0 +1,44 @@
+  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(future:_request,builder:(context,snapshot){final data=snapshot.data;final packages=_bpRows(data?['packages']);final loading=snapshot.connectionState==ConnectionState.waiting;final featuredKeys={'home','commercial','all_intelligence','pattern_intelligence'};final featured=packages.where((p)=>featuredKeys.contains('${p['package_key']}')).toList();final standard=packages.where((p)=>!_tech(p)&&!_enterprise(p)&&!featuredKeys.contains('${p['package_key']}')).toList();final enterprise=packages.where((p)=>_enterprise(p)).toList();final technology=packages.where(_tech).toList();List<Map<String,dynamic>> visible=switch(filter){'Standard'=>standard,'Enterprise'=>enterprise,'Technology'=>technology,'All'=>packages,_=>featured};if(filter=='Featured'&&showMore)visible=[...featured,...standard];return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    _PageHeading(title:'Packages',subtitle:'Start with the best fit • expand the catalog only when you want more choices',onRefresh:_reload,loading:loading),
+    const SizedBox(height:10),const _ExplainerBanner(icon:Icons.auto_awesome_rounded,title:'A few plans are featured on purpose',message:'BridgePoint highlights the clearest starting points first. Use the dropdown or Show more to compare specialty, enterprise and technology products without scrolling through a wall of plans.'),
+    const SizedBox(height:12),Wrap(spacing:8,runSpacing:8,crossAxisAlignment:WrapCrossAlignment.center,children:[SizedBox(width:220,child:DropdownButtonFormField<String>(value:filter,dropdownColor:AppTheme.panelSoft,decoration:const InputDecoration(labelText:'Package group',border:OutlineInputBorder()),items:const ['Featured','Standard','Enterprise','Technology','All'].map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:(v)=>setState(()=>filter=v??'Featured'))),if(filter=='Featured')OutlinedButton.icon(onPressed:()=>setState(()=>showMore=!showMore),icon:Icon(showMore?Icons.expand_less_rounded:Icons.expand_more_rounded),label:Text(showMore?'Show fewer plans':'Show more plans')),const _OpportunityChip(label:'PATTERN INTELLIGENCE • INSTITUTIONAL',color:AppTheme.amber)]),
+    const SizedBox(height:14),if(snapshot.hasError)_DashboardError(message:snapshot.error.toString(),onRetry:_reload) else if(loading&&data==null)const Card(child:SizedBox(height:260,child:Center(child:CircularProgressIndicator(color:AppTheme.cyan)))) else LayoutBuilder(builder:(context,c){final w=c.maxWidth>=1150?(c.maxWidth-28)/3:c.maxWidth>=760?(c.maxWidth-14)/2:c.maxWidth;return Wrap(spacing:14,runSpacing:14,children:visible.map((p)=>SizedBox(width:w,child:_LivePackageCard(package:p))).toList());}),
+    if(filter=='Featured')...[const SizedBox(height:14),ExpansionTile(tilePadding:const EdgeInsets.symmetric(horizontal:4),title:const Text('Enterprise & institutional',style:TextStyle(fontWeight:FontWeight.w900)),subtitle:Text('${enterprise.length} plans • includes protected Pattern Intelligence',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),children:enterprise.map((p)=>Padding(padding:const EdgeInsets.only(bottom:10),child:_LivePackageCard(package:p))).toList()),ExpansionTile(tilePadding:const EdgeInsets.symmetric(horizontal:4),title:const Text('BridgePoint technology products',style:TextStyle(fontWeight:FontWeight.w900)),subtitle:Text('${technology.length} products • APIs, infrastructure and managed technology',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),children:technology.map((p)=>Padding(padding:const EdgeInsets.only(bottom:10),child:_LivePackageCard(package:p))).toList())],
+  ]);});
+}'''
+replace_class('_PackagesPageState',new_packages)
+
+# Zoom dialog: actual pan + zoom controls + reset.
+zoom_start=s.find('Future<void> _showZoomablePropertyImage(')
+zoom_end=s.find('\nclass _PropertyMediaThumb',zoom_start)
+if zoom_start<0 or zoom_end<0: raise SystemExit('missing zoom function')
+zoom_new=r'''Future<void> _showZoomablePropertyImage(BuildContext context,String url,{String title='Property Image',String? subtitle})async{
+  if(url.trim().isEmpty)return;final controller=TransformationController();double scale=1;
+  void setScale(double next){scale=next.clamp(.7,10);controller.value=Matrix4.identity()..scale(scale);}
+  await showDialog<void>(context:context,builder:(d)=>StatefulBuilder(builder:(context,setLocal)=>Dialog(backgroundColor:AppTheme.panel,insetPadding:const EdgeInsets.all(12),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:1180,maxHeight:900),child:Padding(padding:const EdgeInsets.all(14),child:Column(children:[
+    Row(children:[const Icon(Icons.pan_tool_alt_rounded,color:AppTheme.cyan),const SizedBox(width:8),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:const TextStyle(fontSize:16,fontWeight:FontWeight.w900)),if(subtitle!=null&&subtitle!.isNotEmpty)Text(subtitle!,style:const TextStyle(color:AppTheme.textMuted,fontSize:9))])),const Text('DRAG TO PAN • PINCH / SCROLL TO ZOOM',style:TextStyle(color:AppTheme.textMuted,fontSize:8,fontWeight:FontWeight.w800)),const SizedBox(width:8),IconButton(tooltip:'Zoom out',onPressed:()=>setLocal(()=>setScale(scale-.5)),icon:const Icon(Icons.remove_circle_outline_rounded)),IconButton(tooltip:'Reset view',onPressed:()=>setLocal(()=>setScale(1)),icon:const Icon(Icons.center_focus_strong_rounded)),IconButton(tooltip:'Zoom in',onPressed:()=>setLocal(()=>setScale(scale+.5)),icon:const Icon(Icons.add_circle_outline_rounded)),IconButton(onPressed:()=>Navigator.pop(d),icon:const Icon(Icons.close_rounded))]),
+    const SizedBox(height:8),Expanded(child:ClipRect(child:InteractiveViewer(transformationController:controller,panEnabled:true,scaleEnabled:true,minScale:.7,maxScale:10,boundaryMargin:const EdgeInsets.all(420),clipBehavior:Clip.none,child:Center(child:Image.network(url,fit:BoxFit.contain,errorBuilder:(_,__,___)=>const _PropertyMediaMissing(message:'Property photo not available yet',compact:true))))),),
+  ]))))));controller.dispose();
+}
+'''
+s=s[:zoom_start]+zoom_new+s[zoom_end:]
+
+# Walkthrough gets an animated progress strip so movement between steps is visually obvious.
+walk_anchor="""        const SizedBox(height:7),
+        Text('${step['body']??''}',maxLines:3,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.45)),"""
+walk_new="""        const SizedBox(height:7),
+        TweenAnimationBuilder<double>(tween:Tween(begin:0,end:(index+1)/total),duration:const Duration(milliseconds:420),builder:(context,v,_)=>LinearProgressIndicator(value:v,minHeight:4,color:const Color(0xFFE8B77F),backgroundColor:Colors.white10)),
+        const SizedBox(height:7),
+        Text('${step['body']??''}',maxLines:4,overflow:TextOverflow.ellipsis,style:const TextStyle(color:AppTheme.textMuted,fontSize:9.5,height:1.5)),"""
+once(walk_anchor,walk_new,'walkthrough animated progress')
+
+# Append v212 widgets before legal footer.
+insert_at=s.find('class _BridgePointLegalFooter')
+if insert_at<0: raise SystemExit('missing footer insertion')
+widgets=r'''
+class _TopActionV212 extends StatelessWidget{
+  const _TopActionV212({required this.icon,required this.label,required this.onTap});final IconData icon;final String label;final VoidCallback onTap;
+  @override Widget build(BuildContext context)=>Tooltip(message:label,child:InkWell(borderRadius:BorderRadius.circular(10),onTap:onTap,child:Container(width:62,padding:const EdgeInsets.symmetric(horizontal:5,vertical:5),decoration:BoxDecoration(color:AppTheme.panel,borderRadius:BorderRadius.circular(10),border:Border.all(color:Colors.white12)),child:Column(mainAxisSize:MainAxisSize.min,children:[Icon(icon,size:18,color:Colors.white),const SizedBox(height:2),Text(label,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:8,fontWeight:FontWeight.w800))]))));
+}
+
+class _TopSignalTypesV212 extends StatefulWidget{const _TopSignalTypesV212();@override State<_TopSignalTypesV212> createState()=>_TopSignalTypesV212State();}
