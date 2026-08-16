@@ -36,44 +36,39 @@ fields="""  bool _showRadar=true;
 if field_anchor not in block: raise SystemExit('Radar state fields anchor missing')
 block=block.replace(field_anchor,fields,1)
 
-# Start animation in initState.
 init_marker='  @override\n  void initState() {'
 init_start=block.find(init_marker)
 if init_start<0: raise SystemExit('map initState missing')
 init_end=block.find('\n  }',init_start)
 if init_end<0: raise SystemExit('map initState end missing')
-if '_startRadarLoop();' not in block[init_start:init_end]:
-    block=block[:init_end]+"\n    _startRadarLoop();"+block[init_end:]
-
-# Clean up the animation timer.
+if '_startRadarLoop();' not in block[init_start:init_end]: block=block[:init_end]+"\n    _startRadarLoop();"+block[init_end:]
 if 'void dispose(){_radarAnimationTimer?.cancel();super.dispose();}' not in block:
     marker='  @override\n  void didUpdateWidget'
     if marker not in block: raise SystemExit('didUpdateWidget anchor missing')
     block=block.replace(marker,"  @override\n  void dispose(){_radarAnimationTimer?.cancel();super.dispose();}\n\n"+marker,1)
 
-# Replace every static MRMS layer used in the main intelligence-map block with the NOAA time-enabled ImageServer WMS.
-pattern=re.compile(
-    r"if\(_showRadar\)TileLayer\(\s*"
-    r"wmsOptions:WMSTileLayerOptions\(\s*"
-    r"baseUrl:'https://opengeo\.ncep\.noaa\.gov/geoserver/conus/conus_bref_qcd/ows\?',\s*"
-    r"layers:const \['conus_bref_qcd'\],\s*format:'image/png',\s*transparent:true,\s*version:'1\.3\.0',\s*"
-    r"\),\s*maxNativeZoom:12,\s*userAgentPackageName:'com\.bridgepoint\.data_studio',\s*\),",
-    re.MULTILINE,
-)
-replacement="""if(_showRadar)TileLayer(
-                            key:ValueKey('noaa-radar-time-${_radarFrame.millisecondsSinceEpoch}'),
-                            wmsOptions:WMSTileLayerOptions(
-                              baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',
-                              layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',
-                              otherParameters:{'TIME':_radarFrame.toUtc().toIso8601String()},
-                            ),
-                            maxNativeZoom:12,
-                            userAgentPackageName:'com.bridgepoint.data_studio',
-                          ),"""
-block,n=pattern.subn(replacement,block)
-if n<1: raise SystemExit('No static NOAA radar WMS layers matched')
+# Only replace the georeferenced current layer inside the intelligence map. Match URL-level text rather than the entire formatted widget.
+old_url="https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows?"
+new_url="https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?"
+count=block.count(old_url)
+if count<1:
+    # Accept generated variants with harmless query suffixes.
+    block,n=re.subn(r"https://opengeo\.ncep\.noaa\.gov/geoserver/conus/conus_bref_qcd/ows\?[^']*",new_url,block)
+    count=n
+else:
+    block=block.replace(old_url,new_url)
+if count<1: raise SystemExit('No static NOAA radar service URL found in intelligence map')
 
-# Add weather-app-style timeline controls above the bottom edge.
+block=block.replace("layers:const ['conus_bref_qcd']","layers:const ['0']")
+# Add the WMS TIME dimension anywhere the time-enabled service is configured.
+time_line="layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',"
+if time_line in block:
+    block=block.replace(time_line,time_line+"\n                              otherParameters:{'TIME':_radarFrame.toUtc().toIso8601String()},")
+else:
+    # Whitespace-tolerant fallback.
+    block,n=re.subn(r"(layers\s*:\s*const\s*\['0'\]\s*,\s*format\s*:\s*'image/png'\s*,\s*transparent\s*:\s*true\s*,\s*version\s*:\s*'1\.3\.0'\s*,)",r"\1\n                              otherParameters:{'TIME':_radarFrame.toUtc().toIso8601String()},",block)
+    if n<1: raise SystemExit('Could not attach TIME dimension to NOAA radar layer')
+
 controls_anchor="""                      Positioned(
                         top: 14,
                         right: 14,
@@ -101,20 +96,17 @@ weather_controls="""                      if(_showRadar)Positioned(
 if controls_anchor not in block: raise SystemExit('map controls anchor missing')
 block=block.replace(controls_anchor,weather_controls+controls_anchor,1)
 
-# Make the radar toggle resume at the newest frame.
-toggle_pattern=re.compile(r"_MapControlButton\(icon:_showRadar\?Icons\.radar_rounded:Icons\.hide_source_rounded,tooltip:_showRadar\?'Hide live NOAA radar':'Show live NOAA radar',onTap:\(\)=>setState\(\(\)=>_showRadar=!_showRadar\)\),")
-block,count=toggle_pattern.subn("_MapControlButton(icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,tooltip:_showRadar?'Hide animated NOAA weather':'Show animated NOAA weather',onTap:()=>setState((){_showRadar=!_showRadar;if(_showRadar){_radarFrameIndex=24;_radarPlaying=true;}})),",block)
-if count<1: raise SystemExit('radar toggle anchor missing')
-
-# Move the small expandable radar preview to the top-left so it does not cover the time controller.
+old_toggle="_MapControlButton(icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,tooltip:_showRadar?'Hide live NOAA radar':'Show live NOAA radar',onTap:()=>setState(()=>_showRadar=!_showRadar)),"
+new_toggle="_MapControlButton(icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,tooltip:_showRadar?'Hide animated NOAA weather':'Show animated NOAA weather',onTap:()=>setState((){_showRadar=!_showRadar;if(_showRadar){_radarFrameIndex=24;_radarPlaying=true;}})),"
+if old_toggle not in block: raise SystemExit('radar toggle anchor missing')
+block=block.replace(old_toggle,new_toggle,1)
 block=block.replace('left:14,bottom:14,\n                          child:GestureDetector(', 'left:14,top:14,\n                          child:GestureDetector(',1)
 
 text=text[:start]+block+text[end:]
 text=text.replace('Live NOAA Radar','NOAA Weather Motion')
 text=text.replace('LIVE NOAA RADAR • TAP TO ZOOM','NOAA WEATHER • TAP TO EXPAND')
-
 for marker in ['NOAA WEATHER MOTION','Pause weather motion','radar_base_reflectivity_time/ImageServer/WMSServer',"otherParameters:{'TIME'",'-30m']:
     if marker not in text: raise SystemExit(f'missing weather v190 marker {marker}')
 if text==original: raise SystemExit('No animated NOAA weather changes applied')
 p.write_text(text,encoding='utf-8')
-print(f'Applied NOAA time-enabled animated weather loop with play/pause and timeline v190 to {n} map layer(s)')
+print(f'Applied NOAA time-enabled animated weather loop with play/pause and timeline v190; replaced {count} radar service URL(s)')
