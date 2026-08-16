@@ -1,0 +1,130 @@
+from pathlib import Path
+
+path=Path('lib/main.dart')
+text=path.read_text(encoding='utf-8')
+original=text
+
+def replace_once(old,new,label):
+    global text
+    count=text.count(old)
+    if count!=1:
+        raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+    text=text.replace(old,new,1)
+
+replace_once(
+"""import 'package:url_launcher/url_launcher.dart';
+
+const _supabaseUrl""",
+"""import 'package:url_launcher/url_launcher.dart';
+import 'bridgepoint_download.dart';
+
+const _supabaseUrl""",
+'download-helper-import')
+
+marker="Future<void> _saveOpportunity(BuildContext context,Map<String,dynamic> opportunity) async {"
+if text.count(marker)!=1:
+    raise SystemExit('export-helper-marker not found exactly once')
+helpers=r'''
+String _csvCell(Object? value){
+  final s='${value??''}'.replaceAll('"','""').replaceAll('\r',' ').replaceAll('\n',' ');
+  return '"$s"';
+}
+
+String _safeFilename(String value){
+  final cleaned=value.replaceAll(RegExp(r'[^A-Za-z0-9_-]+'),'_').replaceAll(RegExp(r'_+'),'_');
+  return cleaned.isEmpty?'bridgepoint_export':cleaned.substring(0,cleaned.length.clamp(0,70));
+}
+
+String _opportunityCsv(Map<String,dynamic> o){
+  final fields=<String,Object?>{
+    'property_id':o['property_id'],
+    'opportunity_id':o['opportunity_id'],
+    'address':o['full_address']??o['address'],
+    'municipality':o['municipality'],
+    'county':o['county'],
+    'state':o['state_code']??o['state'],
+    'postal_code':o['postal_code'],
+    'score':o['score']??o['opportunity_score']??o['quality_score'],
+    'priority':o['priority']??o['quality_tier'],
+    'confidence_percent':o['opportunity_confidence_percent']??o['confidence_score']??o['direct_confidence'],
+    'urgency_score':o['urgency_score'],
+    'why_this_property':_opportunityWhyThisProperty(o),
+    'why_now':_opportunityWhyNow(o),
+    'recommended_action':o['recommended_action'],
+    'model':o['model_name']??o['model_key'],
+    'direct_signals':o['direct_signal_count']??o['matched_signal_count']??o['distinct_signal_count'],
+    'direct_sources':o['direct_source_count']??o['verified_event_count'],
+    'latest_evidence_at':o['latest_direct_evidence_at']??o['latest_evidence_at'],
+    'bridgepoint_url':_bridgePointLiveUrl,
+  };
+  return '${fields.keys.map(_csvCell).join(',')}\n${fields.values.map(_csvCell).join(',')}\n';
+}
+
+Future<void> _downloadOpportunityCsv(BuildContext context,Map<String,dynamic> opportunity)async{
+  final address='${opportunity['full_address']??opportunity['address']??'property'}';
+  final name='${_safeFilename(address)}_BridgePoint.csv';
+  try{
+    final ok=await bridgePointDownloadText(name,_opportunityCsv(opportunity),mimeType:'text/csv;charset=utf-8');
+    if(!ok){
+      final text=_opportunityCsv(opportunity);
+      await Clipboard.setData(ClipboardData(text:text));
+      if(context.mounted)_showInfoDialog(context,'CSV copied','This device does not support direct file download here, so BridgePoint copied the CSV content to your clipboard.');
+    }else if(context.mounted){
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Downloaded $name')));
+    }
+  }catch(e){if(context.mounted)_showInfoDialog(context,'CSV export unavailable',e.toString());}
+}
+
+Future<void> _printBridgePointPage(BuildContext context)async{
+  try{
+    final ok=await bridgePointPrintPage();
+    if(!ok&&context.mounted)_showInfoDialog(context,'Print','Use your device or browser Share/Print command for this BridgePoint view.');
+  }catch(e){if(context.mounted)_showInfoDialog(context,'Print unavailable',e.toString());}
+}
+
+'''
+text=text.replace(marker,helpers+marker,1)
+
+replace_once(
+"""                  Wrap(spacing:10,runSpacing:10,children:[
+                    FilledButton.icon(onPressed:(){_saveOpportunity(context,opportunity);},icon:const Icon(Icons.bookmark_add_rounded),label:const Text('Save opportunity')),
+                    OutlinedButton.icon(onPressed:(){_showAddNoteDialog(context,opportunity);},icon:const Icon(Icons.note_add_rounded),label:const Text('Add note')),
+                    OutlinedButton.icon(onPressed:(){_sendToCrm(context,opportunity);},icon:const Icon(Icons.sync_alt_rounded),label:const Text('Send to CRM')),
+                  ]),
+""",
+"""                  Wrap(spacing:10,runSpacing:10,children:[
+                    FilledButton.icon(onPressed:(){_saveOpportunity(context,opportunity);},icon:const Icon(Icons.bookmark_add_rounded),label:const Text('Save opportunity')),
+                    OutlinedButton.icon(onPressed:(){_showAddNoteDialog(context,opportunity);},icon:const Icon(Icons.note_add_rounded),label:const Text('Add note')),
+                    OutlinedButton.icon(onPressed:(){_sendToCrm(context,opportunity);},icon:const Icon(Icons.sync_alt_rounded),label:const Text('Send to CRM')),
+                    OutlinedButton.icon(onPressed:(){_downloadOpportunityCsv(context,opportunity);},icon:const Icon(Icons.download_rounded),label:const Text('Download CSV')),
+                    OutlinedButton.icon(onPressed:(){_printBridgePointPage(context);},icon:const Icon(Icons.print_rounded),label:const Text('Print / Save PDF')),
+                  ]),
+""",
+'opportunity-export-buttons')
+
+replace_once(
+"""      Padding(padding:const EdgeInsets.only(bottom:8),child:TextButton.icon(onPressed:()=>_sendToCrm(context,opportunity),icon:const Icon(Icons.sync_alt_rounded,size:17),label:const Text('Send to CRM'))),
+""",
+"""      Padding(padding:const EdgeInsets.only(bottom:8),child:Wrap(spacing:5,children:[
+        TextButton.icon(onPressed:()=>_sendToCrm(context,opportunity),icon:const Icon(Icons.sync_alt_rounded,size:17),label:const Text('Send to CRM')),
+        TextButton.icon(onPressed:()=>_downloadOpportunityCsv(context,opportunity),icon:const Icon(Icons.download_rounded,size:17),label:const Text('CSV')),
+        TextButton.icon(onPressed:()=>_printBridgePointPage(context),icon:const Icon(Icons.print_rounded,size:17),label:const Text('Print')),
+      ])),
+""",
+'property-opportunity-export-buttons')
+
+replace_once(
+"""                SizedBox(width:double.infinity,child:OutlinedButton.icon(onPressed:()=>_sendToCrm(context,point),icon:const Icon(Icons.sync_alt_rounded),label:const Text('Send to CRM'))),
+""",
+"""                Wrap(spacing:8,runSpacing:8,children:[
+                  OutlinedButton.icon(onPressed:()=>_sendToCrm(context,point),icon:const Icon(Icons.sync_alt_rounded),label:const Text('Send to CRM')),
+                  OutlinedButton.icon(onPressed:()=>_downloadOpportunityCsv(context,point),icon:const Icon(Icons.download_rounded),label:const Text('CSV')),
+                  OutlinedButton.icon(onPressed:()=>_printBridgePointPage(context),icon:const Icon(Icons.print_rounded),label:const Text('Print')),
+                ]),
+""",
+'map-opportunity-export-buttons')
+
+if text==original:
+    raise SystemExit('No export changes applied')
+path.write_text(text,encoding='utf-8')
+print('Applied BridgePoint export/print patch v101')
