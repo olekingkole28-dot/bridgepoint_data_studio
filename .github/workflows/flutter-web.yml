@@ -18,7 +18,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Apply guarded BridgePoint launch fixes
+      - name: Apply established BridgePoint release layers
         run: |
           set -euo pipefail
           python tool/repair_v94_script.py
@@ -50,11 +50,18 @@ jobs:
           python tool/repair_dashboard_media_v166.py
           python tool/apply_property_imagery_history_ui_v169.py
           python tool/apply_molly_companion_v165.py
-          python tool/apply_release_map_radar_v172.py
-          python tool/apply_live_location_weather_v173.py
-          python tool/apply_property_media_everywhere_v174.py
-          python tool/apply_interactive_widgets_alerts_v175.py
-          python tool/apply_molly_live_walkthrough_v176.py
+      - name: Repair map radar and release origin
+        run: python tool/apply_release_map_radar_v172.py
+      - name: Repair live location weather
+        run: python tool/apply_live_location_weather_v173.py
+      - name: Repair property media everywhere
+        run: python tool/apply_property_media_everywhere_v174.py
+      - name: Repair interactive widgets and alerts
+        run: python tool/apply_interactive_widgets_alerts_v175.py
+      - name: Install Molly live walkthrough
+        run: python tool/apply_molly_live_walkthrough_v176.py
+      - name: Validate guarded release markers
+        run: |
           printf '{"version":"%s","built_at":"%s","public_origin":"https://olekingkole28-dot.github.io/bridgepoint-live/"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
           python - <<'PY'
           from pathlib import Path
