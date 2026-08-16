@@ -96,6 +96,8 @@ jobs:
         run: python tool/fix_cloud_clarity_v217.py
       - name: Repair mobile map gestures and customer evidence text
         run: python tool/fix_mobile_map_evidence_v218.py
+      - name: Add owner outreach command center
+        run: python tool/apply_owner_outreach_v219.py
       - name: Capture final generated source for audit
         uses: actions/upload-artifact@v4
         with:
@@ -136,7 +138,7 @@ jobs:
               'WHY BRIDGEPOINT WAS BUILT','Add / edit socials','bridgepoint_brand_contact_v215',
               'bridgepoint_setup_checklist_v215','bridgepoint-noaa-cloud-frames-v215',
               'bridgepoint-v217-cloud-clarity','bridgepoint-v218-mobile-layout-readable-evidence',
-              '_bridgePointReadableEvidenceV218','_compactMapV218',
+              '_bridgePointReadableEvidenceV218','_compactMapV218','bridgepoint-v219-owner-outreach',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
@@ -149,7 +151,7 @@ jobs:
             print('Missing guarded release markers:')
             for item in missing: print(' -',item)
             raise SystemExit(1)
-          print('All guarded v218 release markers are present.')
+          print('All guarded v219 release markers are present.')
           PY
           test -s web/bridgepoint-release.json
       - uses: subosito/flutter-action@v2
