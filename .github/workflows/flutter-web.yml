@@ -40,6 +40,9 @@ jobs:
           python tool/repair_weather_home_v147.py
           python tool/apply_numbered_sales_posts_v146.py
           python tool/apply_copyright_footer_v150.py
+          python tool/apply_about_bridgepoint_v151.py
+          python tool/apply_routes_offline_v157.py
+          python tool/apply_training_demo_founder_v159.py
           grep -q "Send to CRM" lib/main.dart
           grep -q "Download CSV" lib/main.dart
           grep -q "Print / Save PDF" lib/main.dart
@@ -65,6 +68,14 @@ jobs:
           grep -q "Post #\$slot to ALL connected socials" lib/main.dart
           grep -q "© 2026 BridgePoint Intelligence. All rights reserved." lib/main.dart
           grep -q "Questions or Concerns: 203-605-2389" lib/main.dart
+          grep -q "ABOUT BRIDGEPOINT INTELLIGENCE" lib/main.dart
+          grep -q "ROUTES & OFFLINE MODE" lib/main.dart
+          grep -q "Connection looks spotty — switch to Offline Mode?" lib/main.dart
+          grep -q "Skip for now" lib/main.dart
+          grep -q "Owner Demo Mode" lib/main.dart
+          grep -q "Founder Command Center" lib/main.dart
+          grep -q "FULL-ACCESS OWNERS" lib/main.dart
+          grep -q "Preview as customer" lib/main.dart
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
