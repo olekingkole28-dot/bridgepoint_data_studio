@@ -32,6 +32,7 @@ jobs:
           python tool/apply_growth_center_v105.py
           python tool/apply_notification_center_v109.py
           python tool/apply_owner_recent_people_v112.py
+          python tool/apply_social_publish_v120.py
           grep -q "Send to CRM" lib/main.dart
           grep -q "Download CSV" lib/main.dart
           grep -q "Print / Save PDF" lib/main.dart
@@ -43,6 +44,8 @@ jobs:
           grep -q "Growth & Outreach Engine" lib/main.dart
           grep -q "Notification Center" lib/main.dart
           grep -q "Recent People Using BridgePoint" lib/main.dart
+          grep -q "Publish connected now" lib/main.dart
+          grep -q "YOUTUBE_SHORTS" lib/main.dart
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
