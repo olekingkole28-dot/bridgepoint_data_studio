@@ -18,6 +18,14 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Apply guarded BridgePoint launch fixes
+        run: |
+          python tool/apply_launch_v94.py
+          python tool/apply_launch_v95.py
+          grep -q "Send to CRM" lib/main.dart
+          grep -q "Show United States live weather" lib/main.dart
+          grep -q "One-click State Expansion" lib/main.dart
+          grep -q "ENTERPRISE TECHNOLOGY" lib/main.dart
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
