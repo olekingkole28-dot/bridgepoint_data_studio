@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -7,14 +8,12 @@ if marker in body:
     print('Founder/reviews/customer preview v284 already applied.')
     raise SystemExit(0)
 
-# Fix the only fatal v282 analyzer error.
 old_stars="stars(((summary['average_rating'] as num?)?.round()??0),size:22)"
 new_stars="stars((summary['average_rating'] as num?)?.round()??0,size:22)"
 if body.count(old_stars)!=1:
     raise SystemExit(f'v284 review stars anchor {body.count(old_stars)}')
 body=body.replace(old_stars,new_stars,1)
 
-# Map the current UI package selector to real commercial package keys for server-filtered owner preview.
 model_anchor="""  static const packageModelKeys = <String, String>{
     'All Intelligence': 'all',
     'BridgePoint Homeowner': 'bridgepoint_home',
@@ -92,7 +91,6 @@ if body.count(state_old)!=1:
     raise SystemExit(f'v284 AI state anchor {body.count(state_old)}')
 body=body.replace(state_old,state_new,1)
 
-# Make preview mode unmistakable inside the AI dialog itself.
 title_old="""      const SizedBox(width:11),const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('BridgePoint AI',style:TextStyle(fontWeight:FontWeight.w900)),SizedBox(height:2),Text('Ask naturally • package-aware • grounded in BridgePoint evidence',style:TextStyle(color:AppTheme.textMuted,fontSize:9,fontWeight:FontWeight.w600))])),
       IconButton(tooltip:'Close',onPressed:()=>Navigator.pop(context),icon:const Icon(Icons.close_rounded)),
 """
@@ -104,13 +102,12 @@ if body.count(title_old)!=1:
     raise SystemExit(f'v284 AI title anchor {body.count(title_old)}')
 body=body.replace(title_old,title_new,1)
 
-# Clarify the owner preview banner too.
 banner_old="""class _CustomerPreviewBanner extends StatelessWidget{
 """
 if body.count(banner_old)!=1:
     raise SystemExit(f'v284 customer preview banner class anchor {body.count(banner_old)}')
-# Leave existing banner layout intact; its package name is already dynamic. Add a release marker only.
 
 body += "\nconst String _bridgePointFounderReviewsCustomerPreviewV284='bridgepoint-v284-founder-reviews-customer-preview | review syntax repaired | server-filtered owner customer preview | preview package passed to AI';\n"
 path.write_text(body,encoding='utf-8')
 print('Repaired founder reviews and wired server-filtered customer preview v284.')
+runpy.run_path('tool/apply_owner_system_explorer_v286.py', run_name='__main__')
