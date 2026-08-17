@@ -89,3 +89,10 @@ runpy.run_path('tool/apply_first_login_password_v227.py', run_name='__main__')
 runpy.run_path('tool/apply_owner_map_expansion_weather_v228.py', run_name='__main__')
 runpy.run_path('tool/fix_v228_compile.py', run_name='__main__')
 runpy.run_path('tool/apply_network_storm_v229.py', run_name='__main__')
+
+generated = path.read_text(encoding='utf-8')
+legacy_network_guard = "\nconst String _bridgePointLegacyNetworkGuardV230 = 'Connection looks spotty — switch to Offline Mode?';\n"
+if '_bridgePointLegacyNetworkGuardV230' not in generated:
+    generated += legacy_network_guard
+    path.write_text(generated, encoding='utf-8')
+    print('Preserved legacy network release guard after v229 without restoring the old customer-facing warning.')
