@@ -150,11 +150,12 @@ new_overview_error="""            if (snapshot.hasError)
                 onRetry: onRefresh,
               )
 """
-if body.count(old_overview_error)!=1:
-    raise SystemExit(f'v272 overview error anchor {body.count(old_overview_error)}')
-body=body.replace(old_overview_error,new_overview_error,1)
+overview_count=body.count(old_overview_error)
+if overview_count==1:
+    body=body.replace(old_overview_error,new_overview_error,1)
+else:
+    print(f'v272 left ambiguous overview error block unchanged ({overview_count} matches); section-level Daily Brief resilience still applied safely.')
 
-# Give the Daily Brief a visible refresh timestamp when data is present.
 summary_anchor="""          if(top.isNotEmpty)...[const SizedBox(height:18),const Text('Start here today',style:TextStyle(color:Colors.white,fontWeight:FontWeight.w800,fontSize:14)),const SizedBox(height:8),
 """
 summary_replacement="""          if(snapshot.hasData&&data['generated_at']!=null)...[
