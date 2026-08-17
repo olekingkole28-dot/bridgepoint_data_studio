@@ -3,7 +3,7 @@ from pathlib import Path
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
 fixes=[
-    ("child:const Text('Reject'))])]))],","child:const Text('Reject'))])])))]",),
+    ("child:const Text('Reject'))])]))],","child:const Text('Reject'))])])))],"),
     ("backgroundColor:Colors.white10)] ]);}).toList()),","backgroundColor:Colors.white10)] ]));}).toList()),"),
 ]
 for old,new in fixes:
