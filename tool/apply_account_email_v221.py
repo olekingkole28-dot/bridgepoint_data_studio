@@ -114,3 +114,4 @@ runpy.run_path('tool/fix_front_property_photo_compile_v268.py', run_name='__main
 runpy.run_path('tool/apply_global_keyboard_scroll_v269.py', run_name='__main__')
 runpy.run_path('tool/standardize_human_times_v270.py', run_name='__main__')
 runpy.run_path('tool/fix_noaa_live_weather_v271.py', run_name='__main__')
+runpy.run_path('tool/harden_daily_brief_v272.py', run_name='__main__')
