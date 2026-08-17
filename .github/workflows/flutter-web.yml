@@ -100,6 +100,8 @@ jobs:
         run: python tool/apply_owner_outreach_v219.py
       - name: Surface account and sender email identities
         run: python tool/apply_account_email_v221.py
+      - name: Add nationwide weather motion, 3D scroll isolation and spatial background
+        run: python tool/apply_national_weather_spatial_v287.py
       - name: Capture final generated source for audit
         uses: actions/upload-artifact@v4
         with:
@@ -141,7 +143,9 @@ jobs:
               'bridgepoint_setup_checklist_v215','bridgepoint-noaa-cloud-frames-v215',
               'bridgepoint-v217-cloud-clarity','bridgepoint-v218-mobile-layout-readable-evidence',
               '_bridgePointReadableEvidenceV218','_compactMapV218','bridgepoint-v219-owner-outreach',
-              'bridgepoint-v221-account-email',
+              'bridgepoint-v221-account-email','bridgepoint-v287-national-weather-spatial-background',
+              '_BridgePointNationwideWeatherV287','_bridgePointMapTouchLockV287','bp-us-radar-v287',
+              '_BridgePointSpatialAtmospherePainterV287',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
@@ -154,7 +158,7 @@ jobs:
             print('Missing guarded release markers:')
             for item in missing: print(' -',item)
             raise SystemExit(1)
-          print('All guarded v221 release markers are present.')
+          print('All guarded v287 release markers are present.')
           PY
           test -s web/bridgepoint-release.json
       - uses: subosito/flutter-action@v2
