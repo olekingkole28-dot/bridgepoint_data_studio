@@ -71,6 +71,13 @@ fixed = "label:const Text('Demo customer checkout - no charge'))),\n            
 if broken in generated:
     generated = generated.replace(broken, fixed, 1)
     print('Repaired v224 owner demo button widget closure.')
+
+public_contact_old = 'Questions or Concerns: 203-605-2389'
+public_contact_new = 'Questions or Concerns: 203-605-2389 • bridgepointintelligence@gmail.com'
+if public_contact_old in generated and public_contact_new not in generated:
+    generated = generated.replace(public_contact_old, public_contact_new)
+    print('Added the BridgePoint business email to the public release footer.')
+
 legacy_marker = "\nconst String _bridgePointLegacyDeliveryMarkersV224 = 'BUILDING VERIFIED DELIVERY • NOT BILLING YET | Building verified feed';\n"
 if '_bridgePointLegacyDeliveryMarkersV224' not in generated:
     generated += legacy_marker
