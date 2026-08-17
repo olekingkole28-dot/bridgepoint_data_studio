@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -65,3 +66,4 @@ body=body.replace(old_builder,new_builder,1)
 body += "\nconst String _bridgePointOwnerExpansionActiveBuildsV276='bridgepoint-v276-owner-expansion-active-builds | active build source of truth | responsive expansion controls | automatic state UI';\n"
 path.write_text(body,encoding='utf-8')
 print('Applied owner expansion active-build synchronization v276.')
+runpy.run_path('tool/apply_owner_investor_cockpit_v277.py', run_name='__main__')
