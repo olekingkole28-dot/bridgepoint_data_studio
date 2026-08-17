@@ -14,6 +14,15 @@ if body.count(old_stars)!=1:
     raise SystemExit(f'v284 review stars anchor {body.count(old_stars)}')
 body=body.replace(old_stars,new_stars,1)
 
+# v282's public review list maps each approved review into a Container. The generated
+# compact widget expression was missing the closing parenthesis for that map() call,
+# which only surfaced once the newer v284/v286 chain reached flutter analyze.
+bad_review_tail="fontSize:7.5))]))]]))),"
+good_review_tail="fontSize:7.5))])))]]))),"
+if body.count(bad_review_tail)!=1:
+    raise SystemExit(f'v284 review list syntax anchor {body.count(bad_review_tail)}')
+body=body.replace(bad_review_tail,good_review_tail,1)
+
 model_anchor="""  static const packageModelKeys = <String, String>{
     'All Intelligence': 'all',
     'BridgePoint Homeowner': 'bridgepoint_home',
