@@ -102,10 +102,15 @@ if body.count(title_old)!=1:
     raise SystemExit(f'v284 AI title anchor {body.count(title_old)}')
 body=body.replace(title_old,title_new,1)
 
-banner_old="""class _CustomerPreviewBanner extends StatelessWidget{
-"""
-if body.count(banner_old)!=1:
-    raise SystemExit(f'v284 customer preview banner class anchor {body.count(banner_old)}')
+# The customer-preview banner was introduced in v159 but later navigation layers may
+# replace or inline it. v284 does not modify that widget; it only needs the preview
+# state and AI filtering above. Treat the legacy class signature as optional so the
+# current release chain remains source-compatible while still guarding ambiguity.
+banner_anchor="class _CustomerPreviewBanner extends StatelessWidget{"
+banner_count=body.count(banner_anchor)
+if banner_count>1:
+    raise SystemExit(f'v284 customer preview banner class ambiguous {banner_count}')
+print(f'v284 customer preview banner compatibility: {banner_count} legacy class match(es).')
 
 body += "\nconst String _bridgePointFounderReviewsCustomerPreviewV284='bridgepoint-v284-founder-reviews-customer-preview | review syntax repaired | server-filtered owner customer preview | preview package passed to AI';\n"
 path.write_text(body,encoding='utf-8')
