@@ -48,11 +48,11 @@ end = body.find('\nclass ', start + 20)
 if end < 0:
     end = len(body)
 segment = body[start:end]
-properties_old = "_DashboardError(message: snapshot.error.toString(), onRetry: _reload)"
-properties_new = "_DashboardError(title:'Properties could not load', message: snapshot.error.toString(), onRetry: _reload)"
-if segment.count(properties_old) != 1:
-    raise SystemExit(f'v256 Properties error anchor count {segment.count(properties_old)}')
-segment = segment.replace(properties_old, properties_new, 1)
+properties_anchor = '_DashboardError('
+properties_count = segment.count(properties_anchor)
+if properties_count != 1:
+    raise SystemExit(f'v256 Properties error widget count {properties_count}')
+segment = segment.replace(properties_anchor, "_DashboardError(title:'Properties could not load',", 1)
 body = body[:start] + segment + body[end:]
 
 body += "\nconst String _bridgePointSectionErrorsV256='bridgepoint-v256-section-error-titles | Properties could not load | This section could not load';\n"
