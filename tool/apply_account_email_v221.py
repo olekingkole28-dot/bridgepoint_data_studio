@@ -84,3 +84,4 @@ if '_bridgePointLegacyDeliveryMarkersV224' not in generated:
     print('Preserved legacy delivery marker strings for guarded release compatibility.')
 path.write_text(generated, encoding='utf-8')
 runpy.run_path('tool/apply_transactional_email_v225.py', run_name='__main__')
+runpy.run_path('tool/fix_transactional_email_v225_compile.py', run_name='__main__')
