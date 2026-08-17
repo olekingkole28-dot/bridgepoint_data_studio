@@ -66,7 +66,13 @@ print('Applied BridgePoint account and outreach email identity v221.')
 runpy.run_path('tool/apply_sales_purchase_help_v224.py', run_name='__main__')
 
 generated = path.read_text(encoding='utf-8')
+broken = "label:const Text('Demo customer checkout - no charge')),\n                  const SizedBox(height:8),"
+fixed = "label:const Text('Demo customer checkout - no charge'))),\n                  const SizedBox(height:8),"
+if broken in generated:
+    generated = generated.replace(broken, fixed, 1)
+    print('Repaired v224 owner demo button widget closure.')
 legacy_marker = "\nconst String _bridgePointLegacyDeliveryMarkersV224 = 'BUILDING VERIFIED DELIVERY • NOT BILLING YET | Building verified feed';\n"
 if '_bridgePointLegacyDeliveryMarkersV224' not in generated:
-    path.write_text(generated + legacy_marker, encoding='utf-8')
+    generated += legacy_marker
     print('Preserved legacy delivery marker strings for guarded release compatibility.')
+path.write_text(generated, encoding='utf-8')
