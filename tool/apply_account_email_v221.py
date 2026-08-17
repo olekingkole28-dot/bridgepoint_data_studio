@@ -102,3 +102,5 @@ runpy.run_path('tool/apply_heartbeat_simplification_v246.py', run_name='__main__
 runpy.run_path('tool/apply_navigation_ai_v248.py', run_name='__main__')
 runpy.run_path('tool/fix_v248_compile.py', run_name='__main__')
 runpy.run_path('tool/apply_live_clusters_ui_v253.py', run_name='__main__')
+runpy.run_path('tool/apply_community_3d_v255.py', run_name='__main__')
+runpy.run_path('tool/fix_section_error_titles_v256.py', run_name='__main__')
