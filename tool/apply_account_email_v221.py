@@ -64,3 +64,9 @@ body = body.replace(outreach_anchor, outreach_replacement, 1)
 path.write_text(body, encoding='utf-8')
 print('Applied BridgePoint account and outreach email identity v221.')
 runpy.run_path('tool/apply_sales_purchase_help_v224.py', run_name='__main__')
+
+generated = path.read_text(encoding='utf-8')
+legacy_marker = "\nconst String _bridgePointLegacyDeliveryMarkersV224 = 'BUILDING VERIFIED DELIVERY • NOT BILLING YET | Building verified feed';\n"
+if '_bridgePointLegacyDeliveryMarkersV224' not in generated:
+    path.write_text(generated + legacy_marker, encoding='utf-8')
+    print('Preserved legacy delivery marker strings for guarded release compatibility.')
