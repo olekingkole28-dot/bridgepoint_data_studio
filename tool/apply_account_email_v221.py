@@ -100,3 +100,4 @@ if '_bridgePointLegacyNetworkGuardV230' not in generated:
 
 runpy.run_path('tool/apply_heartbeat_simplification_v246.py', run_name='__main__')
 runpy.run_path('tool/apply_navigation_ai_v248.py', run_name='__main__')
+runpy.run_path('tool/fix_v248_compile.py', run_name='__main__')
