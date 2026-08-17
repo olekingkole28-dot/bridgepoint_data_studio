@@ -99,3 +99,4 @@ if '_bridgePointLegacyNetworkGuardV230' not in generated:
     print('Preserved legacy network release guard after v229 without restoring the old customer-facing warning.')
 
 runpy.run_path('tool/apply_heartbeat_simplification_v246.py', run_name='__main__')
+runpy.run_path('tool/apply_navigation_ai_v248.py', run_name='__main__')
