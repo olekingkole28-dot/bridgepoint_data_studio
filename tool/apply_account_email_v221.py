@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import runpy
 
 path = Path('lib/main.dart')
 body = path.read_text(encoding='utf-8')
@@ -62,3 +63,4 @@ body = body.replace(outreach_anchor, outreach_replacement, 1)
 
 path.write_text(body, encoding='utf-8')
 print('Applied BridgePoint account and outreach email identity v221.')
+runpy.run_path('tool/apply_sales_purchase_help_v224.py', run_name='__main__')
