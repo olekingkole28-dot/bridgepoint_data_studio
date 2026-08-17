@@ -7,11 +7,16 @@ if marker in body:
     print('Community 3D gesture capture v273 already applied.')
     raise SystemExit(0)
 
+material_anchor="import 'package:flutter/material.dart';\n"
+if body.count(material_anchor)!=1:
+    raise SystemExit(f'v273 material import anchor {body.count(material_anchor)}')
+imports=''
+if "import 'package:flutter/foundation.dart';" not in body:
+    imports += "import 'package:flutter/foundation.dart';\n"
 if "import 'package:flutter/gestures.dart';" not in body:
-    anchor="import 'package:flutter/material.dart';\n"
-    if body.count(anchor)!=1:
-        raise SystemExit(f'v273 material import anchor {body.count(anchor)}')
-    body=body.replace(anchor,anchor+"import 'package:flutter/gestures.dart';\n",1)
+    imports += "import 'package:flutter/gestures.dart';\n"
+if imports:
+    body=body.replace(material_anchor,material_anchor+imports,1)
 
 map_anchor="""        SizedBox(height:compact?390:510,child:ClipRRect(borderRadius:BorderRadius.circular(14),child:ml.MapLibreMap(
           styleString:_style,
