@@ -1,0 +1,1 @@
+BridgePoint v287 validation branch. This file exists only to trigger pull-request CI against the same v287 release scripts as main.
