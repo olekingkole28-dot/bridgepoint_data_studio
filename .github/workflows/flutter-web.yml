@@ -102,6 +102,8 @@ jobs:
         run: python tool/apply_account_email_v221.py
       - name: Add nationwide weather motion, 3D scroll isolation and spatial background
         run: python tool/apply_national_weather_spatial_v287.py
+      - name: Add page-specific semantic immersive backgrounds
+        run: python tool/apply_semantic_immersive_v290.py
       - name: Capture final generated source for audit
         uses: actions/upload-artifact@v4
         with:
@@ -145,7 +147,8 @@ jobs:
               '_bridgePointReadableEvidenceV218','_compactMapV218','bridgepoint-v219-owner-outreach',
               'bridgepoint-v221-account-email','bridgepoint-v287-national-weather-spatial-background',
               '_BridgePointNationwideWeatherV287','_bridgePointMapTouchLockV287','bp-us-radar-v287',
-              '_BridgePointSpatialAtmospherePainterV287',
+              '_BridgePointSpatialAtmospherePainterV287','bridgepoint-v290-semantic-immersive-backgrounds',
+              '_BridgePointSemanticScenePainterV290','_bridgePointPageAccentV290',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
@@ -158,7 +161,7 @@ jobs:
             print('Missing guarded release markers:')
             for item in missing: print(' -',item)
             raise SystemExit(1)
-          print('All guarded v287 release markers are present.')
+          print('All guarded v290 release markers are present.')
           PY
           test -s web/bridgepoint-release.json
       - uses: subosito/flutter-action@v2
