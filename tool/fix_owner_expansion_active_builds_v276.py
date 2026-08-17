@@ -40,13 +40,21 @@ if body.count(old_init)!=1:
     raise SystemExit(f'v276 init anchor {body.count(old_init)}')
 body=body.replace(old_init,new_init,1)
 
-old_builder="""    const SizedBox(height:12),FutureBuilder<Map<String,dynamic>>(future:activeBuildsRequest,builder:(context,snapshot){final builds=rows(snapshot.data?['builds']);if(builds.isNotEmpty&&selectedState==null){final first='${builds.first['state_code']}';WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&selectedState==null){setState(()=>selectedState=first);unawaited(loadControl());}});}return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Row(children:[const Expanded(child:Text('IN-PROGRESS BUILDS',style:TextStyle(color:AppTheme.green,fontSize:9,fontWeight:FontWeight.w900,letterSpacing:.7))),IconButton(tooltip:'Refresh all builds',onPressed:busy?null:refreshBuilds,icon:const Icon(Icons.refresh_rounded,color:AppTheme.cyan,size:19))]),if(snapshot.connectionState==ConnectionState.waiting&&builds.isEmpty)const LinearProgressIndicator(color:AppTheme.cyan,minHeight:2)else if(snapshot.hasError)Text('Could not load active builds: ${snapshot.error}',style:const TextStyle(color:AppTheme.amber,fontSize:9))else if(builds.isEmpty)const Text('No state builds are currently in progress.',style:TextStyle(color:AppTheme.textMuted,fontSize:9))else ...builds.map(activeBuildCard)]);}),
-    const SizedBox(height:12),const Text('START / INSPECT ANY STATE',style:TextStyle(color:AppTheme.textMuted,fontSize:9,fontWeight:FontWeight.w900,letterSpacing:.7)),const SizedBox(height:6),
-    FutureBuilder<Map<String,dynamic>>(future:marketsRequest,builder:(context,snapshot){final markets=rows(snapshot.data?['markets']).where((m)=>'${m['state_code']}'!='CT').toList()..sort((a,b){final ab='${a['data_status']}'=='BUILDING'?0:1;final bb='${b['data_status']}'=='BUILDING'?0:1;final first=ab.compareTo(bb);return first!=0?first:'${a['state_name']}'.compareTo('${b['state_name']}');});return Row(children:[Expanded(child:DropdownButtonFormField<String>(value:selectedState,dropdownColor:AppTheme.panelSoft,decoration:const InputDecoration(labelText:'State to build / inspect',border:OutlineInputBorder()),items:markets.map((m)=>DropdownMenuItem(value:'${m['state_code']}',child:Text('${m['state_name']} (${m['state_code']}) • ${m['data_status']}'))).toList(),onChanged:busy?null:(v){setState((){selectedState=v;control=null;});if(v!=null)unawaited(loadControl());})),const SizedBox(width:10),FilledButton.icon(onPressed:busy||selectedState==null?null:buildState,icon:const Icon(Icons.rocket_launch_rounded),label:Text(busy?'Working…':'Build / resume'))]);}),
+legacy_select="""if(builds.isNotEmpty&&selectedState==null){final first='${builds.first['state_code']}';WidgetsBinding.instance.addPostFrameCallback((_){if(mounted&&selectedState==null){setState(()=>selectedState=first);unawaited(loadControl());}});}"""
+if body.count(legacy_select)==1:
+    body=body.replace(legacy_select,'',1)
+elif body.count(legacy_select)>1:
+    raise SystemExit('v276 active selector became ambiguous')
+
+old_cards="""else ...builds.map(activeBuildCard)]);}),"""
+new_cards="""else ...builds.map((b)=>InkWell(borderRadius:BorderRadius.circular(12),onTap:busy?null:(){final code='${b['state_code']}';setState((){selectedState=code;control=null;});unawaited(loadControl());},child:activeBuildCard(b)))]);}),"""
+if body.count(old_cards)!=1:
+    raise SystemExit(f'v276 active cards anchor {body.count(old_cards)}')
+body=body.replace(old_cards,new_cards,1)
+
+old_market="""    FutureBuilder<Map<String,dynamic>>(future:marketsRequest,builder:(context,snapshot){final markets=rows(snapshot.data?['markets']).where((m)=>'${m['state_code']}'!='CT').toList()..sort((a,b){final ab='${a['data_status']}'=='BUILDING'?0:1;final bb='${b['data_status']}'=='BUILDING'?0:1;final first=ab.compareTo(bb);return first!=0?first:'${a['state_name']}'.compareTo('${b['state_name']}');});return Row(children:[Expanded(child:DropdownButtonFormField<String>(value:selectedState,dropdownColor:AppTheme.panelSoft,decoration:const InputDecoration(labelText:'State to build / inspect',border:OutlineInputBorder()),items:markets.map((m)=>DropdownMenuItem(value:'${m['state_code']}',child:Text('${m['state_name']} (${m['state_code']}) • ${m['data_status']}'))).toList(),onChanged:busy?null:(v){setState((){selectedState=v;control=null;});if(v!=null)unawaited(loadControl());})),const SizedBox(width:10),FilledButton.icon(onPressed:busy||selectedState==null?null:buildState,icon:const Icon(Icons.rocket_launch_rounded),label:Text(busy?'Working…':'Build / resume'))]);}),
 """
-new_builder="""    const SizedBox(height:12),FutureBuilder<Map<String,dynamic>>(future:activeBuildsRequest,builder:(context,snapshot){final builds=rows(snapshot.data?['builds']);return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Row(children:[const Expanded(child:Text('IN-PROGRESS BUILDS',style:TextStyle(color:AppTheme.green,fontSize:9,fontWeight:FontWeight.w900,letterSpacing:.7))),IconButton(tooltip:'Refresh all builds',onPressed:busy?null:refreshBuilds,icon:const Icon(Icons.refresh_rounded,color:AppTheme.cyan,size:19))]),if(snapshot.connectionState==ConnectionState.waiting&&builds.isEmpty)const LinearProgressIndicator(color:AppTheme.cyan,minHeight:2)else if(snapshot.hasError)Text('Could not load active builds: ${snapshot.error}',style:const TextStyle(color:AppTheme.amber,fontSize:9))else if(builds.isEmpty)const Text('No state builds are currently in progress.',style:TextStyle(color:AppTheme.textMuted,fontSize:9))else ...builds.map((b)=>InkWell(borderRadius:BorderRadius.circular(12),onTap:busy?null:(){final code='${b['state_code']}';setState((){selectedState=code;control=null;});unawaited(loadControl());},child:activeBuildCard(b)))]);}),
-    const SizedBox(height:12),const Text('START / INSPECT ANY STATE',style:TextStyle(color:AppTheme.textMuted,fontSize:9,fontWeight:FontWeight.w900,letterSpacing:.7)),const SizedBox(height:6),
-    FutureBuilder<Map<String,dynamic>>(future:marketsRequest,builder:(context,snapshot){
+new_market="""    FutureBuilder<Map<String,dynamic>>(future:marketsRequest,builder:(context,snapshot){
       final markets=rows(snapshot.data?['markets']).where((m)=>'${m['state_code']}'!='CT').toList()..sort((a,b){final ab='${a['data_status']}'=='BUILDING'?0:1;final bb='${b['data_status']}'=='BUILDING'?0:1;final first=ab.compareTo(bb);return first!=0?first:'${a['state_name']}'.compareTo('${b['state_name']}');});
       final codes=markets.map((m)=>'${m['state_code']}').toSet();
       final dropdownValue=codes.contains(selectedState)?selectedState:null;
@@ -59,11 +67,13 @@ new_builder="""    const SizedBox(height:12),FutureBuilder<Map<String,dynamic>>(
       ]);
     }),
 """
-if body.count(old_builder)!=1:
-    raise SystemExit(f'v276 builder anchor {body.count(old_builder)}')
-body=body.replace(old_builder,new_builder,1)
+if body.count(old_market)!=1:
+    raise SystemExit(f'v276 state selector anchor {body.count(old_market)}')
+body=body.replace(old_market,new_market,1)
 
 body += "\nconst String _bridgePointOwnerExpansionActiveBuildsV276='bridgepoint-v276-owner-expansion-active-builds | active build source of truth | responsive expansion controls | automatic state UI';\n"
 path.write_text(body,encoding='utf-8')
 print('Applied owner expansion active-build synchronization v276.')
 runpy.run_path('tool/apply_owner_investor_cockpit_v277.py', run_name='__main__')
+runpy.run_path('tool/apply_immersive_motion_background_v278.py', run_name='__main__')
+runpy.run_path('tool/apply_weather_aware_community_3d_v279.py', run_name='__main__')
