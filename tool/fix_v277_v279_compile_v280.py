@@ -37,3 +37,4 @@ body += "\nconst String _bridgePointV280OwnerWeatherMotionCompile='bridgepoint-v
 path.write_text(body,encoding='utf-8')
 print('Repaired v277-v279 generated Flutter compile points v280.')
 runpy.run_path('tool/apply_founder_story_reviews_v282.py', run_name='__main__')
+runpy.run_path('tool/fix_founder_reviews_customer_preview_v284.py', run_name='__main__')
