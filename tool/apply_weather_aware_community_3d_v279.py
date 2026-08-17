@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -151,3 +152,4 @@ body=body.replace(control_anchor,painter+control_anchor,1)
 body += "\nconst String _bridgePointCommunity3DLiveWeatherV279='bridgepoint-v279-community-3d-live-weather | NOAA/NWS weather aware | rain animation | snow animation | two-minute cache';\n"
 path.write_text(body,encoding='utf-8')
 print('Applied weather-aware Community 3D precipitation v279.')
+runpy.run_path('tool/fix_v277_v279_compile_v280.py', run_name='__main__')
