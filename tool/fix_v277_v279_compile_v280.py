@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -28,7 +29,6 @@ for old,new in repairs.items():
             raise SystemExit(f'v280 repair anchor ambiguous ({count}): {old[:80]}')
         body=body.replace(old,new,1)
 
-# Remove the unused painter declaration while here; it was left from an earlier visual draft.
 unused="    final routeBright=Paint()..style=PaintingStyle.stroke..strokeWidth=1.8..strokeCap=StrokeCap.round..color=accent.withOpacity(.25);\n"
 if unused in body:
     body=body.replace(unused,'',1)
@@ -36,3 +36,4 @@ if unused in body:
 body += "\nconst String _bridgePointV280OwnerWeatherMotionCompile='bridgepoint-v280-owner-weather-motion-compile | ui.Path | safe ternaries | double clamps | investor readiness closure';\n"
 path.write_text(body,encoding='utf-8')
 print('Repaired v277-v279 generated Flutter compile points v280.')
+runpy.run_path('tool/apply_founder_story_reviews_v282.py', run_name='__main__')
