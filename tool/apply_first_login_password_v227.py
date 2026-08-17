@@ -30,7 +30,7 @@ class _AuthGateState extends State<_AuthGate>{
     _authSub=Supabase.instance.client.auth.onAuthStateChange.listen((state){
       if(!mounted)return;
       if(state.event==AuthChangeEvent.passwordRecovery)setState(()=>_recovering=true);
-      if(state.event==AuthChangeEvent.signedOut)setState(()=>_recovering=false);
+      else if(state.event==AuthChangeEvent.signedOut)setState(()=>_recovering=false);
       else setState((){});
     });
   }
@@ -46,12 +46,18 @@ if old_gate not in s:
     raise SystemExit('v227 auth gate anchor missing')
 s=s.replace(old_gate,new_gate,1)
 
-old_fields="""  final displayName=TextEditingController(); final email=TextEditingController(); final password=TextEditingController();
-  bool create=false,loading=false,showPassword=false,acceptTerms=false; String? error;
-"""
-new_fields="""  final displayName=TextEditingController(); final email=TextEditingController(); final password=TextEditingController();
-  bool create=false,loading=false,showPassword=false,acceptTerms=false; String? error; String? notice;
-  Future<void> resetPassword() async {
+auth_start=s.find('class _AuthScreenState extends State<_AuthScreen> {')
+auth_end=s.find('class _PublicLegalSummaryDialog',auth_start)
+if auth_start<0 or auth_end<0:
+    raise SystemExit('v227 auth screen block missing')
+block=s[auth_start:auth_end]
+if 'String? notice;' not in block:
+    error_decl='String? error;'
+    if error_decl not in block: raise SystemExit('v227 error declaration anchor missing')
+    block=block.replace(error_decl,'String? error; String? notice;',1)
+
+submit_anchor='  Future<void> submit() async {'
+reset_method="""  Future<void> resetPassword() async {
     final address=email.text.trim().toLowerCase();
     if(address.isEmpty||!address.contains('@')){setState(()=>error='Enter the email address for your BridgePoint account first.');return;}
     setState(()=>loading=true);error=null;notice=null;
@@ -61,25 +67,27 @@ new_fields="""  final displayName=TextEditingController(); final email=TextEditi
     }catch(e){if(mounted)setState(()=>error=e.toString());}
     finally{if(mounted)setState(()=>loading=false);}
   }
-"""
-if old_fields not in s:
-    raise SystemExit('v227 auth fields anchor missing')
-s=s.replace(old_fields,new_fields,1)
 
-old_error="""      if(error!=null)...[const SizedBox(height:12),Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:11))],
+"""
+if 'Future<void> resetPassword()' not in block:
+    if submit_anchor not in block: raise SystemExit('v227 submit anchor missing')
+    block=block.replace(submit_anchor,reset_method+submit_anchor,1)
+
+old_actions="""      if(error!=null)...[const SizedBox(height:12),Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:11))],
       const SizedBox(height:18),FilledButton(onPressed:loading?null:submit,child:Text(loading?'Please wait…':create?'Start free trial':'Sign in')),
       TextButton(onPressed:loading?null:()=>setState(()=>create=!create),child:Text(create?'Already have an account? Sign in':'New here? Start 7-day trial')),
 """
-new_error="""      if(error!=null)...[const SizedBox(height:12),Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:11))],
+new_actions="""      if(error!=null)...[const SizedBox(height:12),Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:11))],
       if(notice!=null)...[const SizedBox(height:12),Text(notice!,style:const TextStyle(color:AppTheme.green,fontSize:11,height:1.4))],
       const SizedBox(height:18),FilledButton(onPressed:loading?null:submit,child:Text(loading?'Please wait…':create?'Start free trial':'Sign in')),
       if(!create)TextButton.icon(onPressed:loading?null:resetPassword,icon:const Icon(Icons.key_rounded,size:17),label:const Text('First-time invited owner / Forgot password')),
       TextButton(onPressed:loading?null:()=>setState(()=>create=!create),child:Text(create?'Already have an account? Sign in':'New here? Start 7-day trial')),
       const Text('bridgepoint-v227-first-login-password',style:TextStyle(fontSize:0,color:Colors.transparent)),
 """
-if old_error not in s:
+if old_actions not in block:
     raise SystemExit('v227 auth actions anchor missing')
-s=s.replace(old_error,new_error,1)
+block=block.replace(old_actions,new_actions,1)
+s=s[:auth_start]+block+s[auth_end:]
 
 insert_anchor='class _PublicLegalSummaryDialog extends StatelessWidget{'
 recovery=r'''class _PasswordRecoveryScreen extends StatefulWidget{
