@@ -144,3 +144,7 @@ print(' - no empty click handlers detected')
 runpy.run_path('tool/fix_owner_expansion_resilience_v313.py',run_name='__main__')
 runpy.run_path('tool/apply_dna_tunnel_background_v313.py',run_name='__main__')
 runpy.run_path('tool/final_polish_audit_v313.py',run_name='__main__')
+
+# Owner chose manual social posting. Preserve About/profile links but remove all automatic
+# provider connection, OAuth and publishing controls from the final generated production source.
+runpy.run_path('tool/remove_auto_social_publishing_v316.py',run_name='__main__')
