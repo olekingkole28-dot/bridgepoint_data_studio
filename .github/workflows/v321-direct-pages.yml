@@ -41,7 +41,7 @@ jobs:
 
       - name: Verify audited v321 artifact identity
         env:
-          EXPECTED_ARTIFACT_SHA: d7e956620596bd49e2d0d40f0482b7e8e8b51f04
+          EXPECTED_ARTIFACT_SHA: 1fb4ea469616a76151e8021b0a4db6f716213396
           MERGED_V321_SHA: ac97f1810ca6154d6c1f5bbb68c0b11f04e76974
         run: |
           set -euo pipefail
@@ -86,7 +86,7 @@ jobs:
           RECOVERY_RUN_ID: ${{ github.run_id }}
           RECOVERY_COMMIT_SHA: ${{ github.sha }}
           ARTIFACT_RUN_ID: '32185246471'
-          ARTIFACT_SHA: d7e956620596bd49e2d0d40f0482b7e8e8b51f04
+          ARTIFACT_SHA: 1fb4ea469616a76151e8021b0a4db6f716213396
           MERGED_V321_SHA: ac97f1810ca6154d6c1f5bbb68c0b11f04e76974
         run: |
           set -euo pipefail
