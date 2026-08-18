@@ -154,7 +154,9 @@ runpy.run_path('tool/apply_owner_patterns_radar_v319.py',run_name='__main__')
 
 # v320 adds source-failover/maintenance customer protection, unsupported-market handling,
 # and the owner-only resilience operating panel backed by automated health and credit ledgers.
-runpy.run_path('tool/apply_resilience_market_v320.py',run_name='__main__')
+# The originally committed compressed payload has a one-character Base64 corruption; the
+# recovery runner reconstructs it and still requires the exact recorded v320 output hash.
+runpy.run_path('tool/recover_resilience_market_v320.py',run_name='__main__')
 
 # Temporary v321 generated-source inspection. This is replaced by the guarded v321 patch after
 # CI prints the exact post-v320 radar/map/coverage targets.
