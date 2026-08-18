@@ -1,5 +1,9 @@
 from pathlib import Path
 import re
+import runpy
+
+# Apply the near-live founder/profile/review refresh as part of the final owner polish.
+runpy.run_path('tool/tighten_brand_live_refresh_v313.py',run_name='__main__')
 
 body=Path('lib/main.dart').read_text(encoding='utf-8')
 errors=[]
@@ -102,7 +106,9 @@ require('customer preview and founder story',
         'Submit review',
         'bridgepoint-v284-founder-reviews-customer-preview',
         'CUSTOMER PREVIEW',
-        'Preview as customer')
+        'Preview as customer',
+        'bridgepoint-v313-brand-live-refresh',
+        'Duration(seconds:8)')
 
 require('live map intelligence',
         'bridgepoint-v306-live-density-heat',
@@ -132,4 +138,5 @@ print(' - expansion active-build status has two independent owner-side sources')
 print(' - AI voice/package/clear UX, section errors, keyboard scrolling and readable times remain present')
 print(' - NOAA/Daily Brief/Community 3D weather and gesture repair contracts remain present')
 print(' - owner investor/system explorer, customer preview, founder/reviews and density heat remain present')
+print(' - founder/profile/review changes refresh every 8 seconds while the About page is open and explicit edits refresh immediately')
 print(' - no legacy dashboard error copy, false expansion empty copy, old active background renderer or dead click handler remains')
