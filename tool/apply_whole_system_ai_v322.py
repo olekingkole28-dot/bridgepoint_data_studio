@@ -10,7 +10,7 @@ if marker in body:
     runpy.run_path('tool/fix_bridgepoint_network_v323.py',run_name='__main__')
     raise SystemExit(0)
 
-if 'bridgepoint-v321-expansion-eta-radar-resilience' not in body:
+if 'bridgepoint-v321-resilience-expansion-eta-radar-map' not in body:
     raise SystemExit('v322 requires the verified v321 generated source')
 
 # Route the existing mature BridgePoint AI dialog through the governed v322 system-wide
