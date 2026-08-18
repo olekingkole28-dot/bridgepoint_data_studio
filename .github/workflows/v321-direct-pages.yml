@@ -1,0 +1,127 @@
+name: BridgePoint v321 Direct Pages Recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v321-direct-pages.yml'
+
+concurrency:
+  group: bridgepoint-pages-production
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download already-audited v321 Flutter web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bridgepoint-flutter-web-review
+          path: site
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 32185246471
+
+      - name: Verify audited v321 artifact identity
+        env:
+          EXPECTED_ARTIFACT_SHA: d7e956620596bd49e2d0d40f0482b7e8e8b51f04
+          MERGED_V321_SHA: ac97f1810ca6154d6c1f5bbb68c0b11f04e76974
+        run: |
+          set -euo pipefail
+          test -s site/index.html
+          test -s site/main.dart.js
+          test -s site/bridgepoint-release.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          marker=json.loads(Path('site/bridgepoint-release.json').read_text(encoding='utf-8'))
+          if marker.get('public_origin')!='https://bridgepointintelligence.online/':
+              raise SystemExit(f"Unexpected public origin: {marker.get('public_origin')}")
+          if marker.get('version')!=os.environ['EXPECTED_ARTIFACT_SHA']:
+              raise SystemExit(f"Unexpected audited artifact SHA: {marker.get('version')}")
+          print('Verified audited v321 artifact', marker['version'])
+          print('Merged v321 main SHA', os.environ['MERGED_V321_SHA'])
+          PY
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload exact audited artifact to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publish BridgePoint Intelligence
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Checkout main for verified deployment receipt
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: repo
+
+      - name: Record direct audited v321 production deployment
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          RECOVERY_RUN_ID: ${{ github.run_id }}
+          RECOVERY_COMMIT_SHA: ${{ github.sha }}
+          ARTIFACT_RUN_ID: '32185246471'
+          ARTIFACT_SHA: d7e956620596bd49e2d0d40f0482b7e8e8b51f04
+          MERGED_V321_SHA: ac97f1810ca6154d6c1f5bbb68c0b11f04e76974
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          marker=json.loads(Path('site/bridgepoint-release.json').read_text(encoding='utf-8'))
+          now=datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
+          deployment={
+              'status':'PUBLISHED',
+              'version':marker['version'],
+              'built_at':marker.get('built_at'),
+              'deployed_at':now,
+              'public_origin':marker.get('public_origin'),
+              'pages_url':os.environ['PAGE_URL'],
+              'publisher':'GitHub Pages / direct audited v321 artifact recovery',
+              'artifact_workflow_run_id':int(os.environ['ARTIFACT_RUN_ID']),
+              'artifact_sha':os.environ['ARTIFACT_SHA'],
+              'merged_v321_sha':os.environ['MERGED_V321_SHA'],
+              'recovery_workflow_run_id':int(os.environ['RECOVERY_RUN_ID']),
+              'recovery_commit_sha':os.environ['RECOVERY_COMMIT_SHA']
+          }
+          Path('repo/web/deployment-status.json').write_text(json.dumps(deployment,indent=2)+'\n',encoding='utf-8')
+          Path('repo/web/release-pipeline-status.json').write_text(json.dumps({
+              'status':'BUILD_COMPLETED','conclusion':'success','completed_at':now,
+              'source_workflow_run_id':int(os.environ['ARTIFACT_RUN_ID']),
+              'source_sha':os.environ['ARTIFACT_SHA'],
+              'merged_v321_sha':os.environ['MERGED_V321_SHA'],
+              'production_publish':'direct-audited-artifact'
+          },indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(deployment,indent=2))
+          PY
+          cd repo
+          git config user.name "BridgePoint Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add web/deployment-status.json web/release-pipeline-status.json
+          if git diff --cached --quiet; then
+            echo "Deployment receipts already current."
+          else
+            git commit -m "Record direct audited v321 production deployment [skip ci]"
+            git push origin HEAD:main
+          fi
