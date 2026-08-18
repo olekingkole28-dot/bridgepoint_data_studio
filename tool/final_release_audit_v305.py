@@ -148,16 +148,12 @@ runpy.run_path('tool/remove_auto_social_publishing_v316.py',run_name='__main__')
 # package-exact customer navigation and moving NOAA precipitation/radar intensity context.
 runpy.run_path('tool/apply_access_weather_v318.py',run_name='__main__')
 
-# v319 adds the owner-only all/top Pattern Intelligence operating view and repairs every
-# NOAA WMS radar renderer to use ISO time frames with preloaded, stronger precipitation motion.
+# v319 is the last successfully built production source. It adds owner pattern intelligence
+# and the preloaded NOAA radar frame layer.
 runpy.run_path('tool/apply_owner_patterns_radar_v319.py',run_name='__main__')
 
-# v320 adds source-failover/maintenance customer protection, unsupported-market handling,
-# and the owner-only resilience operating panel backed by automated health and credit ledgers.
-# The originally committed compressed payload has a one-character Base64 corruption; the
-# recovery runner reconstructs it and still requires the exact recorded v320 output hash.
-runpy.run_path('tool/recover_resilience_market_v320.py',run_name='__main__')
-
-# Temporary v321 generated-source inspection. This is replaced by the guarded v321 patch after
-# CI prints the exact post-v320 radar/map/coverage targets.
-runpy.run_path('tool/inspect_v321_targets.py',run_name='__main__')
+# v321 deliberately skips the never-deployed corrupted v320 payload. It rebuilds the intended
+# v320 resilience/unsupported-market controls and adds measured expansion ETAs, compact
+# zoom-aware expansion markers, public build visibility, radar-first U.S. weather mode, and
+# owner resilience metrics directly on the exact known-good v319 output hash.
+runpy.run_path('tool/apply_resilience_expansion_radar_v321.py',run_name='__main__')
