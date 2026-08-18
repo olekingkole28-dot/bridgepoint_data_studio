@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import re
+import runpy
 
 body=Path('lib/main.dart').read_text(encoding='utf-8')
 web=Path('web/index.html').read_text(encoding='utf-8')
@@ -136,3 +137,10 @@ print(' - customer preview/no-charge and checkout gates present')
 print(' - customer-facing technical-version wording removed')
 print(' - accessibility/legal/privacy/customer-safe evidence contracts present')
 print(' - no empty click handlers detected')
+
+# The v305 audit proves the established v312 baseline first. Only after that baseline is
+# known-good do we apply the owner's final-polish layer. This keeps v313 additive and makes
+# regressions obvious instead of allowing a new background/owner patch to hide an older failure.
+runpy.run_path('tool/fix_owner_expansion_resilience_v313.py',run_name='__main__')
+runpy.run_path('tool/apply_dna_tunnel_background_v313.py',run_name='__main__')
+runpy.run_path('tool/final_polish_audit_v313.py',run_name='__main__')
