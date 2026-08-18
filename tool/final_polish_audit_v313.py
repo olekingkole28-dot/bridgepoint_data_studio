@@ -43,7 +43,7 @@ require('owner operating system','bridgepoint-v265-simplified-owner-center','Gro
 require('owner outreach readiness','bridgepoint-v313-owner-outreach-readiness','class _OwnerOutreachReadinessV313','bridgepoint_owner_outreach_readiness_v313','Outreach Readiness','ESTIMATED READY POOL','HIGH-PRIORITY PROSPECTS','VERIFY + ENROLL','Apollo enrollment verification guardrail')
 require('customer preview and founder story','bridgepoint-v282-founder-story-reviews','Meet the Owner','Submit review','bridgepoint-v284-founder-reviews-customer-preview','CUSTOMER PREVIEW','Preview as customer','bridgepoint-v313-brand-live-refresh','Duration(seconds:8)')
 
-require('responsive prospect-ready UI','bridgepoint-v313-responsive-action-rows','dashboard actions wrap','preferences actions wrap','property filters wrap','social provider controls stack and wrap')
+require('responsive prospect-ready UI','bridgepoint-v313-responsive-action-rows','dashboard actions wrap','preferences actions wrap','property filters wrap','social provider controls stack and wrap','zoom toolbar wraps on compact screens')
 forbid('responsive prospect-ready UI',
        "Row(children:[TextButton.icon(onPressed:saving?null:reset",
        "Row(children:[FilledButton.icon(onPressed:loading?null:_apply",
@@ -67,6 +67,10 @@ print(' - AI voice/package/clear UX, section errors, keyboard scrolling and read
 print(' - NOAA shows newest radar immediately and animates only verified NOAA timestamps')
 print(' - Daily Brief/Community 3D weather and gesture repair contracts remain present')
 print(' - owner investor/system explorer, outreach readiness, customer preview, founder/reviews and density heat remain present')
-print(' - high-risk action rows wrap/stack instead of overlapping on narrow layouts')
+print(' - high-risk action rows and zoom controls wrap/stack instead of overlapping on narrow layouts')
 print(' - founder/profile/review changes refresh every 8 seconds while About is open and explicit edits refresh immediately')
 print(' - no legacy dashboard error copy, false expansion empty copy, guessed NOAA frame loop, old active background renderer or dead click handler remains')
+
+# V314 is additive. Only apply the fundraising layer after the full v313 product audit passes.
+runpy.run_path('tool/apply_investor_room_v314.py',run_name='__main__')
+runpy.run_path('tool/investor_room_audit_v314.py',run_name='__main__')
