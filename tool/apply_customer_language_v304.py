@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -6,6 +7,21 @@ marker='bridgepoint-v304-customer-plain-language'
 if marker in body:
     print('v304 already applied')
     raise SystemExit(0)
+
+# v309 compile repair runs here because v304 is the first guaranteed release layer
+# immediately after v290 in the production workflow.
+immersive_old="i%4==0?.08:.035"
+immersive_new="i%4==0 ? 0.08 : 0.035"
+immersive_count=body.count(immersive_old)
+if immersive_count!=1:
+    raise SystemExit(f'v309 Signals ternary anchor count {immersive_count}')
+body=body.replace(immersive_old,immersive_new,1)
+semantic_start=body.find('class _BridgePointSemanticScenePainterV290')
+semantic_end=body.find('class _BridgePointSpatialAtmospherePainterV287',semantic_start)
+if semantic_start<0 or semantic_end<0:
+    raise SystemExit('v309 semantic painter bounds unavailable')
+if re.findall(r'\d\?\.\d',body[semantic_start:semantic_end]):
+    raise SystemExit('v309 ambiguous conditional decimal remains in semantic painter')
 
 replacements={
     "Yes. BridgePoint V81 uses negative scoring. Missing direct matches, missing corroboration, weak source diversity, older evidence, and lower confidence subtract visible points.":
@@ -22,6 +38,7 @@ for old,new in replacements.items():
         raise SystemExit(f'v304 anchor count {count}: {old[:80]}')
     body=body.replace(old,new,1)
 
+body += "\nconst String _bridgePointSemanticImmersiveCompileV309='bridgepoint-v309-semantic-immersive-compile | Signals ternary numeric syntax repaired';\n"
 body += "\nconst String _bridgePointCustomerPlainLanguageV304='bridgepoint-v304-customer-plain-language | customer screens avoid internal version/backend vocabulary | owner technical detail preserved';\n"
 path.write_text(body,encoding='utf-8')
-print('Applied v304 customer plain-language polish.')
+print('Applied v309 immersive compile repair + v304 customer plain-language polish.')
