@@ -16,8 +16,57 @@ permissions:
   id-token: write
 
 jobs:
+  record-build:
+    if: github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    outputs:
+      conclusion: ${{ steps.meta.outputs.conclusion }}
+    steps:
+      - name: Checkout release repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: repo
+
+      - name: Record audited build result
+        id: meta
+        env:
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+          echo "conclusion=${SOURCE_CONCLUSION}" >> "$GITHUB_OUTPUT"
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          receipt={
+              'status':'BUILD_COMPLETED',
+              'conclusion':os.environ['SOURCE_CONCLUSION'],
+              'completed_at':datetime.now(timezone.utc).isoformat().replace('+00:00','Z'),
+              'source_workflow_run_id':int(os.environ['SOURCE_RUN_ID']),
+              'source_sha':os.environ['SOURCE_SHA']
+          }
+          out=Path('repo/web/release-pipeline-status.json')
+          out.parent.mkdir(parents=True,exist_ok=True)
+          out.write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(receipt,indent=2))
+          PY
+          cd repo
+          git config user.name "BridgePoint Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add web/release-pipeline-status.json
+          if git diff --cached --quiet; then
+            echo "Build receipt already current."
+          else
+            git commit -m "Record BridgePoint build result [skip ci]"
+            git push origin HEAD:main
+          fi
+
   publish:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    needs: record-build
+    if: needs.record-build.outputs.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
