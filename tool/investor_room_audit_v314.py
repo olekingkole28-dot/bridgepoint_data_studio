@@ -17,10 +17,13 @@ def forbid(label,*needles):
 require('Investor Room identity',
         'bridgepoint-v314-investor-room',
         'class _OwnerInvestorRoomV314',
-        "bridgepoint_owner_investor_room_v314",
-        "bridgepoint_owner_investor_valuation_v314",
-        "bridgepoint_owner_investor_targets_v314",
-        "bridgepoint_owner_package_entitlement_audit_v314")
+        "bridgepoint_owner_investor_room_v314")
+
+require('Investor aggregated feed fields',
+        "room['metrics']",
+        "room['valuation']",
+        "room['investor_targets']",
+        "room['package_entitlement_audit']")
 
 require('Investor Room charts',
         'class _InvestorValuationChartV314',
@@ -86,6 +89,7 @@ if errors:
 
 print('BRIDGEPOINT V314 INVESTOR ROOM AUDIT PASSED')
 print(' - Investor Room is the active owner investor experience')
+print(' - one aggregated owner RPC supplies valuation, metrics, investor targets and entitlement status')
 print(' - valuation history, driver bars, traction funnel and geographic scale charts are present')
 print(' - print and downloadable investor brief controls are present')
 print(' - live investor target pipeline and status controls are present')
