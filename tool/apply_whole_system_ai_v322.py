@@ -1,16 +1,13 @@
 from pathlib import Path
-import runpy
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
 marker='bridgepoint-v322-whole-system-ai-ui'
 if marker in body:
     print('BridgePoint whole-system AI v322 already applied.')
-    runpy.run_path('tool/apply_bridgepoint_network_v323.py',run_name='__main__')
-    runpy.run_path('tool/fix_bridgepoint_network_v323.py',run_name='__main__')
     raise SystemExit(0)
 
-if 'bridgepoint-v321-expansion-eta-radar-resilience' not in body:
+if 'bridgepoint-v321-resilience-expansion-eta-radar-map' not in body:
     raise SystemExit('v322 requires the verified v321 generated source')
 
 # Route the existing mature BridgePoint AI dialog through the governed v322 system-wide
@@ -89,5 +86,3 @@ elif "data['grounding_notice']" not in body:
 body += "\n// bridgepoint-v322-whole-system-ai-ui\n"
 path.write_text(body,encoding='utf-8')
 print(f'BridgePoint whole-system AI v322 UI applied; upgraded {count} legacy AI RPC call(s).')
-runpy.run_path('tool/apply_bridgepoint_network_v323.py',run_name='__main__')
-runpy.run_path('tool/fix_bridgepoint_network_v323.py',run_name='__main__')
