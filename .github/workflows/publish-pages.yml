@@ -1,0 +1,63 @@
+name: Publish BridgePoint Pages
+
+on:
+  workflow_run:
+    workflows: ["Flutter Web Release"]
+    types: [completed]
+
+concurrency:
+  group: bridgepoint-pages-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download audited Flutter web release
+        uses: actions/download-artifact@v4
+        with:
+          name: bridgepoint-flutter-web-review
+          path: site
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Verify production release marker
+        run: |
+          set -euo pipefail
+          test -s site/index.html
+          test -s site/bridgepoint-release.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          marker=json.loads(Path('site/bridgepoint-release.json').read_text(encoding='utf-8'))
+          if marker.get('public_origin')!='https://bridgepointintelligence.online/':
+              raise SystemExit(f"Unexpected public origin: {marker.get('public_origin')}")
+          if not marker.get('version'):
+              raise SystemExit('Release version is missing')
+          print('Publishing audited BridgePoint release',marker['version'])
+          PY
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload production Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publish BridgePoint Intelligence
+        id: deployment
+        uses: actions/deploy-pages@v4
