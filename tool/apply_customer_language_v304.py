@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import runpy
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -42,3 +43,7 @@ body += "\nconst String _bridgePointSemanticImmersiveCompileV309='bridgepoint-v3
 body += "\nconst String _bridgePointCustomerPlainLanguageV304='bridgepoint-v304-customer-plain-language | customer screens avoid internal version/backend vocabulary | owner technical detail preserved';\n"
 path.write_text(body,encoding='utf-8')
 print('Applied v309 immersive compile repair + v304 customer plain-language polish.')
+
+# v312 replaces the old diagram/grid animation with the cinematic parallax environment
+# on every release that passes through v304.
+runpy.run_path('tool/apply_cinematic_immersive_v312.py',run_name='__main__')
