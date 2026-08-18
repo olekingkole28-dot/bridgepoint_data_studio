@@ -104,6 +104,10 @@ jobs:
         run: python tool/apply_national_weather_spatial_v287.py
       - name: Add page-specific semantic immersive backgrounds
         run: python tool/apply_semantic_immersive_v290.py
+      - name: Polish customer-facing language
+        run: python tool/apply_customer_language_v304.py
+      - name: Run permanent final release audit
+        run: python tool/final_release_audit_v305.py
       - name: Capture final generated source for audit
         uses: actions/upload-artifact@v4
         with:
@@ -149,6 +153,7 @@ jobs:
               '_BridgePointNationwideWeatherV287','_bridgePointMapTouchLockV287','bp-us-radar-v287',
               '_BridgePointSpatialAtmospherePainterV287','bridgepoint-v290-semantic-immersive-backgrounds',
               '_BridgePointSemanticScenePainterV290','_bridgePointPageAccentV290',
+              'bridgepoint-v304-customer-plain-language','_bridgePointCustomerPlainLanguageV304',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
@@ -161,7 +166,7 @@ jobs:
             print('Missing guarded release markers:')
             for item in missing: print(' -',item)
             raise SystemExit(1)
-          print('All guarded v290 release markers are present.')
+          print('All guarded v305 release markers are present.')
           PY
           test -s web/bridgepoint-release.json
       - uses: subosito/flutter-action@v2
