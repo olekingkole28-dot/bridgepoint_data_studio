@@ -17,7 +17,8 @@ def forbid(label,*needles):
 require('release identity',
         'https://bridgepointintelligence.online/',
         'bridgepoint-v290-semantic-immersive-backgrounds',
-        'bridgepoint-v304-customer-plain-language')
+        'bridgepoint-v304-customer-plain-language',
+        'bridgepoint-v306-live-density-heat')
 
 require('immersive rendering',
         '_BridgePointSemanticScenePainterV290',
@@ -33,6 +34,15 @@ for label in [
 ]:
     if f"'{label}'" not in body:
         errors.append(f'immersive page map: missing page label {label}')
+
+require('live map layers',
+        '_showHeatmap',
+        'DENSITY HEAT',
+        "label:Text(_showHeatmap?'Density heat':'Heat'",
+        'MarkerLayer(markers:heatMarkers)',
+        'bridgepoint_live_clusters_v250',
+        'Center on my current location',
+        'NOAA LIVE RAIN RADAR • WEATHER MOTION')
 
 require('customer/owner boundary',
         '_effectiveOwnerMode',
@@ -73,7 +83,6 @@ for pat in empty_patterns:
     if re.search(pat,body,re.S):
         errors.append(f'interaction audit: empty/dead callback matched {pat}')
 
-# Prevent raw formulas/internal implementation details from re-entering customer evidence cards.
 require('customer-safe evidence', '_bridgePointCustomerSafeKey')
 
 if errors:
@@ -84,6 +93,7 @@ if errors:
 
 print('BRIDGEPOINT FINAL RELEASE AUDIT PASSED')
 print(' - page-specific immersive background contract present')
+print(' - live cluster/radar/location/density-heat map contract present')
 print(' - customer preview/no-charge and checkout gates present')
 print(' - customer-facing technical-version wording removed')
 print(' - accessibility/legal/privacy/customer-safe evidence contracts present')
