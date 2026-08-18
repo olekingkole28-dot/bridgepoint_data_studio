@@ -32,12 +32,12 @@ replacements=[
           final strength=(cluster['cluster_strength'] as num?)?.toDouble()??0;
           final state='${cluster['state']??'ACTIVE'}';
           final color=switch(state){'PEAK'=>AppTheme.red,'EMERGING'=>AppTheme.amber,'RECOVERY'=>AppTheme.blue,'HISTORICAL'=>AppTheme.textMuted,_=>AppTheme.green};
-          final intensity=((strength.clamp(0,100)/100)*.08+(count.clamp(1,40)/40)*.07+.035).clamp(.045,.18).toDouble();
-          final size=(70.0+count.clamp(1,40)*1.7+strength.clamp(0,100)*.45).clamp(76.0,190.0).toDouble();
+          final intensity=((strength.clamp(0,100)/100)*0.08+(count.clamp(1,40)/40)*0.07+0.035).clamp(0.045,0.18).toDouble();
+          final size=(70.0+count.clamp(1,40)*1.7+strength.clamp(0,100)*0.45).clamp(76.0,190.0).toDouble();
           heatMarkers.add(Marker(point:LatLng(lat,lng),width:size,height:size,child:IgnorePointer(child:Container(
             decoration:BoxDecoration(shape:BoxShape.circle,color:color.withOpacity(intensity),boxShadow:[
-              BoxShadow(color:color.withOpacity(intensity*.80),blurRadius:28,spreadRadius:14),
-              BoxShadow(color:color.withOpacity(intensity*.42),blurRadius:52,spreadRadius:26),
+              BoxShadow(color:color.withOpacity(intensity*0.80),blurRadius:28,spreadRadius:14),
+              BoxShadow(color:color.withOpacity(intensity*0.42),blurRadius:52,spreadRadius:26),
             ]),
           ))));
         }
@@ -48,8 +48,8 @@ replacements=[
 ""","""                    if(_showClusters&&liveClusters.isNotEmpty)const SizedBox(width:8),
                     if(_showHeatmap&&heatMarkers.isNotEmpty)Container(
                       padding:const EdgeInsets.symmetric(horizontal:9,vertical:5),
-                      decoration:BoxDecoration(color:AppTheme.red.withOpacity(.06),borderRadius:BorderRadius.circular(9),border:Border.all(color:AppTheme.red.withOpacity(.18))),
-                      child:const Text('DENSITY HEAT',style:TextStyle(color:AppTheme.red,fontSize:7.5,fontWeight:FontWeight.w900,letterSpacing:.4)),
+                      decoration:BoxDecoration(color:AppTheme.red.withOpacity(0.06),borderRadius:BorderRadius.circular(9),border:Border.all(color:AppTheme.red.withOpacity(0.18))),
+                      child:const Text('DENSITY HEAT',style:TextStyle(color:AppTheme.red,fontSize:7.5,fontWeight:FontWeight.w900,letterSpacing:0.4)),
                     ),
                     if(_showHeatmap&&heatMarkers.isNotEmpty)const SizedBox(width:8),
                     PopupMenuButton<String>(tooltip:'Choose visible intelligence',onSelected:(value)=>setState(()=>_visibleLayer=value),itemBuilder:(context)=>const [
@@ -72,9 +72,9 @@ replacements=[
                       avatar:Icon(Icons.blur_on_rounded,size:15,color:_showClusters?AppTheme.green:AppTheme.textMuted),
                       label:Text(_showClusters?'Live clusters':'Clusters',style:const TextStyle(fontSize:8.5,fontWeight:FontWeight.w800)),
                       onSelected:(value){setState(()=>_showClusters=value);_reload();},
-                      side:BorderSide(color:_showClusters?AppTheme.green.withOpacity(.30):Colors.white12),
+                      side:BorderSide(color:_showClusters?AppTheme.green.withOpacity(0.30):Colors.white12),
                       backgroundColor:AppTheme.panelSoft,
-                      selectedColor:AppTheme.green.withOpacity(.10),
+                      selectedColor:AppTheme.green.withOpacity(0.10),
                     ),
                     const SizedBox(width:7),
                     FilterChip(
@@ -83,9 +83,9 @@ replacements=[
                       avatar:Icon(Icons.local_fire_department_rounded,size:15,color:_showHeatmap?AppTheme.red:AppTheme.textMuted),
                       label:Text(_showHeatmap?'Density heat':'Heat',style:const TextStyle(fontSize:8.5,fontWeight:FontWeight.w800)),
                       onSelected:(value){setState(()=>_showHeatmap=value);_reload();},
-                      side:BorderSide(color:_showHeatmap?AppTheme.red.withOpacity(.30):Colors.white12),
+                      side:BorderSide(color:_showHeatmap?AppTheme.red.withOpacity(0.30):Colors.white12),
                       backgroundColor:AppTheme.panelSoft,
-                      selectedColor:AppTheme.red.withOpacity(.08),
+                      selectedColor:AppTheme.red.withOpacity(0.08),
                     ),
                     const SizedBox(width:8),
                     PopupMenuButton<double?>(
