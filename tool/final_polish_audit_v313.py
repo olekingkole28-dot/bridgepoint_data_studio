@@ -76,7 +76,8 @@ runpy.run_path('tool/fix_investor_room_script_v314.py',run_name='__main__')
 runpy.run_path('tool/apply_investor_room_v314.py',run_name='__main__')
 runpy.run_path('tool/investor_room_audit_v314.py',run_name='__main__')
 
-# V315 is the final customer-entry layer. It replaces the legacy one-answer recommender with
-# a catalog-aware questionnaire only after the DNA/final-polish and Investor Room layers pass.
+# V315 is the final customer-entry layer. Repair the founder action insertion so it is
+# independent of Row/Wrap layout, then replace the legacy recommender and audit the result.
+runpy.run_path('tool/fix_catalog_package_fit_anchor_v315.py',run_name='__main__')
 runpy.run_path('tool/apply_catalog_package_fit_v315.py',run_name='__main__')
 runpy.run_path('tool/package_fit_audit_v315.py',run_name='__main__')
