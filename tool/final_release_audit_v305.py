@@ -151,3 +151,7 @@ runpy.run_path('tool/apply_access_weather_v318.py',run_name='__main__')
 # v319 adds the owner-only all/top Pattern Intelligence operating view and repairs every
 # NOAA WMS radar renderer to use ISO time frames with preloaded, stronger precipitation motion.
 runpy.run_path('tool/apply_owner_patterns_radar_v319.py',run_name='__main__')
+
+# v320 adds source-failover/maintenance customer protection, unsupported-market handling,
+# and the owner-only resilience operating panel backed by automated health and credit ledgers.
+runpy.run_path('tool/apply_resilience_market_v320.py',run_name='__main__')
