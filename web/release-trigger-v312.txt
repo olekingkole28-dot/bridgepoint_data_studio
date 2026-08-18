@@ -1,0 +1,1 @@
+Validated production release trigger: cinematic v312 backgrounds + v310 install onboarding + v306 density heat + v311 Daily Brief backend optimization. 2026-08-18
