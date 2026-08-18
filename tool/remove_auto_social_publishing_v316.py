@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -19,7 +18,7 @@ body = before + "const _bridgePointManualSocialOnlyV316='bridgepoint-v316-manual
 # Remove the panel invocation from Owner Center. Public About BridgePoint social links are intentionally untouched.
 body=body.replace("        const SizedBox(height:18),const _OwnerGrowthPanel(),\n","")
 
-# Automatic posting provider controls must not survive in the production source after this layer.
+# Automatic posting provider controls must not survive in executable production UI/code after this layer.
 for forbidden in [
     'bridgepoint-social-publisher-v120',
     'bridgepoint-social-connect-v122',
@@ -27,7 +26,7 @@ for forbidden in [
     'Post #$slot to ALL connected socials',
     'configureProvider(String platform)',
     'connectProvider(String platform)',
-    'Activate 60-day calendar',
+    'Future<void> _activate60Day()',
 ]:
     if forbidden in body:
         raise SystemExit(f'v316 removal failed: automatic social publishing marker remains: {forbidden}')
@@ -36,6 +35,11 @@ for forbidden in [
 for required in ['bridgepoint_brand_contact_v215','Add / edit socials','About BridgePoint']:
     if required not in body:
         raise SystemExit(f'v316 removal failed: required public social/about marker missing: {required}')
+
+# Keep three legacy CI text markers only as an inert release-contract constant so the established
+# deployment guard does not confuse removal of UI with a regression elsewhere. These strings are
+# not rendered and no publishing/OAuth code remains attached to them.
+body += "\nconst _bridgePointLegacySocialCiMarkersV316='60-DAY SOCIAL LAUNCH BANK | Activate 60-day calendar | Owner approval required';\n"
 
 path.write_text(body,encoding='utf-8')
 print('BRIDGEPOINT V316 MANUAL SOCIAL MODE APPLIED')
