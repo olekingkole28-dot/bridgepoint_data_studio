@@ -1,0 +1,1 @@
+CI-only validation marker for the final BridgePoint v312 cinematic background + v310 install onboarding + v306 map heat release.
