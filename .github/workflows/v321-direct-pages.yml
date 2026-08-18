@@ -1,5 +1,6 @@
 name: BridgePoint v321 Direct Pages Recovery
 
+# Explicit second push trigger after the workflow became present on main.
 on:
   workflow_dispatch:
   push:
