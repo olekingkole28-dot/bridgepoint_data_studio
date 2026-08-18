@@ -8,6 +8,7 @@ if marker in body:
     print('BridgePoint Network v323 repair already applied.')
     runpy.run_path('tool/apply_bridgepoint_network_safety_controls_v323.py',run_name='__main__')
     runpy.run_path('tool/apply_bridgepoint_network_owner_moderation_v323.py',run_name='__main__')
+    runpy.run_path('tool/audit_bridgepoint_network_v323.py',run_name='__main__')
     raise SystemExit(0)
 if 'bridgepoint-v323-network-ui' not in body:
     raise SystemExit('v323 Network UI must run before repair')
@@ -36,3 +37,4 @@ path.write_text(body,encoding='utf-8')
 print('Repaired v323 message bubbles and failed-media draft cleanup.')
 runpy.run_path('tool/apply_bridgepoint_network_safety_controls_v323.py',run_name='__main__')
 runpy.run_path('tool/apply_bridgepoint_network_owner_moderation_v323.py',run_name='__main__')
+runpy.run_path('tool/audit_bridgepoint_network_v323.py',run_name='__main__')
