@@ -5,8 +5,10 @@ required=[
     'bridgepoint-v323-network-ui',
     'bridgepoint-v323-network-ui-repair',
     'bridgepoint-v323-network-safety-controls',
+    'bridgepoint-v323-network-generated-compile-repair',
     'bridgepoint-v323-owner-moderation-ui',
     "package:file_picker/file_picker.dart",
+    "FilePicker.pickFiles(",
     "bridgepoint_network_profile_v323",
     "bridgepoint_network_feed_v323",
     "bridgepoint_network_people_v323",
@@ -29,6 +31,7 @@ for needle in required:
         raise SystemExit(f'v323 Network release marker missing: {needle}')
 
 for forbidden in [
+    'FilePicker.platform.pickFiles(',
     'withOpacity(mine?.12:.82)',
     'withOpacity(mine?.18:.06)',
 ]:
@@ -47,6 +50,7 @@ if "for(final action in actions)TextButton.icon" not in body:
 
 print('BRIDGEPOINT V323 NETWORK RELEASE AUDIT PASSED')
 print(' - professional Network feed/profile/friends/messages/comments/reactions present')
+print(' - file_picker 11 static API and balanced People/Chat widgets verified')
 print(' - media upload is quarantined pending owner moderation')
 print(' - post/comment/message/profile report controls present')
 print(' - member block flow is explicit and confirmed')
