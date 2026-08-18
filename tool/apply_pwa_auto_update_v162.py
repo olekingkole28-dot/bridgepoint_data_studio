@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 path=Path('web/index.html')
 text=path.read_text(encoding='utf-8')
@@ -31,3 +32,6 @@ if text==original:
     raise SystemExit('No PWA auto-update changes applied')
 path.write_text(text,encoding='utf-8')
 print('Applied installed-app automatic update runtime v162')
+
+# The install guide must be part of every release that receives the PWA runtime.
+runpy.run_path('tool/apply_pwa_install_onboarding_v310.py',run_name='__main__')
