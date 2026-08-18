@@ -14,3 +14,8 @@ if marker not in body:
     print('Preserved legacy v320 market guard marker without changing v321 runtime behavior.')
 else:
     print('Legacy v320 market guard marker already present.')
+
+# v322 upgrades the visible BridgePoint AI from property-only/package-aware answers to the
+# permission-governed whole-system contract. The patch is hash-guarded against the exact
+# generated v321 source that passed production CI.
+runpy.run_path('tool/apply_whole_system_ai_v322.py',run_name='__main__')
