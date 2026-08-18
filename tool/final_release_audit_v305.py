@@ -1,12 +1,20 @@
 from pathlib import Path
+import json
 import re
 
 body=Path('lib/main.dart').read_text(encoding='utf-8')
+web=Path('web/index.html').read_text(encoding='utf-8')
+manifest=json.loads(Path('web/manifest.json').read_text(encoding='utf-8'))
 errors=[]
 
 def require(label,*needles):
     for needle in needles:
         if needle not in body:
+            errors.append(f'{label}: missing {needle}')
+
+def require_web(label,*needles):
+    for needle in needles:
+        if needle not in web:
             errors.append(f'{label}: missing {needle}')
 
 def forbid(label,*needles):
@@ -17,6 +25,7 @@ def forbid(label,*needles):
 require('release identity',
         'https://bridgepointintelligence.online/',
         'bridgepoint-v290-semantic-immersive-backgrounds',
+        'bridgepoint-v309-semantic-immersive-compile',
         'bridgepoint-v304-customer-plain-language',
         'bridgepoint-v306-live-density-heat')
 
@@ -67,6 +76,22 @@ require('launch-critical customer workflows',
         'Center on my current location','Property Image History','Add / update front photo',
         'BridgePoint Community Chat','Show more plans','Sign out')
 
+require_web('automatic app install onboarding',
+            'bridgepoint-v310-install-onboarding',
+            'bridgepoint_app_installed_v310',
+            'beforeinstallprompt',
+            'appinstalled',
+            '(display-mode: standalone)',
+            'hasAuthSession',
+            'Install BridgePoint',
+            'Add to Home Screen',
+            'bridgePointShowInstallGuide')
+
+if manifest.get('display')!='standalone':
+    errors.append(f"pwa manifest: display must be standalone, found {manifest.get('display')!r}")
+if not manifest.get('name') or not manifest.get('icons'):
+    errors.append('pwa manifest: app name/icons missing')
+
 forbid('plain-language customer polish',
        'BridgePoint V81 uses negative scoring',
        'V36 compound property intelligence',
@@ -94,6 +119,7 @@ if errors:
 print('BRIDGEPOINT FINAL RELEASE AUDIT PASSED')
 print(' - page-specific immersive background contract present')
 print(' - live cluster/radar/location/density-heat map contract present')
+print(' - automatic signed-in app-install onboarding present for PWA-capable browsers and iOS/Android fallbacks')
 print(' - customer preview/no-charge and checkout gates present')
 print(' - customer-facing technical-version wording removed')
 print(' - accessibility/legal/privacy/customer-safe evidence contracts present')
