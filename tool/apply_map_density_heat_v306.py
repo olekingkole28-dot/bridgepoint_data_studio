@@ -43,58 +43,58 @@ replacements=[
         }
         if(_showClusters)for(final cluster in liveClusters.take(_compactMapV218?90:180)){
 """),
-("""                     if(_showClusters&&liveClusters.isNotEmpty)const SizedBox(width:8),
-                     PopupMenuButton<String>(tooltip:'Choose visible intelligence',onSelected:(value)=>setState(()=>_visibleLayer=value),itemBuilder:(context)=>const [
-""","""                     if(_showClusters&&liveClusters.isNotEmpty)const SizedBox(width:8),
-                     if(_showHeatmap&&heatMarkers.isNotEmpty)Container(
-                       padding:const EdgeInsets.symmetric(horizontal:9,vertical:5),
-                       decoration:BoxDecoration(color:AppTheme.red.withOpacity(.06),borderRadius:BorderRadius.circular(9),border:Border.all(color:AppTheme.red.withOpacity(.18))),
-                       child:const Text('DENSITY HEAT',style:TextStyle(color:AppTheme.red,fontSize:7.5,fontWeight:FontWeight.w900,letterSpacing:.4)),
-                     ),
-                     if(_showHeatmap&&heatMarkers.isNotEmpty)const SizedBox(width:8),
-                     PopupMenuButton<String>(tooltip:'Choose visible intelligence',onSelected:(value)=>setState(()=>_visibleLayer=value),itemBuilder:(context)=>const [
+("""                    if(_showClusters&&liveClusters.isNotEmpty)const SizedBox(width:8),
+                    PopupMenuButton<String>(tooltip:'Choose visible intelligence',onSelected:(value)=>setState(()=>_visibleLayer=value),itemBuilder:(context)=>const [
+""","""                    if(_showClusters&&liveClusters.isNotEmpty)const SizedBox(width:8),
+                    if(_showHeatmap&&heatMarkers.isNotEmpty)Container(
+                      padding:const EdgeInsets.symmetric(horizontal:9,vertical:5),
+                      decoration:BoxDecoration(color:AppTheme.red.withOpacity(.06),borderRadius:BorderRadius.circular(9),border:Border.all(color:AppTheme.red.withOpacity(.18))),
+                      child:const Text('DENSITY HEAT',style:TextStyle(color:AppTheme.red,fontSize:7.5,fontWeight:FontWeight.w900,letterSpacing:.4)),
+                    ),
+                    if(_showHeatmap&&heatMarkers.isNotEmpty)const SizedBox(width:8),
+                    PopupMenuButton<String>(tooltip:'Choose visible intelligence',onSelected:(value)=>setState(()=>_visibleLayer=value),itemBuilder:(context)=>const [
 """),
-("""                     FilterChip(
-                       selected:_showClusters,
-                       showCheckmark:false,
-                       avatar:Icon(Icons.blur_on_rounded,size:15,color:_showClusters?AppTheme.green:AppTheme.textMuted),
-                       label:Text(_showClusters?'Live clusters':'Clusters',style:const TextStyle(fontSize:8.5,fontWeight:FontWeight.w800)),
-                       onSelected:(value){setState(()=>_showClusters=value);_reload();},
-                       side:BorderSide(color:_showClusters?AppTheme.green.withOpacity(.30):Colors.white12),
-                       backgroundColor:AppTheme.panelSoft,
-                       selectedColor:AppTheme.green.withOpacity(.10),
-                     ),
-                     const SizedBox(width:8),
-                     PopupMenuButton<double?>(
-""","""                     FilterChip(
-                       selected:_showClusters,
-                       showCheckmark:false,
-                       avatar:Icon(Icons.blur_on_rounded,size:15,color:_showClusters?AppTheme.green:AppTheme.textMuted),
-                       label:Text(_showClusters?'Live clusters':'Clusters',style:const TextStyle(fontSize:8.5,fontWeight:FontWeight.w800)),
-                       onSelected:(value){setState(()=>_showClusters=value);_reload();},
-                       side:BorderSide(color:_showClusters?AppTheme.green.withOpacity(.30):Colors.white12),
-                       backgroundColor:AppTheme.panelSoft,
-                       selectedColor:AppTheme.green.withOpacity(.10),
-                     ),
-                     const SizedBox(width:7),
-                     FilterChip(
-                       selected:_showHeatmap,
-                       showCheckmark:false,
-                       avatar:Icon(Icons.local_fire_department_rounded,size:15,color:_showHeatmap?AppTheme.red:AppTheme.textMuted),
-                       label:Text(_showHeatmap?'Density heat':'Heat',style:const TextStyle(fontSize:8.5,fontWeight:FontWeight.w800)),
-                       onSelected:(value){setState(()=>_showHeatmap=value);_reload();},
-                       side:BorderSide(color:_showHeatmap?AppTheme.red.withOpacity(.30):Colors.white12),
-                       backgroundColor:AppTheme.panelSoft,
-                       selectedColor:AppTheme.red.withOpacity(.08),
-                     ),
-                     const SizedBox(width:8),
-                     PopupMenuButton<double?>(
+("""                    FilterChip(
+                      selected:_showClusters,
+                      showCheckmark:false,
+                      avatar:Icon(Icons.blur_on_rounded,size:15,color:_showClusters?AppTheme.green:AppTheme.textMuted),
+                      label:Text(_showClusters?'Live clusters':'Clusters',style:const TextStyle(fontSize:8.5,fontWeight:FontWeight.w800)),
+                      onSelected:(value){setState(()=>_showClusters=value);_reload();},
+                      side:BorderSide(color:_showClusters?AppTheme.green.withOpacity(.30):Colors.white12),
+                      backgroundColor:AppTheme.panelSoft,
+                      selectedColor:AppTheme.green.withOpacity(.10),
+                    ),
+                    const SizedBox(width:8),
+                    PopupMenuButton<double?>(
+""","""                    FilterChip(
+                      selected:_showClusters,
+                      showCheckmark:false,
+                      avatar:Icon(Icons.blur_on_rounded,size:15,color:_showClusters?AppTheme.green:AppTheme.textMuted),
+                      label:Text(_showClusters?'Live clusters':'Clusters',style:const TextStyle(fontSize:8.5,fontWeight:FontWeight.w800)),
+                      onSelected:(value){setState(()=>_showClusters=value);_reload();},
+                      side:BorderSide(color:_showClusters?AppTheme.green.withOpacity(.30):Colors.white12),
+                      backgroundColor:AppTheme.panelSoft,
+                      selectedColor:AppTheme.green.withOpacity(.10),
+                    ),
+                    const SizedBox(width:7),
+                    FilterChip(
+                      selected:_showHeatmap,
+                      showCheckmark:false,
+                      avatar:Icon(Icons.local_fire_department_rounded,size:15,color:_showHeatmap?AppTheme.red:AppTheme.textMuted),
+                      label:Text(_showHeatmap?'Density heat':'Heat',style:const TextStyle(fontSize:8.5,fontWeight:FontWeight.w800)),
+                      onSelected:(value){setState(()=>_showHeatmap=value);_reload();},
+                      side:BorderSide(color:_showHeatmap?AppTheme.red.withOpacity(.30):Colors.white12),
+                      backgroundColor:AppTheme.panelSoft,
+                      selectedColor:AppTheme.red.withOpacity(.08),
+                    ),
+                    const SizedBox(width:8),
+                    PopupMenuButton<double?>(
 """),
-("""                           if(_displayPreferences.value.mapBaseStyle=='satellite')TileLayer(urlTemplate:_bridgePointLabelMapUrl(),userAgentPackageName:'com.bridgepoint.data_studio'),
-                           MarkerLayer(markers: markers),
-""","""                           if(_displayPreferences.value.mapBaseStyle=='satellite')TileLayer(urlTemplate:_bridgePointLabelMapUrl(),userAgentPackageName:'com.bridgepoint.data_studio'),
-                           if(_showHeatmap&&heatMarkers.isNotEmpty)MarkerLayer(markers:heatMarkers),
-                           MarkerLayer(markers: markers),
+("""                          if(_displayPreferences.value.mapBaseStyle=='satellite')TileLayer(urlTemplate:_bridgePointLabelMapUrl(),userAgentPackageName:'com.bridgepoint.data_studio'),
+                          MarkerLayer(markers: markers),
+""","""                          if(_displayPreferences.value.mapBaseStyle=='satellite')TileLayer(urlTemplate:_bridgePointLabelMapUrl(),userAgentPackageName:'com.bridgepoint.data_studio'),
+                          if(_showHeatmap&&heatMarkers.isNotEmpty)MarkerLayer(markers:heatMarkers),
+                          MarkerLayer(markers: markers),
 """),
 ]
 
