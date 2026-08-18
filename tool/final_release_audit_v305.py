@@ -27,14 +27,26 @@ require('release identity',
         'bridgepoint-v290-semantic-immersive-backgrounds',
         'bridgepoint-v309-semantic-immersive-compile',
         'bridgepoint-v304-customer-plain-language',
-        'bridgepoint-v306-live-density-heat')
+        'bridgepoint-v306-live-density-heat',
+        'bridgepoint-v312-cinematic-parallax-background')
 
 require('immersive rendering',
-        '_BridgePointSemanticScenePainterV290',
+        '_BridgePointCinematicAtmosphereV312',
+        'painter:_BridgePointCinematicAtmosphereV312',
         '_bridgePointPageAccentV290',
         'scene:spec.scene',
         'panel.withOpacity(.90)',
-        'disableAnimations')
+        'disableAnimations',
+        'parallax terrain',
+        'atmospheric ribbons',
+        'depth particles')
+
+# The old page-specific technical diagrams may remain defined for backwards-safe source
+# compatibility, but they must not be the active animation renderer anymore.
+if 'CustomPaint(painter:_BridgePointSemanticScenePainterV290' in body:
+    errors.append('immersive rendering: old semantic diagram painter is still active')
+if 'CustomPaint(painter:_BridgePointSpatialAtmospherePainterV287' in body:
+    errors.append('immersive rendering: old spatial grid painter is still active')
 
 for label in [
     'Daily Brief','Opportunities','Intelligence Map','Properties','My Home','My Work','Field Mode',
@@ -117,7 +129,7 @@ if errors:
     raise SystemExit(1)
 
 print('BRIDGEPOINT FINAL RELEASE AUDIT PASSED')
-print(' - page-specific immersive background contract present')
+print(' - cinematic parallax background is the active workspace renderer')
 print(' - live cluster/radar/location/density-heat map contract present')
 print(' - automatic signed-in app-install onboarding present for PWA-capable browsers and iOS/Android fallbacks')
 print(' - customer preview/no-charge and checkout gates present')
