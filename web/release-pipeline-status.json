@@ -1,7 +1,7 @@
 {
   "status": "BUILD_COMPLETED",
-  "conclusion": "cancelled",
-  "completed_at": "2026-08-18T17:49:33.709782Z",
-  "source_workflow_run_id": 32167543288,
-  "source_sha": "acacebe47ec09c7f2045f0b39d193e644abfad9b"
+  "conclusion": "failure",
+  "completed_at": "2026-08-18T17:49:49.113432Z",
+  "source_workflow_run_id": 32167588366,
+  "source_sha": "de70c5913e0fd44c9a20804ff58dfda57207608a"
 }
