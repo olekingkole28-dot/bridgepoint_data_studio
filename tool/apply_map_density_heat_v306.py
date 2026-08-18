@@ -32,8 +32,8 @@ replacements=[
           final strength=(cluster['cluster_strength'] as num?)?.toDouble()??0;
           final state='${cluster['state']??'ACTIVE'}';
           final color=switch(state){'PEAK'=>AppTheme.red,'EMERGING'=>AppTheme.amber,'RECOVERY'=>AppTheme.blue,'HISTORICAL'=>AppTheme.textMuted,_=>AppTheme.green};
-          final intensity=((strength.clamp(0,100)/100)*.08+(count.clamp(1,40)/40)*.07+.035).clamp(.045,.18);
-          final size=(70.0+count.clamp(1,40)*1.7+strength.clamp(0,100)*.45).clamp(76.0,190.0);
+          final intensity=((strength.clamp(0,100)/100)*.08+(count.clamp(1,40)/40)*.07+.035).clamp(.045,.18).toDouble();
+          final size=(70.0+count.clamp(1,40)*1.7+strength.clamp(0,100)*.45).clamp(76.0,190.0).toDouble();
           heatMarkers.add(Marker(point:LatLng(lat,lng),width:size,height:size,child:IgnorePointer(child:Container(
             decoration:BoxDecoration(shape:BoxShape.circle,color:color.withOpacity(intensity),boxShadow:[
               BoxShadow(color:color.withOpacity(intensity*.80),blurRadius:28,spreadRadius:14),
