@@ -157,6 +157,10 @@ jobs:
               '_BridgePointSemanticScenePainterV290','_bridgePointPageAccentV290',
               'bridgepoint-v304-customer-plain-language','_bridgePointCustomerPlainLanguageV304',
               'bridgepoint-v306-live-density-heat','_bridgePointLiveDensityHeatV306','DENSITY HEAT',
+              'bridgepoint-v319-owner-pattern-intelligence + iso-wms-preloaded-radar + municipal-permit-live',
+              'bridgepoint-v320-resilience-market-guard-service-credit','bridgepoint-v320-unsupported-market-preview',
+              'bridgepoint-v320-owner-resilience-metrics','bridgepoint_public_system_status_v320',
+              'bridgepoint_user_market_context_v320','BridgePoint is temporarily unavailable',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
@@ -169,7 +173,7 @@ jobs:
             print('Missing guarded release markers:')
             for item in missing: print(' -',item)
             raise SystemExit(1)
-          print('All guarded v306 release markers are present.')
+          print('All guarded v320 release markers are present.')
           PY
           test -s web/bridgepoint-release.json
       - uses: subosito/flutter-action@v2
@@ -192,3 +196,92 @@ jobs:
           name: bridgepoint-flutter-web-review
           path: build/web
           retention-days: 14
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download audited release from this build
+        uses: actions/download-artifact@v4
+        with:
+          name: bridgepoint-flutter-web-review
+          path: site
+      - name: Verify exact release before production
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test -s site/index.html
+          test -s site/bridgepoint-release.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          marker=json.loads(Path('site/bridgepoint-release.json').read_text(encoding='utf-8'))
+          if marker.get('public_origin')!='https://bridgepointintelligence.online/':
+              raise SystemExit(f"Unexpected public origin: {marker.get('public_origin')}")
+          if marker.get('version')!=os.environ['EXPECTED_SHA']:
+              raise SystemExit(f"Artifact SHA {marker.get('version')} does not match {os.environ['EXPECTED_SHA']}")
+          print('Verified production artifact',marker['version'])
+          PY
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload production Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Publish BridgePoint Intelligence
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Checkout release repository for receipts
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: repo
+      - name: Record verified build and production deployment
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          marker=json.loads(Path('site/bridgepoint-release.json').read_text(encoding='utf-8'))
+          now=datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
+          release={
+              'status':'BUILD_COMPLETED','conclusion':'success','completed_at':now,
+              'source_workflow_run_id':int(os.environ['SOURCE_RUN_ID']),'source_sha':os.environ['SOURCE_SHA']
+          }
+          deployment={
+              'status':'PUBLISHED','version':marker['version'],'built_at':marker.get('built_at'),'deployed_at':now,
+              'public_origin':marker.get('public_origin'),'pages_url':os.environ['PAGE_URL'],
+              'source_workflow_run_id':int(os.environ['SOURCE_RUN_ID']),'source_sha':os.environ['SOURCE_SHA'],
+              'publisher':'GitHub Pages / same-workflow audited artifact'
+          }
+          Path('repo/web/release-pipeline-status.json').write_text(json.dumps(release,indent=2)+'\n',encoding='utf-8')
+          Path('repo/web/deployment-status.json').write_text(json.dumps(deployment,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(deployment,indent=2))
+          PY
+          cd repo
+          git config user.name "BridgePoint Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add web/release-pipeline-status.json web/deployment-status.json
+          if git diff --cached --quiet; then
+            echo "Deployment receipts already current."
+          else
+            git commit -m "Record BridgePoint production deployment [skip ci]"
+            git push origin HEAD:main
+          fi
