@@ -1,0 +1,4 @@
+BridgePoint v321 audited production trigger
+Created after PR #10 passed release audits, Flutter analyze, tests, and installable web build.
+Expected release: measured expansion ETAs, load-governed multistate queue, expanded geographic bundles, radar-first nationwide weather, and zoom-aware non-blocking expansion markers.
+Public origin: https://bridgepointintelligence.online/
