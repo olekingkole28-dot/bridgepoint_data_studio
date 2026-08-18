@@ -71,7 +71,8 @@ print(' - high-risk action rows and zoom controls wrap/stack instead of overlapp
 print(' - founder/profile/review changes refresh every 8 seconds while About is open and explicit edits refresh immediately')
 print(' - no legacy dashboard error copy, false expansion empty copy, guessed NOAA frame loop, old active background renderer or dead click handler remains')
 
-# V314 is additive. Only apply the fundraising layer after the full v313 product audit passes.
+# V314 is additive. Repair the generator delimiter first, then apply fundraising only after v313 passes.
+runpy.run_path('tool/fix_investor_room_script_v314.py',run_name='__main__')
 runpy.run_path('tool/apply_investor_room_v314.py',run_name='__main__')
 runpy.run_path('tool/investor_room_audit_v314.py',run_name='__main__')
 
