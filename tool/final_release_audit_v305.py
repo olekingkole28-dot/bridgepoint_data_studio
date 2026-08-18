@@ -156,4 +156,6 @@ runpy.run_path('tool/apply_owner_patterns_radar_v319.py',run_name='__main__')
 # v320 resilience/unsupported-market controls and adds measured expansion ETAs, compact
 # zoom-aware expansion markers, public build visibility, radar-first U.S. weather mode, and
 # owner resilience metrics directly on the exact known-good v319 output hash.
+runpy.run_path('tool/repair_v321_release_guard.py',run_name='__main__')
 runpy.run_path('tool/apply_resilience_expansion_radar_v321.py',run_name='__main__')
+runpy.run_path('tool/preserve_v320_market_guard_marker_v321.py',run_name='__main__')
