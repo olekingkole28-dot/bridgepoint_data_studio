@@ -31,9 +31,7 @@ require('section-aware errors','bridgepoint-v256-section-error-titles','Properti
 forbid('section-aware errors','Live dashboard could not load')
 
 require('BridgePoint AI','bridgepoint-v257-ai-search-ux','BridgePoint AI search could not load','Clear search','bridgepoint-v258-ai-voice-input','Talk to BridgePoint AI','bridgepoint-v263-package-aware-ai','bridgepoint_ai_answer_v262','Ask BridgePoint AI')
-
 require('front property contribution','bridgepoint-v267-front-property-photo','Add / update front photo','Submit for BridgePoint review')
-
 require('keyboard and readable time','bridgepoint-v269-global-keyboard-scroll','arrowDown','arrowUp','pageDown','pageUp','bridgepoint-v270-human-readable-times','Updated 9:03 PM')
 
 require('NOAA and Daily Brief','bridgepoint-v271-noaa-live-weather','Show United States live weather','latest NOAA precipitation radar','bridgepoint-v272-daily-brief-resilience','Daily Brief could not load','staggered retry','bridgepoint-v313-noaa-verified-frame-fallback','newest NOAA radar always renders without TIME','no guessed historical timestamps','animation waits for verified frames')
@@ -42,16 +40,14 @@ forbid('NOAA verified-frame fallback','return List.generate(25,(i)=>rounded.subt
 require('Community 3D behavior','bridgepoint-v273-community-3d-gesture-capture','EagerGestureRecognizer','map drag does not scroll page','bridgepoint-v279-community-3d-live-weather','rain animation','snow animation','two-minute cache','bridgepoint-v287-national-weather-spatial-background','_bridgePointMapTouchLockV287')
 
 require('owner operating system','bridgepoint-v265-simplified-owner-center','Growth & operations','Advanced admin','bridgepoint-v277-owner-investor-cockpit','bridgepoint_owner_investor_metrics_v275','presentation guidance','bridgepoint-v286-owner-system-explorer','class _OwnerSystemExplorerV286','raw owner drilldown','20 second refresh')
-
 require('owner outreach readiness','bridgepoint-v313-owner-outreach-readiness','class _OwnerOutreachReadinessV313','bridgepoint_owner_outreach_readiness_v313','Outreach Readiness','ESTIMATED READY POOL','HIGH-PRIORITY PROSPECTS','VERIFY + ENROLL','Apollo enrollment verification guardrail')
-
 require('customer preview and founder story','bridgepoint-v282-founder-story-reviews','Meet the Owner','Submit review','bridgepoint-v284-founder-reviews-customer-preview','CUSTOMER PREVIEW','Preview as customer','bridgepoint-v313-brand-live-refresh','Duration(seconds:8)')
 
 require('responsive prospect-ready UI','bridgepoint-v313-responsive-action-rows','dashboard actions wrap','preferences actions wrap','property filters wrap','social provider controls stack and wrap')
 forbid('responsive prospect-ready UI',
        "Row(children:[TextButton.icon(onPressed:saving?null:reset",
        "Row(children:[FilledButton.icon(onPressed:loading?null:_apply",
-       "return Row(children:[Expanded(child:_OwnerStatusRow(label,live?'CONNECTED':'NEEDS CONNECTION'")
+       "child:Row(children:[Expanded(child:_OwnerStatusRow(label,live?'CONNECTED':'NEEDS CONNECTION'")
 
 require('live map intelligence','bridgepoint-v306-live-density-heat','DENSITY HEAT','bridgepoint_live_clusters_v250')
 
