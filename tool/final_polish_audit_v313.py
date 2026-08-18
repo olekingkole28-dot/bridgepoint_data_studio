@@ -2,8 +2,9 @@ from pathlib import Path
 import re
 import runpy
 
-# Apply the near-live founder/profile/review refresh as part of the final owner polish.
+# Apply near-live founder/review refresh and the owner outreach readiness cockpit as part of final polish.
 runpy.run_path('tool/tighten_brand_live_refresh_v313.py',run_name='__main__')
+runpy.run_path('tool/apply_owner_outreach_readiness_v313.py',run_name='__main__')
 
 body=Path('lib/main.dart').read_text(encoding='utf-8')
 errors=[]
@@ -18,7 +19,6 @@ def forbid(label,*needles):
         if needle in body:
             errors.append(f'{label}: forbidden legacy text/renderer remains active: {needle}')
 
-# New v313 final-polish requirements.
 require('DNA tunnel background',
         'bridgepoint-v313-dna-data-tunnel-background',
         'class _BridgePointDnaTunnelV313',
@@ -26,8 +26,7 @@ require('DNA tunnel background',
         'electric blue DNA helix',
         'moving scan tunnel',
         'property evidence lanes')
-forbid('DNA tunnel background',
-       'painter:_BridgePointCinematicAtmosphereV312(t:controller.value')
+forbid('DNA tunnel background','painter:_BridgePointCinematicAtmosphereV312(t:controller.value')
 
 require('expansion resilience',
         'bridgepoint-v313-expansion-dual-source-resilience',
@@ -38,7 +37,6 @@ require('expansion resilience',
         'automatic state cards')
 forbid('expansion resilience','No state builds are currently in progress.')
 
-# Core customer-facing fixes requested during finalization.
 require('section-aware errors',
         'bridgepoint-v256-section-error-titles',
         'Properties could not load',
@@ -62,10 +60,7 @@ require('front property contribution',
 
 require('keyboard and readable time',
         'bridgepoint-v269-global-keyboard-scroll',
-        'arrowDown',
-        'arrowUp',
-        'pageDown',
-        'pageUp',
+        'arrowDown','arrowUp','pageDown','pageUp',
         'bridgepoint-v270-human-readable-times',
         'Updated 9:03 PM')
 
@@ -82,40 +77,42 @@ require('Community 3D behavior',
         'EagerGestureRecognizer',
         'map drag does not scroll page',
         'bridgepoint-v279-community-3d-live-weather',
-        'rain animation',
-        'snow animation',
-        'two-minute cache',
+        'rain animation','snow animation','two-minute cache',
         'bridgepoint-v287-national-weather-spatial-background',
         '_bridgePointMapTouchLockV287')
 
 require('owner operating system',
         'bridgepoint-v265-simplified-owner-center',
-        'Growth & operations',
-        'Advanced admin',
+        'Growth & operations','Advanced admin',
         'bridgepoint-v277-owner-investor-cockpit',
         'bridgepoint_owner_investor_metrics_v275',
         'presentation guidance',
         'bridgepoint-v286-owner-system-explorer',
         'class _OwnerSystemExplorerV286',
-        'raw owner drilldown',
-        '20 second refresh')
+        'raw owner drilldown','20 second refresh')
+
+require('owner outreach readiness',
+        'bridgepoint-v313-owner-outreach-readiness',
+        'class _OwnerOutreachReadinessV313',
+        'bridgepoint_owner_outreach_readiness_v313',
+        'Outreach Readiness',
+        'ESTIMATED READY POOL',
+        'HIGH-PRIORITY PROSPECTS',
+        'VERIFY + ENROLL',
+        'Apollo enrollment verification guardrail')
 
 require('customer preview and founder story',
         'bridgepoint-v282-founder-story-reviews',
-        'Meet the Owner',
-        'Submit review',
+        'Meet the Owner','Submit review',
         'bridgepoint-v284-founder-reviews-customer-preview',
-        'CUSTOMER PREVIEW',
-        'Preview as customer',
+        'CUSTOMER PREVIEW','Preview as customer',
         'bridgepoint-v313-brand-live-refresh',
         'Duration(seconds:8)')
 
 require('live map intelligence',
         'bridgepoint-v306-live-density-heat',
-        'DENSITY HEAT',
-        'bridgepoint_live_clusters_v250')
+        'DENSITY HEAT','bridgepoint_live_clusters_v250')
 
-# Prospect-blocking layout / interaction guard. These patterns are almost always accidental dead controls.
 empty_patterns=[
     r'onPressed\s*:\s*\(\)\s*\{\s*\}',
     r'onTap\s*:\s*\(\)\s*\{\s*\}',
@@ -128,15 +125,14 @@ for pat in empty_patterns:
 
 if errors:
     print('BRIDGEPOINT V313 FINAL POLISH AUDIT FAILED')
-    for item in errors:
-        print(' -',item)
+    for item in errors: print(' -',item)
     raise SystemExit(1)
 
 print('BRIDGEPOINT V313 FINAL POLISH AUDIT PASSED')
-print(' - electric-blue DNA/data tunnel is the active background renderer behind cards')
+print(' - electric-blue DNA/data tunnel is active behind cards')
 print(' - expansion active-build status has two independent owner-side sources')
 print(' - AI voice/package/clear UX, section errors, keyboard scrolling and readable times remain present')
 print(' - NOAA/Daily Brief/Community 3D weather and gesture repair contracts remain present')
-print(' - owner investor/system explorer, customer preview, founder/reviews and density heat remain present')
-print(' - founder/profile/review changes refresh every 8 seconds while the About page is open and explicit edits refresh immediately')
+print(' - owner investor/system explorer, outreach readiness, customer preview, founder/reviews and density heat remain present')
+print(' - founder/profile/review changes refresh every 8 seconds while About is open and explicit edits refresh immediately')
 print(' - no legacy dashboard error copy, false expansion empty copy, old active background renderer or dead click handler remains')
