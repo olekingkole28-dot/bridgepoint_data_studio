@@ -74,3 +74,8 @@ print(' - no legacy dashboard error copy, false expansion empty copy, guessed NO
 # V314 is additive. Only apply the fundraising layer after the full v313 product audit passes.
 runpy.run_path('tool/apply_investor_room_v314.py',run_name='__main__')
 runpy.run_path('tool/investor_room_audit_v314.py',run_name='__main__')
+
+# V315 is the final customer-entry layer. It replaces the legacy one-answer recommender with
+# a catalog-aware questionnaire only after the DNA/final-polish and Investor Room layers pass.
+runpy.run_path('tool/apply_catalog_package_fit_v315.py',run_name='__main__')
+runpy.run_path('tool/package_fit_audit_v315.py',run_name='__main__')
