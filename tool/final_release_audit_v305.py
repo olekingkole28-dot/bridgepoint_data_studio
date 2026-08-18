@@ -147,3 +147,7 @@ runpy.run_path('tool/remove_auto_social_publishing_v316.py',run_name='__main__')
 # v318 restores the timed-out launch-hardening work after the v316 manual-social layer:
 # package-exact customer navigation and moving NOAA precipitation/radar intensity context.
 runpy.run_path('tool/apply_access_weather_v318.py',run_name='__main__')
+
+# v319 adds the owner-only all/top Pattern Intelligence operating view and repairs every
+# NOAA WMS radar renderer to use ISO time frames with preloaded, stronger precipitation motion.
+runpy.run_path('tool/apply_owner_patterns_radar_v319.py',run_name='__main__')
