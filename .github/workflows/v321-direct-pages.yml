@@ -1,6 +1,6 @@
 name: BridgePoint v321 Direct Pages Recovery
 
-# Explicit second push trigger after the workflow became present on main.
+# Web-flow merge trigger: this workflow intentionally publishes the already-audited v321 artifact.
 on:
   workflow_dispatch:
   push:
