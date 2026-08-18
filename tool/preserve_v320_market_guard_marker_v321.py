@@ -1,4 +1,9 @@
 from pathlib import Path
+import runpy
+
+# The v321 generated source is hash-verified before this point. Repair only the isolated
+# zoom-aware expansion marker closure that Flutter analyze caught in PR CI.
+runpy.run_path('tool/fix_v321_map_compile.py',run_name='__main__')
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
