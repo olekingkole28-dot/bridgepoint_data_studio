@@ -1,0 +1,4 @@
+BridgePoint v320 audited release trigger
+Generated after consolidating build + GitHub Pages deployment into one workflow.
+Expected release layers: v319 owner Pattern Intelligence + NOAA radar repair + v320 resilience, unsupported-market guard, service-credit UI.
+Public origin: https://bridgepointintelligence.online/
