@@ -159,3 +159,8 @@ runpy.run_path('tool/apply_owner_patterns_radar_v319.py',run_name='__main__')
 runpy.run_path('tool/repair_v321_release_guard.py',run_name='__main__')
 runpy.run_path('tool/apply_resilience_expansion_radar_v321.py',run_name='__main__')
 runpy.run_path('tool/preserve_v320_market_guard_marker_v321.py',run_name='__main__')
+
+# v322 keeps the existing voice-enabled/property-aware AI surface but routes it through the
+# governed whole-system BridgePoint AI contract. Customers stay customer-safe; owner/co-owner
+# answers can use Owner Truth without exposing backend controls through package entitlements.
+runpy.run_path('tool/apply_whole_system_ai_v322.py',run_name='__main__')
