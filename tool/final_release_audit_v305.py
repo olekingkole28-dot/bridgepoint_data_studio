@@ -42,8 +42,6 @@ require('immersive rendering',
         'atmospheric ribbons',
         'depth particles')
 
-# The old page-specific technical diagrams may remain defined for backwards-safe source
-# compatibility, but they must not be the active animation renderer anymore.
 if 'CustomPaint(painter:_BridgePointSemanticScenePainterV290' in body:
     errors.append('immersive rendering: old semantic diagram painter is still active')
 if 'CustomPaint(painter:_BridgePointSpatialAtmospherePainterV287' in body:
@@ -138,9 +136,6 @@ print(' - customer-facing technical-version wording removed')
 print(' - accessibility/legal/privacy/customer-safe evidence contracts present')
 print(' - no empty click handlers detected')
 
-# The v305 audit proves the established v312 baseline first. Only after that baseline is
-# known-good do we apply the owner's final-polish layer. This keeps v313 additive and makes
-# regressions obvious instead of allowing a new background/owner patch to hide an older failure.
 runpy.run_path('tool/fix_owner_expansion_resilience_v313.py',run_name='__main__')
 runpy.run_path('tool/apply_dna_tunnel_background_v313.py',run_name='__main__')
 runpy.run_path('tool/final_polish_audit_v313.py',run_name='__main__')
@@ -148,3 +143,7 @@ runpy.run_path('tool/final_polish_audit_v313.py',run_name='__main__')
 # Owner chose manual social posting. Preserve About/profile links but remove all automatic
 # provider connection, OAuth and publishing controls from the final generated production source.
 runpy.run_path('tool/remove_auto_social_publishing_v316.py',run_name='__main__')
+
+# v318 restores the timed-out launch-hardening work after the v316 manual-social layer:
+# package-exact customer navigation and moving NOAA precipitation/radar intensity context.
+runpy.run_path('tool/apply_access_weather_v318.py',run_name='__main__')
