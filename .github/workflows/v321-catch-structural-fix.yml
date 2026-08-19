@@ -1,0 +1,63 @@
+name: Make v321 NOAA catch repair structural
+
+on:
+  push:
+    branches: [mobile-v325-release-compat]
+    paths:
+      - '.github/workflows/v321-catch-structural-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile-v325-release-compat
+      - shell: python
+        run: |
+          from pathlib import Path
+          p=Path('tool/repair_v321_responsive_generated.py')
+          s=p.read_text()
+          start=s.index('desired_catch=')
+          end=s.index('\n# ---------------------------------------------------------------------------\n# Conflict 2:',start)
+          replacement=r'''desired_catch="catch(_){if(mounted)setState((){_weatherAllowedV318=true;_noaaRadarFramesV271=<DateTime>[];_radarFrameIndex=0;_radarRevision++;});}"
+          if desired_catch not in segment:
+              catches=list(re.finditer(r'catch\s*\(_\)\s*\{',segment))
+              if not catches:
+                  raise SystemExit('v321 repair: NOAA loader catch missing')
+              match=catches[-1]
+              catch_start=match.start()
+              catch_open=segment.find('{',match.start())
+              depth=0;quote=None;escaped=False;catch_end=None
+              for i in range(catch_open,len(segment)):
+                  ch=segment[i]
+                  if quote is not None:
+                      if escaped: escaped=False
+                      elif ch=='\\': escaped=True
+                      elif ch==quote: quote=None
+                      continue
+                  if ch in ("'",'\"'):
+                      quote=ch;continue
+                  if ch=='{': depth+=1
+                  elif ch=='}':
+                      depth-=1
+                      if depth==0:
+                          catch_end=i+1
+                          break
+              if catch_end is None:
+                  raise SystemExit('v321 repair: NOAA loader catch did not balance')
+              segment=segment[:catch_start]+desired_catch+segment[catch_end:]
+              body=body[:fn_start]+segment+body[fn_end:]
+          '''.replace('\n          ','\n').rstrip()+"\n"
+          s=s[:start]+replacement+s[end:]
+          p.write_text(s)
+          Path('.github/workflows/v321-catch-structural-fix.yml').unlink()
+      - run: |
+          git config user.name 'BridgePoint Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Replace NOAA loader catch structurally for v321'
+          git push origin HEAD:mobile-v325-release-compat
