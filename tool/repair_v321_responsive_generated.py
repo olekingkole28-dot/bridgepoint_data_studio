@@ -169,9 +169,13 @@ if 'U.S. precipitation radar on • expansion badges hidden so the radar stays c
         control=control[:notice_start]+desired_notice+control[notice_end+1:]
     else:
         load_call='unawaited(_loadNoaaRadarFramesV271());'
-        if load_call not in control:
-            raise SystemExit('v321 repair: U.S. radar load call missing for snackbar insertion')
-        control=control.replace(load_call,load_call+desired_notice,1)
+        if load_call in control:
+            control=control.replace(load_call,load_call+desired_notice,1)
+        else:
+            state_call="setState((){_showRadar=true;_showClouds=false;_showExpansion=false;_radarPlaying=true;_radarFrameIndex=_radarFrames.length-1;_radarRevision++;_viewportZoom=4.2;});"
+            if state_call not in control:
+                raise SystemExit('v321 repair: radar-first state call missing for snackbar insertion')
+            control=control.replace(state_call,state_call+desired_notice,1)
 if '_showClouds=false' not in control or '_showExpansion=false' not in control:
     raise SystemExit('v321 repair: U.S. radar control did not become radar-first')
 if 'U.S. precipitation radar on • expansion badges hidden so the radar stays clear.' not in control:
