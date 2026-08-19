@@ -1,1 +1,1 @@
-Full production-chain retest after v284 owner-only package mapping compatibility repair. Retry 4.
+Full production-chain retest after v313 already-responsive property action compatibility repair. Retry 5.
