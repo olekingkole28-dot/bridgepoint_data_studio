@@ -115,31 +115,31 @@ text=text[:start]+page+text[end:]
 text=text.replace("final yearBuilt = property['year_built'];", "final yearBuilt = property['year_built'];\n    final stateCode=(property['state_code']??'').toString();\n    final owner=(property['current_owner_name']??'').toString().trim();\n    final ownerStatus=(property['owner_record_status']??'UNKNOWN').toString();",1)
 text=text.replace("? '$municipality, CT • $parcel'\n          : address;", "? '$municipality${stateCode.isEmpty?'':', $stateCode'} • $parcel'\n          : address;",1)
 
-old_identity="""                        Text([municipality, if (county.isNotEmpty) '$county County', parcel].join(' • '), maxLines: compact ? 2 : 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textMuted, fontSize: 9, height: 1.35)),
+old_identity="""              Text([municipality, if (county.isNotEmpty) '$county County', parcel].join(' • '), maxLines: compact ? 2 : 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textMuted, fontSize: 9, height: 1.35)),
 """
-new_identity="""                        Text([municipality, if (county.isNotEmpty) '$county County', if(stateCode.isNotEmpty) stateCode, parcel].join(' • '), maxLines: compact ? 2 : 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textMuted, fontSize: 9, height: 1.35)),
+new_identity="""              Text([municipality, if (county.isNotEmpty) '$county County', if(stateCode.isNotEmpty) stateCode, parcel].join(' • '), maxLines: compact ? 2 : 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textMuted, fontSize: 9, height: 1.35)),
 """
 if old_identity not in text:
     raise SystemExit('responsive property identity marker missing')
 text=text.replace(old_identity,new_identity,1)
 
-chips_start="""      final chips = <Widget>[
+chips_start="""    final chips = <Widget>[
         _OpportunityChip(label: type, color: AppTheme.blue),
 """
 if chips_start not in text:
     raise SystemExit('responsive property chips marker missing')
-chip_owner="""      final chips = <Widget>[
+chip_owner="""    final chips = <Widget>[
         _OpportunityChip(label: type, color: AppTheme.blue),
         _OpportunityChip(label:ownerStatus=='CURRENT'?'OWNER VERIFIED':'OWNER $ownerStatus',color:ownerStatus=='CURRENT'?AppTheme.green:AppTheme.textMuted),
 """
 text=text.replace(chips_start,chip_owner,1)
 
-facts_old="""      final facts = [
+facts_old="""    final facts = [
         if (yearBuilt != null) 'Built $yearBuilt',
         if (assessed != null) '\$${_formatInteger(assessed)} assessed',
       ];
 """
-facts_new="""      final facts = [
+facts_new="""    final facts = [
         if(owner.isNotEmpty) owner else 'Recorded owner unavailable',
         if (yearBuilt != null) 'Built $yearBuilt',
         if (assessed != null) '\$${_formatInteger(assessed)} assessed',
