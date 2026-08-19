@@ -1,0 +1,39 @@
+name: Repair v188 inner whitespace matchers
+
+on:
+  push:
+    branches: [mobile-v325-release-compat]
+    paths:
+      - '.github/workflows/v188-inner-marker-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile-v325-release-compat
+      - shell: python
+        run: |
+          from pathlib import Path
+          p=Path('tool/apply_multistate_owner_ui_v188.py')
+          s=p.read_text()
+          s=s.replace("chips_start=\"\"\"    final chips = <Widget>[\n        _OpportunityChip", "chips_start=\"\"\"    final chips = <Widget>[\n      _OpportunityChip")
+          s=s.replace("chip_owner=\"\"\"    final chips = <Widget>[\n        _OpportunityChip", "chip_owner=\"\"\"    final chips = <Widget>[\n      _OpportunityChip")
+          s=s.replace("color: AppTheme.blue),\n        _OpportunityChip(label:ownerStatus", "color: AppTheme.blue),\n      _OpportunityChip(label:ownerStatus")
+          s=s.replace("facts_old=\"\"\"    final facts = [\n        if (yearBuilt", "facts_old=\"\"\"    final facts = [\n      if (yearBuilt")
+          s=s.replace("facts_new=\"\"\"    final facts = [\n        if(owner.isNotEmpty)", "facts_new=\"\"\"    final facts = [\n      if(owner.isNotEmpty)")
+          s=s.replace("owner else 'Recorded owner unavailable',\n        if (yearBuilt", "owner else 'Recorded owner unavailable',\n      if (yearBuilt")
+          s=s.replace("'Built $yearBuilt',\n        if (assessed", "'Built $yearBuilt',\n      if (assessed")
+          s=s.replace("assessed',\n      ];", "assessed',\n    ];")
+          p.write_text(s)
+          Path('.github/workflows/v188-inner-marker-fix.yml').unlink()
+      - run: |
+          git config user.name 'BridgePoint Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Remove v188 inner indentation assumptions'
+          git push origin HEAD:mobile-v325-release-compat
