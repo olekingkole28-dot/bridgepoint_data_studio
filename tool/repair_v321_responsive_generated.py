@@ -46,23 +46,22 @@ if desired_catch not in segment:
     for i in range(catch_open,len(segment)):
         ch=segment[i]
         if quote is not None:
-  if escaped: escaped=False
-  elif ch=='\\': escaped=True
-  elif ch==quote: quote=None
-  continue
+            if escaped: escaped=False
+            elif ch=='\\': escaped=True
+            elif ch==quote: quote=None
+            continue
         if ch in ("'",'\"'):
-  quote=ch;continue
+            quote=ch;continue
         if ch=='{': depth+=1
         elif ch=='}':
-  depth-=1
-  if depth==0:
-      catch_end=i+1
-      break
+            depth-=1
+            if depth==0:
+                catch_end=i+1
+                break
     if catch_end is None:
         raise SystemExit('v321 repair: NOAA loader catch did not balance')
     segment=segment[:catch_start]+desired_catch+segment[catch_end:]
     body=body[:fn_start]+segment+body[fn_end:]
-
 # ---------------------------------------------------------------------------
 # Conflict 2: strengthen the primary Intelligence Map precipitation overlay.
 # Find the map TileLayer by its noaa-radar ValueKey, then wrap it in opacity and
