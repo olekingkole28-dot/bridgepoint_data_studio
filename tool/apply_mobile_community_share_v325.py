@@ -148,26 +148,33 @@ if start<0 or end<0:
     raise SystemExit('v325 Intelligence Map block missing')
 intel=body[start:end]
 
-time_getter="""  Map<String,String> get _radarTimeParametersV271=>_radarIsLatestV271
-      ? const <String,String>{}
-      : <String,String>{'TIME':'${_radarFrame.toUtc().millisecondsSinceEpoch}'};
-"""
-time_getter_new=time_getter+"""  String get _radarWmsBaseV325=>_radarIsLatestV271
-      ? 'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity/MapServer/WMSServer?_bp=$_radarRevision&'
-      : 'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?_bp=$_radarRevision&';
-"""
-if time_getter in intel:
-    intel=intel.replace(time_getter,time_getter_new,1)
-elif '_radarWmsBaseV325' not in intel:
-    raise SystemExit('v325 radar time getter anchor missing')
-
-legacy="baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?_bp=$_radarRevision&'"
-count=intel.count(legacy)
-if count:
-    intel=intel.replace(legacy,"baseUrl:_radarWmsBaseV325")
-elif 'baseUrl:_radarWmsBaseV325' not in intel:
-    raise SystemExit('v325 Intelligence Map NOAA WMS renderer missing')
-
+# Patch only the primary Intelligence Map radar TileLayer. Historical/preloaded
+# verified frames keep the time-enabled ImageServer; the newest/current frame uses
+# NOAA's symbolized current base-reflectivity MapServer so real reflectivity colors
+# are visible over the satellite basemap.
+primary_key="key:ValueKey('noaa-radar-$_radarRevision-${_radarFrame.toIso8601String()}')"
+key_idx=intel.find(primary_key)
+if key_idx<0:
+    raise SystemExit('v325 primary Intelligence Map radar key missing')
+tile_start=intel.rfind('TileLayer(',0,key_idx)
+if tile_start<0 or key_idx-tile_start>260:
+    raise SystemExit('v325 primary Intelligence Map radar TileLayer start missing')
+tile_end_marker="userAgentPackageName:'com.bridgepoint.data_studio'"
+tile_end=intel.find(tile_end_marker,key_idx)
+if tile_end<0:
+    raise SystemExit('v325 primary Intelligence Map radar TileLayer end marker missing')
+tile_segment=intel[tile_start:tile_end+len(tile_end_marker)]
+historical_url="https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?_bp=$_radarRevision&"
+current_url="https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity/MapServer/WMSServer?_bp=$_radarRevision&"
+if current_url not in tile_segment:
+    old_base="baseUrl:'"+historical_url+"'"
+    if old_base not in tile_segment:
+        raise SystemExit('v325 primary radar WMS base URL missing')
+    new_base="baseUrl:_radarIsLatestV271?'"+current_url+"':'"+historical_url+"'"
+    tile_segment=tile_segment.replace(old_base,new_base,1)
+    intel=intel[:tile_start]+tile_segment+intel[tile_end+len(tile_end_marker):]
+if current_url not in intel or historical_url not in intel:
+    raise SystemExit('v325 current/historical NOAA radar services not both present')
 # Make it visually clear that the colors are NOAA reflectivity, not BridgePoint scoring.
 intel=intel.replace('NOAA LIVE RAIN RADAR • WEATHER MOTION','NOAA RADAR • LIVE REFLECTIVITY')
 intel=intel.replace('Blue/green • trace–light','Green/blue • light rain')
