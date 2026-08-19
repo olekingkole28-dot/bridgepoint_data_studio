@@ -1,1 +1,1 @@
-Full production-chain retest after corrected v315/v316 v318 contract gate. Validate through v324 + v325 Community 3D, NOAA reflectivity, mobile cards, and share/social layer. Retry 7.
+Full production-chain retest after v318 input and output feature-contract repairs. Continue through v319/v321/v324 and compile v325 mobile Community, NOAA reflectivity, 3D fallback, responsive cards, and share kit. Retry 8.
