@@ -1,0 +1,232 @@
+--- lib/main.dart
++++ lib/main.dart
+@@ -1603,7 +1603,7 @@
+       case 'Weather Center': return _WeatherCenterPage(onOpenMap:()=>_navigateTrainingLabel('Intelligence Map'));
+       case 'My Home': return _MyHomePage(onOpenWeather:()=>_navigateTrainingLabel('Weather Center'),onOpenMap:()=>_navigateTrainingLabel('Intelligence Map'));
+       case 'Community': return const _CommunityPage();
+-      case 'Pattern Intelligence': return const _PatternIntelligencePageV212();
++      case 'Pattern Intelligence': return _PatternIntelligencePageV212(ownerMode:_effectiveOwnerMode);
+       case 'About BridgePoint': return _AboutBridgePointPage(ownerMode:_effectiveOwnerMode);
+       case 'Settings': return _SettingsPage(ownerMode:_effectiveOwnerMode,settingsRequest:settingsRequest,healthRequest:healthRequest,refreshSeconds:_refreshSeconds,onRefreshSecondsChanged:_setRefreshSeconds,onRefresh:(){setState((){settingsRequest=_loadRuntimeSettings();healthRequest=_loadSystemHealth();});});
+       case 'Owner Center': return _effectiveOwnerMode?const _OwnerCenterPage():const _ComingSoonPage(title:'Owner Center',icon:Icons.admin_panel_settings_rounded);
+@@ -1914,7 +1914,7 @@
+   }
+ 
+   String _radarWmsTileV287(DateTime frame){
+-    final time=frame.toUtc().millisecondsSinceEpoch;
++    final time=Uri.encodeComponent(frame.toUtc().toIso8601String());
+     return 'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=0&STYLES=&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}&TIME=$time';
+   }
+   String _cloudWmsTileV287(DateTime frame){
+@@ -1932,9 +1932,9 @@
+       final radarRaw=radarPayload['frames_iso'];final cloudRaw=cloudPayload['frames'];
+       var radar=radarRaw is List?radarRaw.map((x)=>DateTime.tryParse('$x')).whereType<DateTime>().toList():<DateTime>[];
+       var cloud=cloudRaw is List?cloudRaw.map((x)=>DateTime.tryParse('$x')).whereType<DateTime>().toList():<DateTime>[];
+-      if(radar.length>4)radar=radar.sublist(radar.length-4);
++      if(radar.length>6)radar=radar.sublist(radar.length-6);
+       if(cloud.length>2)cloud=cloud.sublist(cloud.length-2);
+-      _nationalRadarFramesV287=radar;_nationalCloudFramesV287=cloud;
++      _nationalRadarFramesV287=radar;_nationalCloudFramesV287=<DateTime>[];cloud=<DateTime>[];
+       for(var i=0;i<cloud.length;i++){
+         final source='bp-us-cloud-src-v287-$i',layer='bp-us-cloud-v287-$i';
+         await c.addSource(source,ml.RasterSourceProperties(tiles:[_cloudWmsTileV287(cloud[i])],tileSize:256,minzoom:2,maxzoom:8,attribution:'NOAA nowCOAST satellite'));
+@@ -1944,12 +1944,12 @@
+       for(var i=0;i<radar.length;i++){
+         final source='bp-us-radar-src-v287-$i',layer='bp-us-radar-v287-$i';
+         await c.addSource(source,ml.RasterSourceProperties(tiles:[_radarWmsTileV287(radar[i])],tileSize:256,minzoom:2,maxzoom:12,attribution:'NOAA/NWS radar'));
+-        await c.addRasterLayer(source,layer,ml.RasterLayerProperties(rasterOpacity:i==radar.length-1 ? .62 : 0,rasterFadeDuration:650,rasterResampling:'linear'),minzoom:2,maxzoom:20);
++        await c.addRasterLayer(source,layer,ml.RasterLayerProperties(rasterOpacity:i==radar.length-1 ? .78 : 0,rasterFadeDuration:220,rasterResampling:'linear'),minzoom:2,maxzoom:20);
+         _nationalRadarLayersV287.add(layer);
+       }
+       _nationalRadarIndexV287=radar.isEmpty?0:radar.length-1;_nationalCloudIndexV287=cloud.isEmpty?0:cloud.length-1;
+       _nationalWeatherTimerV287?.cancel();
+-      _nationalWeatherTimerV287=Timer.periodic(const Duration(milliseconds:1550),(_)=>unawaited(_advanceNationalWeatherV287()));
++      _nationalWeatherTimerV287=Timer.periodic(const Duration(milliseconds:950),(_)=>unawaited(_advanceNationalWeatherV287()));
+     }catch(_){/* Real weather is additive; the 3D property map always stays usable. */}
+   }
+   Future<void> _advanceNationalWeatherV287()async{
+@@ -2182,12 +2182,12 @@
+   ]);
+ }
+ 
+-class _PatternIntelligencePageV212 extends StatefulWidget{const _PatternIntelligencePageV212();@override State<_PatternIntelligencePageV212> createState()=>_PatternIntelligencePageV212State();}
++class _PatternIntelligencePageV212 extends StatefulWidget{const _PatternIntelligencePageV212({this.ownerMode=false});final bool ownerMode;@override State<_PatternIntelligencePageV212> createState()=>_PatternIntelligencePageV212State();}
+ class _PatternIntelligencePageV212State extends State<_PatternIntelligencePageV212>{
+   late Future<Map<String,dynamic>> request;
+   bool billing=false;String interval='month';
+   @override void initState(){super.initState();request=_load();}
+-  Future<Map<String,dynamic>> _load()=>_callRpc('bridgepoint_pattern_intelligence_v212',{'p_state_codes':null,'p_limit':100,'p_offset':0});
++  Future<Map<String,dynamic>> _load()=>widget.ownerMode?_callRpc('bridgepoint_owner_pattern_intelligence_v319',{'p_state_codes':null,'p_limit':500,'p_offset':0}):_callRpc('bridgepoint_pattern_intelligence_v212',{'p_state_codes':null,'p_limit':100,'p_offset':0});
+   void refresh()=>setState(()=>request=_load());
+   Future<void> _buy()async{
+     if(billing)return;setState(()=>billing=true);
+@@ -2214,16 +2214,39 @@
+   ]));
+   @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
+     future:request,builder:(context,snapshot){
+-      final rows=_bpRows(snapshot.data?['patterns']);final loading=snapshot.connectionState==ConnectionState.waiting;
++      final rows=_bpRows(snapshot.data?['patterns']);final top=_bpRows(snapshot.data?['top_patterns']);final summary=_bpMap(snapshot.data?['summary']);final loading=snapshot.connectionState==ConnectionState.waiting;
+       return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+-        _PageHeading(title:'Pattern Intelligence',subtitle:'Institutional BridgePoint moat • paid protected outputs • proprietary methodology stays private',onRefresh:refresh,loading:loading),
++        _PageHeading(title:widget.ownerMode?'Owner Pattern Intelligence':'Pattern Intelligence',subtitle:widget.ownerMode?'Kole + Taylor owner view • top and all detected patterns • protected methodology':'Institutional BridgePoint moat • paid protected outputs • proprietary methodology stays private',onRefresh:refresh,loading:loading),
+         const SizedBox(height:10),const _ExplainerBanner(icon:Icons.security_rounded,title:'You buy the intelligence—not BridgePoint’s internal recipe',message:'Pattern customers receive protected outputs, concentration, recency, confidence, geography and supporting counts. Raw weights, learning logic, internal SQL and unrestricted backend access stay private.'),const SizedBox(height:12),
+         if(snapshot.hasError)_purchaseCard()
+         else if(loading&&!snapshot.hasData)const LinearProgressIndicator(color:AppTheme.cyan)
+         else ...[
+-          Container(width:double.infinity,padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:AppTheme.green.withOpacity(.07),borderRadius:BorderRadius.circular(12),border:Border.all(color:AppTheme.green.withOpacity(.22))),child:const Row(children:[Icon(Icons.verified_user_rounded,color:AppTheme.green),SizedBox(width:8),Expanded(child:Text('Pattern Intelligence access active',style:TextStyle(fontWeight:FontWeight.w900))),Text('PAID / OWNER ENTITLEMENT',style:TextStyle(color:AppTheme.green,fontSize:8,fontWeight:FontWeight.w900))])),
+-          const SizedBox(height:10),Wrap(spacing:8,runSpacing:8,children:[_OpportunityChip(label:'${rows.length} PATTERN OUTPUTS',color:AppTheme.cyan),const _OpportunityChip(label:'METHODOLOGY PROTECTED',color:AppTheme.green),const _OpportunityChip(label:'\$2,499 / MONTH',color:AppTheme.amber)]),const SizedBox(height:10),
+-          ...rows.take(100).map((row)=>Card(child:ListTile(leading:CircleAvatar(backgroundColor:AppTheme.cyan.withOpacity(.12),child:Text('${row['pattern_score']??'—'}',style:const TextStyle(color:AppTheme.cyan,fontSize:9,fontWeight:FontWeight.w900))),title:Text('${row['pattern_name']??row['pattern_key']} • ${row['full_address']??'Property'}',style:const TextStyle(fontWeight:FontWeight.w900,fontSize:10.5)),subtitle:Text('${row['state_code']??''} • ${row['pattern_family']??''} • ${row['signal_count']??0} signals • ${row['distinct_sources']??0} sources • ${row['confidence_pct']??'—'}% confidence • ${row['recency_band']??''}',style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5))))),
++          Container(width:double.infinity,padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:AppTheme.green.withOpacity(.07),borderRadius:BorderRadius.circular(12),border:Border.all(color:AppTheme.green.withOpacity(.22))),child:Row(children:[const Icon(Icons.verified_user_rounded,color:AppTheme.green),const SizedBox(width:8),Expanded(child:Text(widget.ownerMode?'Full owner Pattern Intelligence access active':'Pattern Intelligence access active',style:const TextStyle(fontWeight:FontWeight.w900))),Text(widget.ownerMode?'KOLE + TAYLOR ONLY':'PAID ENTITLEMENT',style:const TextStyle(color:AppTheme.green,fontSize:8,fontWeight:FontWeight.w900))])),
++          const SizedBox(height:10),
++          if(widget.ownerMode)...[
++            Wrap(spacing:8,runSpacing:8,children:[
++              _OpportunityChip(label:'${summary['active_patterns']??rows.length} ACTIVE PATTERNS',color:AppTheme.cyan),
++              _OpportunityChip(label:'${summary['properties_with_patterns']??'—'} PROPERTIES',color:AppTheme.blue),
++              _OpportunityChip(label:'${summary['active_definitions']??'—'} DEFINITIONS',color:AppTheme.green),
++              const _OpportunityChip(label:'METHODOLOGY PROTECTED',color:AppTheme.amber),
++            ]),
++            const SizedBox(height:12),
++            const _PanelHeader(title:'Top patterns across BridgePoint',subtitle:'Ranked by active properties, recency, score and confidence • owner-only operating view',action:'LIVE'),
++            const SizedBox(height:8),
++            if(top.isEmpty)const Text('No grouped pattern summary is available yet.',style:TextStyle(color:AppTheme.textMuted))
++            else ...top.take(100).map((row)=>Card(child:ListTile(
++              leading:CircleAvatar(backgroundColor:AppTheme.blue.withOpacity(.14),child:const Icon(Icons.auto_graph_rounded,color:AppTheme.cyan,size:18)),
++              title:Text('${row['pattern_name']??row['pattern_key']}',style:const TextStyle(fontWeight:FontWeight.w900,fontSize:10.5)),
++              subtitle:Text('${row['pattern_family']??''} • ${row['active_properties']??0} active properties • ${row['recent_14d']??0} recent 14d • avg score ${row['avg_pattern_score']??'—'} • ${row['avg_confidence_pct']??'—'}% confidence',style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5)),
++            ))),
++            const SizedBox(height:12),
++            const _PanelHeader(title:'All property-pattern detections',subtitle:'Property-level pattern feed with timing, stage, sources and confidence',action:'OWNER'),
++            const SizedBox(height:8),
++          ] else ...[
++            Wrap(spacing:8,runSpacing:8,children:[_OpportunityChip(label:'${rows.length} PATTERN OUTPUTS',color:AppTheme.cyan),const _OpportunityChip(label:'METHODOLOGY PROTECTED',color:AppTheme.green),const _OpportunityChip(label:'\$2,499 / MONTH',color:AppTheme.amber)]),
++            const SizedBox(height:10),
++          ],
++          ...rows.take(widget.ownerMode?500:100).map((row)=>Card(child:ListTile(leading:CircleAvatar(backgroundColor:AppTheme.cyan.withOpacity(.12),child:Text('${row['pattern_score']??'—'}',style:const TextStyle(color:AppTheme.cyan,fontSize:9,fontWeight:FontWeight.w900))),title:Text('${row['pattern_name']??row['pattern_key']} • ${row['full_address']??'Property'}',style:const TextStyle(fontWeight:FontWeight.w900,fontSize:10.5)),subtitle:Text('${row['state_code']??''} • ${row['pattern_family']??''} • ${row['signal_count']??0} signals • ${row['distinct_sources']??0} sources • ${row['confidence_pct']??'—'}% confidence • ${row['recency_band']??''}',style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5))))),
+         ],
+       ]);
+     },
+@@ -7663,7 +7686,7 @@
+   bool _weatherAllowedV318=false;
+   bool _showClusters=true;
+   bool _showHeatmap=!_displayPreferences.value.simplifiedViews;
+-  bool _showClouds=true;
++  bool _showClouds=false;
+   bool _compactMapV218=false;
+   bool _mobileDefaultsAppliedV218=false;
+   List<DateTime> _cloudFrames=<DateTime>[];
+@@ -7682,9 +7705,7 @@
+   }
+   DateTime get _radarFrame=>_radarFrames[_radarFrameIndex.clamp(0,_radarFrames.length-1)];
+   bool get _radarIsLatestV271=>_radarFrameIndex>=_radarFrames.length-1;
+-  Map<String,String> get _radarTimeParametersV271=>_radarIsLatestV271
+-      ? const <String,String>{}
+-      : <String,String>{'TIME':'${_radarFrame.toUtc().millisecondsSinceEpoch}'};
++  Map<String,String> get _radarTimeParametersV271=><String,String>{'TIME':_radarFrame.toUtc().toIso8601String()};
+   String _radarClock(DateTime t){final l=t.toLocal();final h=l.hour%12==0?12:l.hour%12;final m=l.minute.toString().padLeft(2,'0');return '$h:$m ${l.hour>=12?'PM':'AM'}';}
+   void _startRadarLoop(){
+     _radarAnimationTimer?.cancel();
+@@ -7774,7 +7795,7 @@
+       setState((){
+         _weatherAllowedV318=true;
+         if(next.isNotEmpty){
+-          _noaaRadarFramesV271=next.length>25?next.sublist(next.length-25):next;
++          _noaaRadarFramesV271=next.length>8?next.sublist(next.length-8):next;
+           _radarFrameIndex=_noaaRadarFramesV271.length-1;
+           _radarRevision++;
+         }
+@@ -8265,8 +8286,8 @@
+                                       urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                       userAgentPackageName:'com.bridgepoint.data_studio',
+                                     ),
+-                                    const _BridgePointNationwideWeatherV287(radar:false),
+-                                    if(_weatherAllowedV318&&_showRadar)TileLayer(key:ValueKey('noaa-radar-preview-$_radarRevision-${_radarFrame.millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?_bp=$_radarRevision&',layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:_radarTimeParametersV271),maxNativeZoom:12,userAgentPackageName:'com.bridgepoint.data_studio'),
++                                    const _BridgePointNationwideWeatherV287(radar:false,clouds:false),
++                                    if(_weatherAllowedV318&&_showRadar)const _BridgePointNationwideWeatherV287(radar:true,clouds:false),
+                                   ],
+                                 ),
+                                 Positioned(left:7,top:7,child:Container(
+@@ -8461,7 +8482,7 @@
+ }
+ 
+ class _BridgePointNationwideWeatherV287 extends StatefulWidget{
+-  const _BridgePointNationwideWeatherV287({this.clouds=true,this.radar=true});
++  const _BridgePointNationwideWeatherV287({this.clouds=false,this.radar=true});
+   final bool clouds,radar;
+   @override State<_BridgePointNationwideWeatherV287> createState()=>_BridgePointNationwideWeatherV287State();
+ }
+@@ -8471,7 +8492,7 @@
+   bool weatherAllowedV318=false;
+   DateTime? get radarFrame=>radarFrames.isEmpty?null:radarFrames[radarIndex.clamp(0,radarFrames.length-1)];
+   DateTime? get cloudFrame=>cloudFrames.isEmpty?null:cloudFrames[cloudIndex.clamp(0,cloudFrames.length-1)];
+-  @override void initState(){super.initState();unawaited(load());timer=Timer.periodic(const Duration(milliseconds:1500),(_){if(!mounted||!weatherAllowedV318||_displayPreferences.value.reducedMotion)return;setState((){tick++;if(radarFrames.length>1)radarIndex=(radarIndex+1)%radarFrames.length;if(tick.isEven&&cloudFrames.length>1)cloudIndex=(cloudIndex+1)%cloudFrames.length;});});refresh=Timer.periodic(const Duration(minutes:4),(_)=>unawaited(load()));}
++  @override void initState(){super.initState();unawaited(load());timer=Timer.periodic(const Duration(milliseconds:950),(_){if(!mounted||!weatherAllowedV318||_displayPreferences.value.reducedMotion)return;setState((){tick++;if(radarFrames.length>1)radarIndex=(radarIndex+1)%radarFrames.length;if(tick.isEven&&cloudFrames.length>1)cloudIndex=(cloudIndex+1)%cloudFrames.length;});});refresh=Timer.periodic(const Duration(minutes:4),(_)=>unawaited(load()));}
+   @override void dispose(){timer?.cancel();refresh?.cancel();super.dispose();}
+   Future<void> load()async{
+     try{
+@@ -8484,20 +8505,23 @@
+       if(!allowed){if(mounted)setState(()=>weatherAllowedV318=false);return;}
+       var r=rp['frames_iso'] is List?(rp['frames_iso'] as List).map((x)=>DateTime.tryParse('$x')).whereType<DateTime>().toList():<DateTime>[];
+       var c=cp['frames'] is List?(cp['frames'] as List).map((x)=>DateTime.tryParse('$x')).whereType<DateTime>().toList():<DateTime>[];
+-      if(r.length>10)r=r.sublist(r.length-10);if(c.length>6)c=c.sublist(c.length-6);
++      if(r.length>6)r=r.sublist(r.length-6);if(c.length>2)c=c.sublist(c.length-2);
+       if(mounted)setState((){weatherAllowedV318=true;radarFrames=r;cloudFrames=c;radarIndex=r.isEmpty?0:r.length-1;cloudIndex=c.isEmpty?0:c.length-1;});
+     }catch(_){if(mounted)setState(()=>weatherAllowedV318=false);}
+   }
+   @override Widget build(BuildContext context){
+     if(!weatherAllowedV318)return const SizedBox.shrink();
+     final r=radarFrame,c=cloudFrame;
+-    final latestRadar=r==null||radarFrames.isEmpty||radarIndex>=radarFrames.length-1;
+-    final radarParams=latestRadar?const <String,String>{}:<String,String>{'TIME':'${r.toUtc().millisecondsSinceEpoch}'};
+-    final radarKey=latestRadar?'latest-$tick':'$radarIndex-${r.millisecondsSinceEpoch}';
+     return IgnorePointer(child:Stack(fit:StackFit.expand,children:[
+-      if(widget.clouds&&c!=null)Opacity(opacity:.20,child:TileLayer(key:ValueKey('bp-us-cloud-$cloudIndex-${c.millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://nowcoast.noaa.gov/geoserver/observations/satellite/ows?',layers:const ['global_visible_imagery_mosaic'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:{'TIME':c.toUtc().toIso8601String()}),maxNativeZoom:8,maxZoom:8.7,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:750),startOpacity:.15,reloadStartOpacity:.85),userAgentPackageName:'com.bridgepoint.data_studio')),
+-      if(widget.radar&&r!=null)Opacity(opacity:.66,child:TileLayer(key:ValueKey('bp-us-radar-$radarKey'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:radarParams),maxNativeZoom:12,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:520),startOpacity:.22,reloadStartOpacity:.90),userAgentPackageName:'com.bridgepoint.data_studio')),
+-      if(widget.radar&&r!=null)const Positioned(left:6,bottom:6,child:_RadarIntensityLegendV318(compact:true,overlay:true)),
++      if(widget.clouds&&c!=null)Opacity(opacity:.12,child:TileLayer(key:ValueKey('bp-us-cloud-$cloudIndex-${c.millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://nowcoast.noaa.gov/geoserver/observations/satellite/ows?',layers:const ['global_visible_imagery_mosaic'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:{'TIME':c.toUtc().toIso8601String()}),maxNativeZoom:8,maxZoom:8.7,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:350),startOpacity:.6,reloadStartOpacity:.9),userAgentPackageName:'com.bridgepoint.data_studio')),
++      if(widget.radar)
++        for(var i=0;i<radarFrames.length;i++)
++          Opacity(opacity:i==radarIndex ? .78 : 0,child:TileLayer(key:ValueKey('bp-us-radar-preloaded-$i-${radarFrames[i].millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:{'TIME':radarFrames[i].toUtc().toIso8601String()}),maxNativeZoom:12,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:180),startOpacity:.85,reloadStartOpacity:.95),userAgentPackageName:'com.bridgepoint.data_studio')),
++      if(widget.radar&&r!=null)Positioned(left:6,bottom:6,child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
++        const _RadarIntensityLegendV318(compact:true,overlay:true),
++        const SizedBox(height:3),
++        Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:4),decoration:BoxDecoration(color:const Color(0xE607111F),borderRadius:BorderRadius.circular(7)),child:Text('${r.toLocal().hour%12==0?12:r.toLocal().hour%12}:${r.toLocal().minute.toString().padLeft(2,'0')} ${r.toLocal().hour>=12?'PM':'AM'} • ${radarIndex>=radarFrames.length-1?'NOW':'RADAR HISTORY'}',style:const TextStyle(color:Colors.white,fontSize:7.5,fontWeight:FontWeight.w900))),
++      ])),
+     ]));
+   }
+ }
+@@ -11777,7 +11801,7 @@
+   }
+   DateTime get frame=>frames[index.clamp(0,frames.length-1)];
+   bool get isLatestV271=>index>=frames.length-1;
+-  Map<String,String> get timeParametersV271=>isLatestV271?const <String,String>{}:<String,String>{'TIME':'${frame.toUtc().millisecondsSinceEpoch}'};
++  Map<String,String> get timeParametersV271=><String,String>{'TIME':frame.toUtc().toIso8601String()};
+   Future<void> _loadFramesV271()async{
+     try{
+       final r=await Supabase.instance.client.functions.invoke('bridgepoint-noaa-radar-frames-v271',body:const {});
+@@ -11787,7 +11811,7 @@
+       if(!allowed){setState((){weatherAllowedV318=false;weatherAccessResolvedV318=true;});return;}
+       final raw=payload['frames_iso'];
+       final next=raw is List?raw.map((x)=>DateTime.tryParse('$x')).whereType<DateTime>().toList():<DateTime>[];
+-      setState((){weatherAllowedV318=true;weatherAccessResolvedV318=true;if(next.isNotEmpty){noaaFramesV271=next.length>25?next.sublist(next.length-25):next;index=noaaFramesV271.length-1;revision++;}});
++      setState((){weatherAllowedV318=true;weatherAccessResolvedV318=true;if(next.isNotEmpty){noaaFramesV271=next.length>8?next.sublist(next.length-8):next;index=noaaFramesV271.length-1;revision++;}});
+     }catch(_){if(mounted)setState((){weatherAllowedV318=false;weatherAccessResolvedV318=true;});}
+   }
+ 
+@@ -11841,8 +11865,9 @@
+           options:MapOptions(initialCenter:center,initialZoom:pos==null?7.0:9.0,minZoom:3,maxZoom:14,interactionOptions:const InteractionOptions(flags:InteractiveFlag.all)),
+           children:[
+             TileLayer(urlTemplate:_bridgePointBaseMapUrl(),panBuffer:0,keepBuffer:1,userAgentPackageName:'com.bridgepoint.data_studio'),
+-            const _BridgePointNationwideWeatherV287(radar:false),
+-            TileLayer(key:ValueKey('weather-center-radar-$revision-${frame.millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?_bp=$revision&',layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:timeParametersV271),maxNativeZoom:12,userAgentPackageName:'com.bridgepoint.data_studio'),
++            const _BridgePointNationwideWeatherV287(radar:false,clouds:false),
++            for(var i=0;i<frames.length;i++)
++              Opacity(opacity:i==index ? .82 : 0,child:TileLayer(key:ValueKey('weather-center-radar-preloaded-$revision-$i-${frames[i].millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:{'TIME':frames[i].toUtc().toIso8601String()}),maxNativeZoom:12,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:180),startOpacity:.85,reloadStartOpacity:.95),userAgentPackageName:'com.bridgepoint.data_studio')),
+           ],
+         ))),
+         const SizedBox(height:8),
+@@ -16420,3 +16445,5 @@
+ const String _bridgePointCatalogAwareOnboardingV315='bridgepoint-v315-catalog-aware-onboarding | 33-package live catalog fit | specific-fit routing | available now | managed fit | future early-access fit | owner exact questionnaire preview';
+ 
+ const _bridgePointLegacySocialCiMarkersV316='60-DAY SOCIAL LAUNCH BANK | Activate 60-day calendar | Owner approval required';
++
++const String _bridgePointV319OwnerPatternsRadar='bridgepoint-v319-owner-pattern-intelligence + iso-wms-preloaded-radar + municipal-permit-live';
