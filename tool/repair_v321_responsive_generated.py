@@ -34,26 +34,33 @@ for i in range(open_brace,len(body)):
 if fn_end is None:
     raise SystemExit('v321 repair: NOAA frame loader end missing')
 segment=body[fn_start:fn_end]
-desired_catch="}catch(_){if(mounted)setState((){_weatherAllowedV318=true;_noaaRadarFramesV271=<DateTime>[];_radarFrameIndex=0;_radarRevision++;});}"
+desired_catch="catch(_){if(mounted)setState((){_weatherAllowedV318=true;_noaaRadarFramesV271=<DateTime>[];_radarFrameIndex=0;_radarRevision++;});}"
 if desired_catch not in segment:
-    # Replace the catch attached to this loader only; do not alter other weather
-    # catches elsewhere in the app.
-    segment,n=re.subn(
-        r"\}catch\(_\)\{if\(mounted\)setState\(\(\)=>_weatherAllowedV318=false\);\}",
-        desired_catch,
-        segment,
-        count=1,
-    )
-    if n!=1:
-        # Formatting-tolerant fallback for the same semantic branch.
-        segment,n=re.subn(
-            r"\}\s*catch\s*\(_\)\s*\{\s*if\s*\(mounted\)\s*setState\s*\(\s*\(\)\s*=>\s*_weatherAllowedV318\s*=\s*false\s*\)\s*;?\s*\}",
-            desired_catch,
-            segment,
-            count=1,
-        )
-        if n!=1:
-            raise SystemExit('v321 repair: NOAA loader failure catch shape not found')
+    catches=list(re.finditer(r'catch\s*\(_\)\s*\{',segment))
+    if not catches:
+        raise SystemExit('v321 repair: NOAA loader catch missing')
+    match=catches[-1]
+    catch_start=match.start()
+    catch_open=segment.find('{',match.start())
+    depth=0;quote=None;escaped=False;catch_end=None
+    for i in range(catch_open,len(segment)):
+        ch=segment[i]
+        if quote is not None:
+  if escaped: escaped=False
+  elif ch=='\\': escaped=True
+  elif ch==quote: quote=None
+  continue
+        if ch in ("'",'\"'):
+  quote=ch;continue
+        if ch=='{': depth+=1
+        elif ch=='}':
+  depth-=1
+  if depth==0:
+      catch_end=i+1
+      break
+    if catch_end is None:
+        raise SystemExit('v321 repair: NOAA loader catch did not balance')
+    segment=segment[:catch_start]+desired_catch+segment[catch_end:]
     body=body[:fn_start]+segment+body[fn_end:]
 
 # ---------------------------------------------------------------------------
