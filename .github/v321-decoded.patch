@@ -1,0 +1,319 @@
+--- lib/main.dart
++++ lib/main.dart
+@@ -28,6 +28,10 @@
+ const _bpRememberNicknameKey='bridgepoint_remember_nickname_v1';
+ const _bridgePointLiveUrl = 'https://bridgepointintelligence.online/';
+ final ValueNotifier<bool> _bridgePointMapTouchLockV287=ValueNotifier<bool>(false);
++const _bridgePointV321ReleaseMarker='bridgepoint-v321-resilience-expansion-eta-radar-map';
++const _bridgePointV320ResilienceMarker='bridgepoint-v320-resilience-market-guard-service-credit';
++const _bridgePointV320MarketMarker='bridgepoint-v320-unsupported-market-preview';
++const _bridgePointV320OwnerMarker='bridgepoint-v320-owner-resilience-metrics';
+ const _bridgePointOutreachEmail = 'bridgepointintelligence@gmail.com';
+ const _bridgePointRelease = String.fromEnvironment('BRIDGEPOINT_RELEASE', defaultValue: 'development');
+ const _bridgePointShareSubject = 'Try BridgePoint Intelligence';
+@@ -239,12 +243,44 @@
+             child: _BridgePointKeyboardScrollV269(child:child ?? const SizedBox.shrink()),
+           );
+         },
+-        home: const _AuthGate(),
++        home: const _SystemStatusGateV320(child:_AuthGate()),
+       ),
+     );
+   }
+ }
+ 
++class _SystemStatusGateV320 extends StatefulWidget{
++  const _SystemStatusGateV320({required this.child});
++  final Widget child;
++  @override State<_SystemStatusGateV320> createState()=>_SystemStatusGateV320State();
++}
++class _SystemStatusGateV320State extends State<_SystemStatusGateV320>{
++  Map<String,dynamic>? status;Timer? timer;bool loading=true;
++  @override void initState(){super.initState();unawaited(_load());timer=Timer.periodic(const Duration(seconds:30),(_)=>unawaited(_load(silent:true)));}
++  @override void dispose(){timer?.cancel();super.dispose();}
++  Future<void> _load({bool silent=false})async{
++    try{final next=await _callRpc('bridgepoint_public_system_status_v320',const {});if(mounted)setState((){status=next;loading=false;});}
++    catch(_){if(mounted&&!silent)setState(()=>loading=false);/* Fail open: a status check must never create an outage. */}
++  }
++  @override Widget build(BuildContext context){
++    final s=status;
++    final blocked=s?['app_access_blocked']==true&&s?['owner_bypass']!=true;
++    if(!blocked)return widget.child;
++    final message='${s?['public_message']??'BridgePoint is temporarily unavailable while a system safeguard is active.'}';
++    final restore=s?['estimated_restore_at'];
++    return Scaffold(body:_ExperienceBackground(child:Center(child:Padding(padding:const EdgeInsets.all(20),child:Card(child:Container(
++      constraints:const BoxConstraints(maxWidth:620),padding:const EdgeInsets.all(28),child:Column(mainAxisSize:MainAxisSize.min,children:[
++        const _BridgePointMark(size:58),const SizedBox(height:16),const Icon(Icons.health_and_safety_outlined,color:AppTheme.amber,size:38),const SizedBox(height:12),
++        const Text('BridgePoint is temporarily unavailable',textAlign:TextAlign.center,style:TextStyle(fontSize:21,fontWeight:FontWeight.w900)),
++        const SizedBox(height:9),Text(message,textAlign:TextAlign.center,style:const TextStyle(color:AppTheme.textMuted,height:1.5)),
++        if(restore!=null)...[const SizedBox(height:10),Text('Estimated restoration: ${_bpDateTime(restore)}',textAlign:TextAlign.center,style:const TextStyle(color:AppTheme.cyan,fontWeight:FontWeight.w800))],
++        const SizedBox(height:16),FilledButton.icon(onPressed:loading?null:()=>_load(),icon:const Icon(Icons.refresh_rounded),label:Text(loading?'Checking…':'Check again')),
++        const SizedBox(height:8),const Text('Your data remains protected while BridgePoint checks service health and source failover.',textAlign:TextAlign.center,style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
++      ]),
++    ))))));
++  }
++}
++
+ class _AuthGate extends StatefulWidget {
+   const _AuthGate();
+   @override State<_AuthGate> createState()=>_AuthGateState();
+@@ -493,6 +529,47 @@
+   @override Widget build(BuildContext context)=>Dialog(backgroundColor:Colors.transparent,insetPadding:const EdgeInsets.all(16),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:900,maxHeight:900),child:Card(child:SingleChildScrollView(padding:const EdgeInsets.all(24),child:const _PackageFitQuestionnaireV315(saveAnswers:false,ownerPreview:true)))));
+ }
+ 
++String _formatExpansionEtaV321(dynamic raw){
++  if(raw is! Map)return 'Status updating';
++  final eta=Map<String,dynamic>.from(raw);
++  final status='${eta['eta_status']??''}'.toUpperCase();
++  if(status=='COMPLETE')return 'Live';
++  if(status=='QUEUED')return '${eta['eta_label']??'Queued'}';
++  if(status=='CALCULATING')return 'Calculating from live throughput';
++  final seconds=(eta['seconds_remaining'] as num?)?.toDouble();
++  if(seconds==null||seconds<0)return '${eta['eta_label']??'Status updating'}';
++  final hours=seconds/3600;
++  if(hours<1)return '${(seconds/60).ceil()} min remaining';
++  if(hours<48)return '${hours.toStringAsFixed(hours<10?1:0)} hr remaining';
++  final days=hours/24;
++  return '${days.toStringAsFixed(days<10?1:0)} days remaining';
++}
++Color _expansionEtaColorV321(dynamic raw){
++  if(raw is! Map)return AppTheme.textMuted;
++  final s='${raw['eta_status']??''}'.toUpperCase();
++  if(s=='COMPLETE')return AppTheme.green;if(s=='ESTIMATED')return AppTheme.cyan;if(s=='QUEUED')return AppTheme.blue;if(s=='CALCULATING')return AppTheme.amber;return AppTheme.textMuted;
++}
++Future<void> _showPublicExpansionStatusV321(BuildContext context)async{
++  try{
++    final data=await _callRpc('bridgepoint_public_expansion_status_v321',const {});
++    if(!context.mounted)return;
++    final markets=_bpRows(data['markets']);
++    final visible=markets.where((m){final eta=m['build_eta'];return m['data_status']=='LIVE'||(eta is Map&&['ESTIMATED','QUEUED','CALCULATING'].contains('${eta['eta_status']}'));}).toList();
++    await showDialog<void>(context:context,builder:(d)=>AlertDialog(
++      backgroundColor:AppTheme.panel,title:const Row(children:[Icon(Icons.public_rounded,color:AppTheme.cyan),SizedBox(width:9),Expanded(child:Text('BridgePoint expansion status'))]),
++      content:ConstrainedBox(constraints:const BoxConstraints(maxWidth:720,maxHeight:560),child:ListView.separated(shrinkWrap:true,itemCount:visible.length,separatorBuilder:(_,__)=>const Divider(height:1),itemBuilder:(context,i){
++        final m=visible[i];final eta=m['build_eta'] is Map?Map<String,dynamic>.from(m['build_eta'] as Map):<String,dynamic>{};final color=_expansionEtaColorV321(eta);final progress=(eta['progress_pct'] as num?)?.toDouble();
++        return Padding(padding:const EdgeInsets.symmetric(vertical:10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
++          Row(children:[Expanded(child:Text('${m['state_name']} (${m['state_code']})',style:const TextStyle(fontWeight:FontWeight.w900))),Text(_formatExpansionEtaV321(eta),style:TextStyle(color:color,fontSize:10,fontWeight:FontWeight.w900))]),
++          const SizedBox(height:4),Text('${eta['phase']??m['data_status']}${eta['confidence']!=null?' • ${eta['confidence']} confidence':''}',style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5)),
++          if(progress!=null)...[const SizedBox(height:6),ClipRRect(borderRadius:BorderRadius.circular(5),child:LinearProgressIndicator(value:(progress/100).clamp(0,1),minHeight:5,backgroundColor:Colors.white10,valueColor:AlwaysStoppedAnimation(color)))],
++        ]));
++      })),
++      actions:[TextButton(onPressed:()=>Navigator.pop(d),child:const Text('Close'))],
++    ));
++  }catch(e){if(context.mounted)_showInfoDialog(context,'Expansion status unavailable','BridgePoint could not load the public expansion feed right now. $e');}
++}
++
+ class _AuthScreen extends StatefulWidget {
+   const _AuthScreen();
+   @override
+@@ -570,6 +647,7 @@
+       const SizedBox(height:18),FilledButton(onPressed:loading?null:submit,child:Text(loading?'Please wait…':create?'Start free trial':'Sign in')),
+       if(!create)TextButton.icon(onPressed:loading?null:resetPassword,icon:const Icon(Icons.key_rounded,size:17),label:const Text('First-time invited owner / Forgot password')),
+       TextButton(onPressed:loading?null:()=>setState(()=>create=!create),child:Text(create?'Already have an account? Sign in':'New here? Start 7-day trial')),
++      TextButton.icon(onPressed:()=>_showPublicExpansionStatusV321(context),icon:const Icon(Icons.public_rounded,size:17),label:const Text('View live state expansion status')),
+       const Text('bridgepoint-v227-first-login-password',style:TextStyle(fontSize:0,color:Colors.transparent)),
+     ]),
+   ))))));
+@@ -6675,16 +6753,18 @@
+       final regions=<String>{'Northeast',...markets.map((m)=>'${m['region_name']}')}.toList();
+       final filtered=markets.where((m)=>m['region_name']==region).toList();
+       final live=markets.where((m)=>m['data_status']=='LIVE').length;
++      final building=markets.where((m){final eta=m['build_eta'];return m['data_status']=='BUILDING'||(eta is Map&&'${eta['eta_status']}'=='ESTIMATED');}).length;
++      final queued=markets.where((m){final eta=m['build_eta'];return eta is Map&&'${eta['eta_status']}'=='QUEUED';}).length;
+       final requested=markets.where((m)=>m['interest_registered']==true).length;
+       return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+         _PageHeading(title:'Coverage',subtitle:'See what is live now and what BridgePoint can unlock next',onRefresh:refresh,loading:snapshot.connectionState==ConnectionState.waiting),
+         const SizedBox(height:10),
+-        const _ExplainerBanner(icon:Icons.public_rounded,title:'Built for expansion without hiding what is unavailable',message:'Connecticut is live and included. Every other state remains visible, labeled and locked until its property data, automatic sources and billing are fully activated. Requesting a state never charges you.'),
++        const _ExplainerBanner(icon:Icons.public_rounded,title:'Live expansion progress — without fake countdowns',message:'BridgePoint shows measured build time when live throughput is available. Queued states show their real queue position instead of an invented clock ETA. Markets remain locked from purchase until property data, automatic sources, scoring, security and final activation checks are complete.'),
+         const SizedBox(height:18),
+         LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=900?3:1;const gap=14.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:[
+-          _MetricCard(width:w,label:'LIVE STATES',value:'$live',detail:'Connecticut • 1,282,833 active properties',icon:Icons.verified_rounded,accent:AppTheme.green),
+-          _MetricCard(width:w,label:'VISIBLE EXPANSION',value:'${markets.length-live}',detail:'Locked markets customers can see and request',icon:Icons.lock_open_rounded,accent:AppTheme.cyan),
+-          _MetricCard(width:w,label:'YOUR REQUESTS',value:'$requested',detail:'No charge until a live market is purchased',icon:Icons.notifications_active_outlined,accent:AppTheme.amber),
++          _MetricCard(width:w,label:'LIVE STATES',value:'$live',detail:'Activated BridgePoint markets',icon:Icons.verified_rounded,accent:AppTheme.green),
++          _MetricCard(width:w,label:'BUILDING NOW',value:'$building',detail:'Measured live progress + ETA',icon:Icons.construction_rounded,accent:AppTheme.cyan),
++          _MetricCard(width:w,label:'QUEUED NEXT',value:'$queued',detail:'Load-governed expansion queue',icon:Icons.schedule_rounded,accent:AppTheme.blue),
+         ]);}),
+         const SizedBox(height:18),
+         const _PanelHeader(title:'Expansion bundles',subtitle:'Future package deals activate only when every included state is live',action:'Best value'),
+@@ -6701,10 +6781,15 @@
+         const SizedBox(height:10),
+         LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=1100?4:c.maxWidth>=720?3:c.maxWidth>=480?2:1;const gap=10.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:filtered.map((m){
+           final isLive=m['data_status']=='LIVE';final interested=m['interest_registered']==true;final owner=data['is_owner']==true;
+-          final color=isLive?AppTheme.green:interested?AppTheme.cyan:AppTheme.amber;
++          final eta=m['build_eta'] is Map?Map<String,dynamic>.from(m['build_eta'] as Map):<String,dynamic>{};final etaStatus='${eta['eta_status']??''}';
++          final color=isLive?AppTheme.green:_expansionEtaColorV321(eta);final progress=(eta['progress_pct'] as num?)?.toDouble();
++          final icon=isLive?Icons.verified_rounded:etaStatus=='ESTIMATED'?Icons.construction_rounded:etaStatus=='QUEUED'?Icons.schedule_rounded:Icons.lock_outline_rounded;
+           return SizedBox(width:w,child:Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+-            Row(children:[Container(width:34,height:34,decoration:BoxDecoration(color:color.withOpacity(.1),borderRadius:BorderRadius.circular(9)),child:Icon(isLive?Icons.verified_rounded:Icons.lock_outline_rounded,color:color,size:18)),const SizedBox(width:9),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${m['state_name']}',style:const TextStyle(fontWeight:FontWeight.w900,fontSize:11)),Text('${m['state_code']} • ${m['data_status']}',style:TextStyle(color:color,fontSize:8,fontWeight:FontWeight.w800))]))]),
+-            const SizedBox(height:9),Text(isLive?'Included with every BridgePoint package':owner?'Owner access reserved when this market goes live':'Future add-on from \$${m['monthly_price']}/month',style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
++            Row(children:[Container(width:34,height:34,decoration:BoxDecoration(color:color.withOpacity(.1),borderRadius:BorderRadius.circular(9)),child:Icon(icon,color:color,size:18)),const SizedBox(width:9),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${m['state_name']}',style:const TextStyle(fontWeight:FontWeight.w900,fontSize:11)),Text('${m['state_code']} • ${m['data_status']}',style:TextStyle(color:color,fontSize:8,fontWeight:FontWeight.w800))]))]),
++            const SizedBox(height:9),Text(_formatExpansionEtaV321(eta),style:TextStyle(color:color,fontSize:10,fontWeight:FontWeight.w900,height:1.3)),
++            if(eta['phase']!=null)...[const SizedBox(height:3),Text('${eta['phase']}${eta['confidence']!=null?' • ${eta['confidence']} confidence':''}',style:const TextStyle(color:AppTheme.textMuted,fontSize:8,height:1.3))],
++            if(progress!=null)...[const SizedBox(height:7),ClipRRect(borderRadius:BorderRadius.circular(4),child:LinearProgressIndicator(value:(progress/100).clamp(0,1),minHeight:5,backgroundColor:Colors.white10,valueColor:AlwaysStoppedAnimation(color))),const SizedBox(height:3),Text('${progress.toStringAsFixed(1)}% of current foundation phase',style:const TextStyle(color:AppTheme.textMuted,fontSize:7.5))],
++            const SizedBox(height:8),Text(isLive?'Included with every BridgePoint package':owner?'Owner access reserved when this market goes live':'Future add-on from \$${m['monthly_price']}/month',style:const TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
+             const SizedBox(height:10),if(isLive)const _OpportunityChip(label:'LIVE DATA',color:AppTheme.green)else SizedBox(width:double.infinity,child:TextButton.icon(onPressed:interested?null:()=>register(state:'${m['state_code']}'),icon:Icon(interested?Icons.check_rounded:Icons.add_alert_rounded,size:16),label:Text(interested?'REQUESTED':'NOTIFY ME'))),
+           ]))));
+         }).toList());}),
+@@ -7705,7 +7790,7 @@
+   }
+   DateTime get _radarFrame=>_radarFrames[_radarFrameIndex.clamp(0,_radarFrames.length-1)];
+   bool get _radarIsLatestV271=>_radarFrameIndex>=_radarFrames.length-1;
+-  Map<String,String> get _radarTimeParametersV271=><String,String>{'TIME':_radarFrame.toUtc().toIso8601String()};
++  Map<String,String> get _radarTimeParametersV271=>_noaaRadarFramesV271.length>=2?<String,String>{'TIME':_radarFrame.toUtc().toIso8601String()}:const <String,String>{};
+   String _radarClock(DateTime t){final l=t.toLocal();final h=l.hour%12==0?12:l.hour%12;final m=l.minute.toString().padLeft(2,'0');return '$h:$m ${l.hour>=12?'PM':'AM'}';}
+   void _startRadarLoop(){
+     _radarAnimationTimer?.cancel();
+@@ -7729,7 +7814,7 @@
+     final compact=MediaQuery.sizeOf(context).width<700;
+     _compactMapV218=compact;
+     if(compact&&!_mobileDefaultsAppliedV218){
+-      _mobileDefaultsAppliedV218=true;_visibleLayer='opportunities';_showRadar=true;_showClouds=true;_showExpansion=false;_radarPlaying=true;
++      _mobileDefaultsAppliedV218=true;_visibleLayer='opportunities';_showRadar=true;_showClouds=false;_showExpansion=false;_radarPlaying=true;
+     }
+   }
+ 
+@@ -7786,7 +7871,7 @@
+       final r=await Supabase.instance.client.functions.invoke('bridgepoint-noaa-radar-frames-v271',body:const {});
+       final payload=_edgeFunctionPayload(r.data);
+       if(r.status<200||r.status>=300||payload['complete']!=true){
+-        if(mounted)setState(()=>_weatherAllowedV318=false);
++        if(mounted)setState((){_weatherAllowedV318=true;_noaaRadarFramesV271=<DateTime>[];_radarFrameIndex=0;_radarRevision++;});
+         return;
+       }
+       final raw=payload['frames_iso'];
+@@ -7800,7 +7885,7 @@
+           _radarRevision++;
+         }
+       });
+-    }catch(_){if(mounted)setState(()=>_weatherAllowedV318=false);}
++    }catch(_){if(mounted)setState((){_weatherAllowedV318=true;_noaaRadarFramesV271=<DateTime>[];_radarFrameIndex=0;_radarRevision++;});}
+   }
+ 
+ 
+@@ -8015,17 +8100,23 @@
+           'NY':LatLng(42.80,-75.20),'NJ':LatLng(40.10,-74.50),
+           'PA':LatLng(41.00,-77.50),'VT':LatLng(44.00,-72.70),
+           'NH':LatLng(43.80,-71.60),'ME':LatLng(45.20,-69.00),
++          'OH':LatLng(40.30,-82.80),'FL':LatLng(28.10,-81.70),
++          'TX':LatLng(31.20,-99.30),'CA':LatLng(37.20,-119.70),
+         };
+         if(_showExpansion)for(final market in coverageMarkets){
+           final code='${market['state_code']}';final center=nearbyCentroids[code];
+           if(center==null||market['data_status']=='LIVE')continue;
+           final requested=market['interest_registered']==true;final building=market['data_status']=='BUILDING';final marketColor=building?AppTheme.green:requested?AppTheme.cyan:AppTheme.amber;
+-          markers.add(Marker(point:center,width:92,height:64,child:Tooltip(
+-            message:'${market['state_name']} • ${market['data_status']}${building?' • BridgePoint is actively building this state now':''}',
+-            child:GestureDetector(onTap:()=>_showStateCoverageDialog(context,market,_reload),child:Container(
+-              padding:const EdgeInsets.symmetric(horizontal:7,vertical:5),
+-              decoration:BoxDecoration(color:AppTheme.panel.withOpacity(.95),borderRadius:BorderRadius.circular(12),border:Border.all(color:marketColor.withOpacity(.9),width:1.5),boxShadow:[BoxShadow(color:marketColor.withOpacity(.20),blurRadius:12,spreadRadius:1)]),
+-              child:Column(mainAxisSize:MainAxisSize.min,children:[Icon(building?Icons.construction_rounded:requested?Icons.notifications_active_rounded:Icons.lock_outline_rounded,color:marketColor,size:18),Text(code,style:const TextStyle(color:Colors.white,fontSize:9,fontWeight:FontWeight.w900)),if(building)Text('BUILDING NOW',style:TextStyle(color:marketColor,fontSize:6.5,fontWeight:FontWeight.w900,letterSpacing:.4))]),
++          final nationalZoom=_viewportZoom<=5.4;
++          final regionalZoom=_viewportZoom>5.4&&_viewportZoom<7.0;
++          final markerSize=nationalZoom?14.0:regionalZoom?28.0:74.0;
++          markers.add(Marker(point:center,width:markerSize,height:nationalZoom?14:regionalZoom?28:50,child:Tooltip(
++            message:'${market['state_name']} • ${market['data_status']} • ${_formatExpansionEtaV321(market['build_eta'])}',
++            child:GestureDetector(onTap:()=>_showStateCoverageDialog(context,market,_reload),child:nationalZoom
++              ? Container(decoration:BoxDecoration(shape:BoxShape.circle,color:marketColor.withOpacity(.42),border:Border.all(color:marketColor.withOpacity(.85),width:1.5)))
++              : regionalZoom
++                ? Container(decoration:BoxDecoration(shape:BoxShape.circle,color:AppTheme.panel.withOpacity(.72),border:Border.all(color:marketColor.withOpacity(.78),width:1.4)),child:Center(child:Text(code,style:TextStyle(color:marketColor,fontSize:7,fontWeight:FontWeight.w900))))
++                : Container(padding:const EdgeInsets.symmetric(horizontal:6,vertical:4),decoration:BoxDecoration(color:AppTheme.panel.withOpacity(.90),borderRadius:BorderRadius.circular(10),border:Border.all(color:marketColor.withOpacity(.75))),child:Column(mainAxisSize:MainAxisSize.min,children:[Text(code,style:const TextStyle(color:Colors.white,fontSize:8,fontWeight:FontWeight.w900)),if(building)Text('BUILDING',style:TextStyle(color:marketColor,fontSize:6,fontWeight:FontWeight.w900))])),
+             )),
+           )));
+         }
+@@ -8241,15 +8332,15 @@
+                             tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:700),startOpacity:.20,reloadStartOpacity:.82),
+                             userAgentPackageName:'com.bridgepoint.data_studio',
+                           )),
+-                          if(_weatherAllowedV318&&_showRadar)TileLayer(
++                          if(_weatherAllowedV318&&_showRadar)Opacity(opacity:.88,child:TileLayer(
+                             key:ValueKey('noaa-radar-$_radarRevision-${_radarFrame.toIso8601String()}'),
+                             wmsOptions:WMSTileLayerOptions(
+                               baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?_bp=$_radarRevision&',
+                               layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',
+                               otherParameters:_radarTimeParametersV271,
+                             ),
+-                            maxNativeZoom:12,userAgentPackageName:'com.bridgepoint.data_studio',
+-                          ),
++                            maxNativeZoom:12,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:160),startOpacity:.90,reloadStartOpacity:.98),userAgentPackageName:'com.bridgepoint.data_studio',
++                          )),
+                           if(_displayPreferences.value.mapBaseStyle=='satellite')TileLayer(urlTemplate:_bridgePointLabelMapUrl(),userAgentPackageName:'com.bridgepoint.data_studio'),
+                           if(_showHeatmap&&heatMarkers.isNotEmpty)MarkerLayer(markers:heatMarkers),
+                           MarkerLayer(markers: markers),
+@@ -8377,11 +8468,11 @@
+                               onTap: () => _centerMapOnDevice(force:true),
+                             ),
+                             const SizedBox(height:7),
+-                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show United States live weather',onTap:(){
+-                              setState((){_showRadar=true;_radarPlaying=true;_radarFrameIndex=_radarFrames.length-1;_radarRevision++;});
++                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show United States precipitation radar',onTap:(){
++                              setState((){_showRadar=true;_showClouds=false;_showExpansion=false;_radarPlaying=true;_radarFrameIndex=_radarFrames.length-1;_radarRevision++;_viewportZoom=4.2;});
+                               _mapController.move(const LatLng(39.50,-98.35),4.2);
+                               unawaited(_loadNoaaRadarFramesV271());
+-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(duration:Duration(seconds:2),content:Text('United States live weather on • loading the latest NOAA precipitation radar…')));
++                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(duration:Duration(seconds:2),content:Text('U.S. precipitation radar on • expansion badges hidden so the radar stays clear.')));
+                             }),
+                             const SizedBox(height:7),
+                             if(_weatherAllowedV318)_MapControlButton(icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,tooltip:_showRadar?'Hide precipitation radar':'Show precipitation radar',onTap:(){setState((){_showRadar=!_showRadar;if(_weatherAllowedV318&&_showRadar){_radarFrameIndex=_radarFrames.length-1;_radarPlaying=true;_radarRevision++;}});if(_weatherAllowedV318&&_showRadar)unawaited(_loadNoaaRadarFramesV271());}),
+@@ -8513,10 +8604,10 @@
+     if(!weatherAllowedV318)return const SizedBox.shrink();
+     final r=radarFrame,c=cloudFrame;
+     return IgnorePointer(child:Stack(fit:StackFit.expand,children:[
+-      if(widget.clouds&&c!=null)Opacity(opacity:.12,child:TileLayer(key:ValueKey('bp-us-cloud-$cloudIndex-${c.millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://nowcoast.noaa.gov/geoserver/observations/satellite/ows?',layers:const ['global_visible_imagery_mosaic'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:{'TIME':c.toUtc().toIso8601String()}),maxNativeZoom:8,maxZoom:8.7,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:350),startOpacity:.6,reloadStartOpacity:.9),userAgentPackageName:'com.bridgepoint.data_studio')),
++      if(widget.clouds&&!widget.radar&&c!=null)Opacity(opacity:.10,child:TileLayer(key:ValueKey('bp-us-cloud-$cloudIndex-${c.millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://nowcoast.noaa.gov/geoserver/observations/satellite/ows?',layers:const ['global_visible_imagery_mosaic'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:{'TIME':c.toUtc().toIso8601String()}),maxNativeZoom:8,maxZoom:8.7,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:350),startOpacity:.6,reloadStartOpacity:.9),userAgentPackageName:'com.bridgepoint.data_studio')),
+       if(widget.radar)
+         for(var i=0;i<radarFrames.length;i++)
+-          Opacity(opacity:i==radarIndex ? .78 : 0,child:TileLayer(key:ValueKey('bp-us-radar-preloaded-$i-${radarFrames[i].millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:{'TIME':radarFrames[i].toUtc().toIso8601String()}),maxNativeZoom:12,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:180),startOpacity:.85,reloadStartOpacity:.95),userAgentPackageName:'com.bridgepoint.data_studio')),
++          Opacity(opacity:i==radarIndex ? .90 : 0,child:TileLayer(key:ValueKey('bp-us-radar-preloaded-$i-${radarFrames[i].millisecondsSinceEpoch}'),wmsOptions:WMSTileLayerOptions(baseUrl:'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',layers:const ['0'],format:'image/png',transparent:true,version:'1.3.0',otherParameters:{'TIME':radarFrames[i].toUtc().toIso8601String()}),maxNativeZoom:12,panBuffer:0,keepBuffer:2,tileDisplay:const TileDisplay.fadeIn(duration:Duration(milliseconds:180),startOpacity:.85,reloadStartOpacity:.95),userAgentPackageName:'com.bridgepoint.data_studio')),
+       if(widget.radar&&r!=null)Positioned(left:6,bottom:6,child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+         const _RadarIntensityLegendV318(compact:true,overlay:true),
+         const SizedBox(height:3),
+@@ -8553,14 +8644,15 @@
+ }
+ 
+ void _showStateCoverageDialog(BuildContext context,Map<String,dynamic> market,VoidCallback refresh){
+-  final live=market['data_status']=='LIVE';final requested=market['interest_registered']==true;
++  final live=market['data_status']=='LIVE';final requested=market['interest_registered']==true;final eta=market['build_eta'] is Map?Map<String,dynamic>.from(market['build_eta'] as Map):<String,dynamic>{};final etaColor=_expansionEtaColorV321(eta);final progress=(eta['progress_pct'] as num?)?.toDouble();
+   showDialog<void>(context:context,builder:(dialogContext)=>AlertDialog(
+     backgroundColor:AppTheme.panel,
+     title:Row(children:[Icon(live?Icons.verified_rounded:Icons.lock_outline_rounded,color:live?AppTheme.green:AppTheme.amber),const SizedBox(width:9),Expanded(child:Text('${market['state_name']} coverage'))]),
+     content:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+       _OpportunityChip(label:'${market['data_status']}',color:live?AppTheme.green:AppTheme.amber),
+       const SizedBox(height:12),
+-      Text(live?'This market is live and available to this account.':'This market is visible so customers understand where BridgePoint is going. Data remains locked until the full property inventory and automatic intelligence pipeline are live.',style:const TextStyle(color:AppTheme.textMuted,height:1.5)),
++      Text(live?'This market is live and available to this account.':'${_formatExpansionEtaV321(eta)}. BridgePoint keeps the market locked until the full property inventory, automatic intelligence pipeline, scoring, security, QA and owner activation gate are complete.',style:const TextStyle(color:AppTheme.textMuted,height:1.5)),
++      if(!live&&progress!=null)...[const SizedBox(height:10),LinearProgressIndicator(value:(progress/100).clamp(0,1),backgroundColor:Colors.white10,valueColor:AlwaysStoppedAnimation(etaColor)),const SizedBox(height:4),Text('${progress.toStringAsFixed(1)}% • ${eta['phase']??'BUILDING'} • ${eta['confidence']??'CALCULATING'} confidence',style:TextStyle(color:etaColor,fontSize:9,fontWeight:FontWeight.w800))],
+       if(!live)...[const SizedBox(height:12),Text('Future state add-on from \$${market['monthly_price']}/month. Requesting it today does not charge you.',style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w700,height:1.4))],
+     ]),
+     actions:[
+@@ -13898,6 +13990,21 @@
+   }
+ }
+ 
++class _OwnerResiliencePanelV320 extends StatelessWidget{
++  const _OwnerResiliencePanelV320();
++  @override Widget build(BuildContext context)=>FutureBuilder<Map<String,dynamic>>(
++    future:_callRpc('bridgepoint_owner_resilience_metrics_v320',const {}),builder:(context,snapshot){
++      final d=snapshot.data??const <String,dynamic>{};final routes=d['routes'] is Map?Map<String,dynamic>.from(d['routes'] as Map):const <String,dynamic>{};final credits=d['service_credits'] is Map?Map<String,dynamic>.from(d['service_credits'] as Map):const <String,dynamic>{};
++      if(snapshot.connectionState==ConnectionState.waiting)return const Card(child:Padding(padding:EdgeInsets.all(16),child:LinearProgressIndicator(minHeight:2)));
++      if(snapshot.hasError)return Card(child:Padding(padding:const EdgeInsets.all(16),child:Text('Resilience metrics are temporarily unavailable. ${snapshot.error}',style:const TextStyle(color:AppTheme.amber,fontSize:9))));
++      return Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
++        const _PanelHeader(title:'Resilience & failover',subtitle:'Live source routing, incidents and customer protection',action:'AUTO'),const SizedBox(height:10),
++        Wrap(spacing:8,runSpacing:8,children:[_MiniStat(label:'ACTIVE ROUTES',value:'${routes['active']??0}'),_MiniStat(label:'DEGRADED',value:'${routes['degraded']??0}'),_MiniStat(label:'LIVE SOURCE OUTAGES',value:'${routes['outage_routes']??0}'),_MiniStat(label:'AUTO-DISCOVERY PENDING',value:'${routes['coverage_pending']??0}'),_MiniStat(label:'CREDITS PENDING',value:'${credits['pending']??0}')]),
++        const SizedBox(height:8),const Text('BridgePoint automatically probes source routes, preserves customer access during non-blocking source failures, and records qualifying incident/service-credit state.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),
++      ])));
++    });
++}
++
+ class _OwnerCenterPage extends StatefulWidget{
+   const _OwnerCenterPage();
+   @override State<_OwnerCenterPage> createState()=>_OwnerCenterPageState();
+@@ -13977,7 +14084,7 @@
+         ]))),
+         const SizedBox(height:14),
+         if(showInvestor)...[const _OwnerInvestorRoomV314(),const SizedBox(height:18)],
+-        if(showSystems)...[const _OwnerSystemExplorerV286(),const SizedBox(height:18)],
++        if(showSystems)...[const _OwnerSystemExplorerV286(),const SizedBox(height:12),const _OwnerResiliencePanelV320(),const SizedBox(height:18)],
+         if(showOutreachReadiness)...[const _OwnerOutreachReadinessV313(),const SizedBox(height:18)],
+         LayoutBuilder(builder:(context,c){final cols=c.maxWidth>=1000?3:c.maxWidth>=620?2:1;const gap=14.0;final w=(c.maxWidth-gap*(cols-1))/cols;return Wrap(spacing:gap,runSpacing:gap,children:[
+           _MetricCard(width:w,label:'CUSTOMERS',value:_formatInteger(customers['total_accounts']??0),detail:'${customers['new_24h']??0} today • ${customers['new_7d']??0} this week',icon:Icons.groups_rounded,accent:AppTheme.green),
