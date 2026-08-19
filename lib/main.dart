@@ -1205,58 +1205,101 @@ class _TopBar extends StatelessWidget {
   final ValueChanged<Map<String, dynamic>> onPropertySelected;
   final VoidCallback onNotifications;
 
+  Widget _packageSelector() => Container(
+    constraints: const BoxConstraints(maxWidth: 230),
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    decoration: BoxDecoration(
+      color: AppTheme.panel,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.white.withOpacity(0.08)),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: package,
+        dropdownColor: AppTheme.panelSoft,
+        icon: const Icon(Icons.expand_more_rounded),
+        isExpanded: true,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
+        items: packages
+            .map((item) => DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item, overflow: TextOverflow.ellipsis),
+                ))
+            .toList(),
+        onChanged: onPackageChanged,
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    if (!desktop) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Expanded(child: _Brand()),
+                const SizedBox(width: 8),
+                _IconButton(
+                  icon: Icons.help_outline_rounded,
+                  onTap: () => _showFaqDialog(context),
+                ),
+                const SizedBox(width: 7),
+                _IconButton(
+                  icon: Icons.notifications_none_rounded,
+                  onTap: onNotifications,
+                ),
+                const SizedBox(width: 7),
+                const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppTheme.blue,
+                  child: Text(
+                    'KJ',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            Row(
+              children: [
+                Expanded(child: _packageSelector()),
+                const SizedBox(width: 8),
+                _IconButton(
+                  icon: Icons.ios_share_rounded,
+                  onTap: () => _showShareBridgePointDialog(context),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       height: 82,
-      padding: EdgeInsets.symmetric(horizontal: desktop ? 28 : 16),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Row(
         children: [
-          if (!desktop) ...[
-            const SizedBox(width: 180, child: _Brand()),
-            const SizedBox(width: 14),
-          ],
-          if (desktop)
-            Expanded(
-              child: _SearchBox(
-                onSubmitted: onSearch,
-                onPropertySelected: onPropertySelected,
-              ),
-            )
-          else
-            const Spacer(),
-          const SizedBox(width: 16),
-          Container(
-            constraints: const BoxConstraints(maxWidth: 230),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: AppTheme.panel,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: package,
-                dropdownColor: AppTheme.panelSoft,
-                icon: const Icon(Icons.expand_more_rounded),
-                isExpanded: true,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-                items: packages
-                    .map(
-                      (item) => DropdownMenuItem<String>(
-                        value: item,
-                        child: Text(item, overflow: TextOverflow.ellipsis),
-                      ),
-                    )
-                    .toList(),
-                onChanged: onPackageChanged,
-              ),
+          Expanded(
+            child: _SearchBox(
+              onSubmitted: onSearch,
+              onPropertySelected: onPropertySelected,
             ),
           ),
+          const SizedBox(width: 16),
+          _packageSelector(),
           const SizedBox(width: 12),
           _IconButton(
             icon: Icons.ios_share_rounded,
@@ -5008,14 +5051,14 @@ class _SignalsPageState extends State<_SignalsPage> {
                           icon: const Icon(Icons.clear_rounded, size: 17),
                           label: const Text('Clear'),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 12),
                         Text(
                           'Newest signals first',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.38),
                             fontSize: 9,
                           ),
-                        ),
+                        )),
                       ],
                     ),
                   ],
@@ -5144,8 +5187,7 @@ class _SignalListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title =
-        (signal['signal_name'] ?? signal['title'] ?? 'Signal').toString();
+    final title = (signal['signal_name'] ?? signal['title'] ?? 'Signal').toString();
     final address = (signal['full_address'] ?? '').toString();
     final municipality = (signal['municipality'] ?? 'Unknown').toString();
     final family = (signal['signal_family'] ?? 'uncategorized').toString();
@@ -5155,7 +5197,67 @@ class _SignalListCard extends StatelessWidget {
     final confidence = (signal['confidence'] as num?)?.toDouble();
     final evidenceCount = (signal['evidence_count'] as num?)?.toInt() ?? 0;
     final detector = (signal['detector_key'] ?? '—').toString();
-    final signalColor=_opportunityTypeColor(signal);
+    final signalColor = _opportunityTypeColor(signal);
+
+    final chips = <Widget>[
+      _OpportunityChip(label: family.replaceAll('_', ' ').toUpperCase(), color: signalColor),
+      _OpportunityChip(
+        label: status.toUpperCase(),
+        color: status.toLowerCase() == 'active' ? AppTheme.green : AppTheme.textMuted,
+      ),
+      if (severity != null)
+        _OpportunityChip(
+          label: 'SEV ${severity.toStringAsFixed(0)}',
+          color: severity >= 80 ? AppTheme.cyan : AppTheme.blue,
+        ),
+    ];
+
+    Widget identity({required bool compact}) => Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: signalColor.withOpacity(0.11),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Icon(_opportunityMapIcon(signal), color: signalColor, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: compact ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                address.trim().isEmpty ? municipality : address,
+                maxLines: compact ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 9, height: 1.35),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                detector,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.white.withOpacity(0.35), fontSize: 8),
+              ),
+            ],
+          ),
+        ),
+        if (compact) ...[
+          const SizedBox(width: 6),
+          const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 20),
+        ],
+      ],
+    );
 
     return InkWell(
       onTap: () => _showSignalDetail(context, signal),
@@ -5168,127 +5270,53 @@ class _SignalListCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.white.withOpacity(0.06)),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: signalColor.withOpacity(0.11),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Icon(
-                _opportunityMapIcon(signal),
-                color: signalColor,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              flex: 4,
-              child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 680;
+            if (compact) {
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    address.trim().isEmpty ? municipality : address,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 9,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    detector,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.35),
-                      fontSize: 8,
-                    ),
+                  identity(compact: true),
+                  const SizedBox(height: 11),
+                  Wrap(spacing: 6, runSpacing: 6, children: chips),
+                  const SizedBox(height: 11),
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 7,
+                    children: [
+                      Text(strength == null ? 'Strength —' : 'Strength ${strength.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.cyan, fontSize: 10, fontWeight: FontWeight.w800)),
+                      Text(confidence == null ? 'Confidence —' : '${(confidence * 100).toStringAsFixed(0)}% confidence', style: const TextStyle(color: AppTheme.textMuted, fontSize: 9)),
+                      Text('$evidenceCount evidence item${evidenceCount == 1 ? '' : 's'}', style: const TextStyle(color: AppTheme.textMuted, fontSize: 9)),
+                    ],
                   ),
                 ],
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _OpportunityChip(
-                    label: family.replaceAll('_', ' ').toUpperCase(),
-                    color: signalColor,
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(flex: 4, child: identity(compact: false)),
+                const SizedBox(width: 12),
+                Expanded(flex: 3, child: Wrap(spacing: 6, runSpacing: 6, children: chips)),
+                SizedBox(
+                  width: 125,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(strength == null ? 'Strength —' : 'Strength ${strength.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.cyan, fontSize: 10, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 4),
+                      Text(confidence == null ? 'Confidence —' : '${(confidence * 100).toStringAsFixed(0)}% confidence', style: const TextStyle(color: AppTheme.textMuted, fontSize: 9)),
+                      const SizedBox(height: 4),
+                      Text('$evidenceCount evidence item${evidenceCount == 1 ? '' : 's'}', style: const TextStyle(color: AppTheme.textMuted, fontSize: 9)),
+                    ],
                   ),
-                  _OpportunityChip(
-                    label: status.toUpperCase(),
-                    color: status.toLowerCase() == 'active'
-                        ? AppTheme.green
-                        : AppTheme.textMuted,
-                  ),
-                  if (severity != null)
-                    _OpportunityChip(
-                      label: 'SEV ${severity.toStringAsFixed(0)}',
-                      color: severity >= 80 ? AppTheme.cyan : AppTheme.blue,
-                    ),
-                ],
-              ),
-            ),
-            SizedBox(
-              width: 125,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    strength == null
-                        ? 'Strength —'
-                        : 'Strength ${strength.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: AppTheme.cyan,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    confidence == null
-                        ? 'Confidence —'
-                        : '${(confidence * 100).toStringAsFixed(0)}% confidence',
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 9,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$evidenceCount evidence item${evidenceCount == 1 ? '' : 's'}',
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 9,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 7),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppTheme.textMuted,
-              size: 20,
-            ),
-          ],
+                ),
+                const SizedBox(width: 7),
+                const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 20),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -5705,8 +5733,8 @@ class _PropertiesPageState extends State<_PropertiesPage> {
                           icon: const Icon(Icons.clear_rounded, size: 17),
                           label: const Text('Clear'),
                         ),
-                        const Spacer(),
-                        Text(
+                        const SizedBox(width: 12),
+                        Flexible(child: Text(
                           'Search narrows properties before intelligence joins',
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.38),
@@ -5864,10 +5892,51 @@ class _PropertyListCard extends StatelessWidget {
     final assessed = property['assessed_total_value'] as num?;
     final yearBuilt = property['year_built'];
 
-    final displayAddress =
-        address.trim().isEmpty || address == '${property['postal_code']}, CT'
-            ? '$municipality, CT • $parcel'
-            : address;
+    final displayAddress = address.trim().isEmpty || address == '${property['postal_code']}, CT'
+        ? '$municipality, CT • $parcel'
+        : address;
+
+    final chips = <Widget>[
+      _OpportunityChip(label: type, color: AppTheme.blue),
+      if (score != null) _OpportunityChip(label: 'SCORE ${score.toStringAsFixed(1)}', color: AppTheme.cyan),
+      if (priority != null) _OpportunityChip(label: priority.toUpperCase(), color: _opportunityPriorityColor(priority)),
+      if (signal != null) _OpportunityChip(label: signal.replaceAll('_', ' ').toUpperCase(), color: AppTheme.green),
+    ];
+
+    final facts = [
+      if (yearBuilt != null) 'Built $yearBuilt',
+      if (assessed != null) '\$${_formatInteger(assessed)} assessed',
+    ];
+
+    Widget identity({required bool compact}) => Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AppTheme.cyan.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: const Icon(Icons.home_work_outlined, color: AppTheme.cyan, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(displayAddress, maxLines: compact ? 2 : 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 5),
+              Text([municipality, if (county.isNotEmpty) '$county County', parcel].join(' • '), maxLines: compact ? 2 : 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textMuted, fontSize: 9, height: 1.35)),
+            ],
+          ),
+        ),
+        if (compact) ...[
+          const SizedBox(width: 6),
+          const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 20),
+        ],
+      ],
+    );
 
     return InkWell(
       onTap: () => _showPropertyInventoryDetail(context, property),
@@ -5880,134 +5949,57 @@ class _PropertyListCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.white.withOpacity(0.06)),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppTheme.cyan.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Icon(
-                Icons.home_work_outlined,
-                color: AppTheme.cyan,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              flex: 4,
-              child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 680;
+            final opportunityText = opportunityScore == null ? 'No active opportunity' : 'Opportunity ${opportunityScore.toStringAsFixed(1)}';
+            if (compact) {
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    displayAddress,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    [
-                      municipality,
-                      if (county.isNotEmpty) '$county County',
-                      parcel,
-                    ].join(' • '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 9,
-                    ),
+                  identity(compact: true),
+                  const SizedBox(height: 11),
+                  Wrap(spacing: 6, runSpacing: 6, children: chips),
+                  const SizedBox(height: 11),
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 7,
+                    children: [
+                      Text(opportunityText, style: TextStyle(color: opportunityScore == null ? AppTheme.textMuted : AppTheme.cyan, fontSize: 9, fontWeight: FontWeight.w700)),
+                      Text(facts.isEmpty ? 'Property record' : facts.join(' • '), style: const TextStyle(color: AppTheme.textMuted, fontSize: 9)),
+                    ],
                   ),
                 ],
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _OpportunityChip(label: type, color: AppTheme.blue),
-                  if (score != null)
-                    _OpportunityChip(
-                      label: 'SCORE ${score.toStringAsFixed(1)}',
-                      color: AppTheme.cyan,
-                    ),
-                  if (priority != null)
-                    _OpportunityChip(
-                      label: priority.toUpperCase(),
-                      color: _opportunityPriorityColor(priority),
-                    ),
-                  if (signal != null)
-                    _OpportunityChip(
-                      label: signal.replaceAll('_', ' ').toUpperCase(),
-                      color: AppTheme.green,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 135,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    opportunityScore == null
-                        ? 'No active opportunity'
-                        : 'Opportunity ${opportunityScore.toStringAsFixed(1)}',
-                    style: TextStyle(
-                      color: opportunityScore == null
-                          ? AppTheme.textMuted
-                          : AppTheme.cyan,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(flex: 4, child: identity(compact: false)),
+                const SizedBox(width: 12),
+                Expanded(flex: 3, child: Wrap(spacing: 6, runSpacing: 6, children: chips)),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 135,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(opportunityText, style: TextStyle(color: opportunityScore == null ? AppTheme.textMuted : AppTheme.cyan, fontSize: 9, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 5),
+                      Text(facts.isEmpty ? 'Property record' : facts.join(' • '), textAlign: TextAlign.right, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppTheme.textMuted, fontSize: 9)),
+                    ],
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    [
-                      if (yearBuilt != null) 'Built $yearBuilt',
-                      if (assessed != null)
-                        '\$${_formatInteger(assessed)} assessed',
-                    ].isEmpty
-                        ? 'Property record'
-                        : [
-                            if (yearBuilt != null) 'Built $yearBuilt',
-                            if (assessed != null)
-                              '\$${_formatInteger(assessed)} assessed',
-                          ].join(' • '),
-                    textAlign: TextAlign.right,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 9,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 7),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppTheme.textMuted,
-              size: 20,
-            ),
-          ],
+                ),
+                const SizedBox(width: 7),
+                const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 20),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 }
-
 
 void _showPropertyInventoryDetail(
   BuildContext context,
