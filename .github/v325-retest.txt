@@ -1,1 +1,1 @@
-Full production-chain retest after replacing v321 frozen SHA gates with verified v319/v321 feature contracts. Continue through v324 and compile v325 3D fallback, real NOAA reflectivity colors, responsive phone cards, and Community Share Kit. Retry 13.
+Full production-chain retest after structural v321 repair for NOAA fallback, visible radar overlay, and radar-first U.S. map mode. Continue through v322/v324 and compile v325 3D fallback, actual NOAA reflectivity colors, responsive phone cards, and Community Share Kit. Retry 14.
