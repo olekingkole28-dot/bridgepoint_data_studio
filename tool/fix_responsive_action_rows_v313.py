@@ -22,10 +22,25 @@ replacements=[
 
 for old,new in replacements:
     count=body.count(old)
-    if count!=1:
-        raise SystemExit(f'v313 responsive action row anchor count {count}: {old[:100]}')
-    body=body.replace(old,new,1)
+    if count==1:
+        body=body.replace(old,new,1)
+        continue
+    if count==0:
+        already_fixed=(new in body)
+        # v188 already converted this exact legacy property action Row into an
+        # Align + Wrap structure. Treat that as success rather than forcing the
+        # old row back into the generated source.
+        if 'State access is enforced server-side by BridgePoint entitlements.' in old:
+            already_fixed=already_fixed or (
+                'State access is enforced server-side by BridgePoint entitlements.' in body
+                and 'Wrap(spacing:8,runSpacing:8' in body
+                and "label:const Text('Apply filters')" in body
+                and "label:const Text('Clear')" in body
+            )
+        if already_fixed:
+            continue
+    raise SystemExit(f'v313 responsive action row anchor count {count}: {old[:100]}')
 
 body += "\nconst String _bridgePointResponsiveActionRowsV313='bridgepoint-v313-responsive-action-rows | dashboard actions wrap | preferences actions wrap | property filters wrap | social provider controls stack and wrap | zoom toolbar wraps on compact screens';\n"
 path.write_text(body,encoding='utf-8')
-print('Applied v313 responsive action-row audit fixes.')
+print('Applied v313 responsive action-row audit fixes (including already-responsive v188 property controls).')
