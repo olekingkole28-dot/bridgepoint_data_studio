@@ -1,0 +1,60 @@
+name: BridgePoint canonical source validation
+
+on:
+  pull_request:
+    paths:
+      - '.github/canonical-validation-trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-current-main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze canonical Flutter source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests when present
+        shell: bash
+        run: |
+          if [ -d test ] && find test -type f -name '*_test.dart' -print -quit | grep -q .; then
+            flutter test
+          else
+            echo 'No Flutter tests present; continuing.'
+          fi
+
+      - name: Build canonical web release
+        run: flutter build web --release
+
+      - name: Stamp canonical release metadata
+        shell: bash
+        run: |
+          cat > build/web/bridgepoint-release.json <<EOF
+          {
+            "version": "${GITHUB_SHA}",
+            "source": "canonical-main",
+            "public_origin": "https://bridgepointintelligence.online/",
+            "validated_by": "canonical-source-validation"
+          }
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-canonical-web
+          path: build/web
+          if-no-files-found: error
+          retention-days: 7
