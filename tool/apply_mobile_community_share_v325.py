@@ -249,7 +249,7 @@ friend_anchor='''  Future<void> _friend(String id)async{try{await _callRpc('brid
 friend_new='''  Future<void> _shareNetworkPostV325(Map<String,dynamic> post)async{
     final who='${post['display_name']??post['handle']??'A BridgePoint member'}';
     final text='${post['body']??''}'.trim();
-    await _shareBridgePointTextV325(context,'BridgePoint Community','$who shared on BridgePoint Community:\n\n$text');
+    await _shareBridgePointTextV325(context,'BridgePoint Community','$who shared on BridgePoint Community:\\n\\n$text');
   }
 '''+friend_anchor
 if friend_anchor in body:
