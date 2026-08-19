@@ -124,26 +124,26 @@ if old_identity not in text:
 text=text.replace(old_identity,new_identity,1)
 
 chips_start="""    final chips = <Widget>[
-        _OpportunityChip(label: type, color: AppTheme.blue),
+      _OpportunityChip(label: type, color: AppTheme.blue),
 """
 if chips_start not in text:
     raise SystemExit('responsive property chips marker missing')
 chip_owner="""    final chips = <Widget>[
-        _OpportunityChip(label: type, color: AppTheme.blue),
-        _OpportunityChip(label:ownerStatus=='CURRENT'?'OWNER VERIFIED':'OWNER $ownerStatus',color:ownerStatus=='CURRENT'?AppTheme.green:AppTheme.textMuted),
+      _OpportunityChip(label: type, color: AppTheme.blue),
+      _OpportunityChip(label:ownerStatus=='CURRENT'?'OWNER VERIFIED':'OWNER $ownerStatus',color:ownerStatus=='CURRENT'?AppTheme.green:AppTheme.textMuted),
 """
 text=text.replace(chips_start,chip_owner,1)
 
 facts_old="""    final facts = [
-        if (yearBuilt != null) 'Built $yearBuilt',
-        if (assessed != null) '\$${_formatInteger(assessed)} assessed',
-      ];
+      if (yearBuilt != null) 'Built $yearBuilt',
+      if (assessed != null) '\$${_formatInteger(assessed)} assessed',
+    ];
 """
 facts_new="""    final facts = [
-        if(owner.isNotEmpty) owner else 'Recorded owner unavailable',
-        if (yearBuilt != null) 'Built $yearBuilt',
-        if (assessed != null) '\$${_formatInteger(assessed)} assessed',
-      ];
+      if(owner.isNotEmpty) owner else 'Recorded owner unavailable',
+      if (yearBuilt != null) 'Built $yearBuilt',
+      if (assessed != null) '\$${_formatInteger(assessed)} assessed',
+    ];
 """
 if facts_old not in text:
     raise SystemExit('responsive property facts marker missing')
