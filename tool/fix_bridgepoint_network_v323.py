@@ -10,6 +10,9 @@ if marker in body:
     runpy.run_path('tool/fix_bridgepoint_network_generated_compile_v323.py',run_name='__main__')
     runpy.run_path('tool/apply_bridgepoint_network_owner_moderation_v323.py',run_name='__main__')
     runpy.run_path('tool/audit_bridgepoint_network_v323.py',run_name='__main__')
+    runpy.run_path('tool/apply_owner_truth_catalog_v324.py',run_name='__main__')
+    runpy.run_path('tool/fix_package_sales_motion_v324.py',run_name='__main__')
+    runpy.run_path('tool/audit_owner_truth_catalog_v324.py',run_name='__main__')
     raise SystemExit(0)
 if 'bridgepoint-v323-network-ui' not in body:
     raise SystemExit('v323 Network UI must run before repair')
@@ -40,3 +43,6 @@ runpy.run_path('tool/apply_bridgepoint_network_safety_controls_v323.py',run_name
 runpy.run_path('tool/fix_bridgepoint_network_generated_compile_v323.py',run_name='__main__')
 runpy.run_path('tool/apply_bridgepoint_network_owner_moderation_v323.py',run_name='__main__')
 runpy.run_path('tool/audit_bridgepoint_network_v323.py',run_name='__main__')
+runpy.run_path('tool/apply_owner_truth_catalog_v324.py',run_name='__main__')
+runpy.run_path('tool/fix_package_sales_motion_v324.py',run_name='__main__')
+runpy.run_path('tool/audit_owner_truth_catalog_v324.py',run_name='__main__')
