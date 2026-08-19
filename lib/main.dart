@@ -549,7 +549,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'bp84:${Supabase.instance.client.auth.currentUser?.id ?? 'unknown'}:${DateTime.now().microsecondsSinceEpoch}';
 
   static const packageModelKeys = <String, String>{
-    'All Intelligence': 'all',
+    'Owner Full Platform': 'all',
     'BridgePoint Homeowner': 'bridgepoint_home',
     'BridgePoint Home': 'bridgepoint_home',
     'BridgePoint Commercial': 'bridgepoint_commercial',
@@ -582,8 +582,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const _NavigationItem('Owner Center',Icons.admin_panel_settings_rounded),
   ];
 
-  static const packages = <String>[
-    'All Intelligence',
+  static const customerPackages = <String>[
     'BridgePoint Homeowner',
     'BridgePoint Home',
     'BridgePoint Commercial',
@@ -594,10 +593,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'Solar Opportunity',
   ];
 
+  List<String> get packages => <String>[
+    if (widget.ownerMode) 'Owner Full Platform',
+    ...customerPackages,
+  ];
+
   @override
   void initState() {
     super.initState();
-    if(widget.ownerMode)selectedPackage='All Intelligence';
+    if(widget.ownerMode)selectedPackage='Owner Full Platform';
     dashboardRequest = _loadDashboard();
     sourcesRequest = _loadSources();
     settingsRequest = _loadRuntimeSettings();
@@ -7282,6 +7286,79 @@ class _OpportunityListCard extends StatelessWidget {
     final action =
         (opportunity['recommended_action'] ?? 'Continue monitoring').toString();
 
+    final chips = <Widget>[
+      _OpportunityChip(label: priority.toUpperCase(), color: priorityColor),
+      _OpportunityChip(
+        label: stage.replaceAll('_', ' ').toUpperCase(),
+        color: AppTheme.blue,
+      ),
+      _OpportunityChip(label: '$events EVENTS', color: AppTheme.cyan),
+      _OpportunityChip(
+        label: '$distinctSignals SIGNALS',
+        color: AppTheme.green,
+      ),
+    ];
+
+    Widget rankBlock({required bool compact}) => Container(
+      width: compact ? 52 : 58,
+      padding: compact ? const EdgeInsets.symmetric(vertical: 7) : EdgeInsets.zero,
+      decoration: compact
+          ? BoxDecoration(
+              color: AppTheme.cyan.withOpacity(.07),
+              borderRadius: BorderRadius.circular(10),
+            )
+          : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            rank == null ? '—' : '#$rank',
+            style: const TextStyle(
+              color: AppTheme.cyan,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            score == null ? '—' : score.toStringAsFixed(1),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Widget identity({required bool compact}) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          address,
+          maxLines: compact ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          '${opportunity['model_name'] ?? opportunity['model_key'] ?? 'BridgePoint'} • $signal',
+          maxLines: compact ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: AppTheme.textMuted,
+            fontSize: 10,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
+
     return InkWell(
       onTap: () => _showOpportunityDetail(context, opportunity),
       borderRadius: BorderRadius.circular(14),
@@ -7293,97 +7370,30 @@ class _OpportunityListCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.white.withOpacity(0.06)),
         ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 58,
-              child: Column(
-                children: [
-                  Text(
-                    rank == null ? '—' : '#$rank',
-                    style: const TextStyle(
-                      color: AppTheme.cyan,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    score == null ? '—' : score.toStringAsFixed(1),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 1,
-              height: 52,
-              color: Colors.white.withOpacity(0.07),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              flex: 4,
-              child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 720;
+            if (compact) {
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    address,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      rankBlock(compact: true),
+                      const SizedBox(width: 11),
+                      Expanded(child: identity(compact: true)),
+                      const SizedBox(width: 5),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppTheme.textMuted,
+                        size: 20,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    '${opportunity['model_name'] ?? opportunity['model_key'] ?? 'BridgePoint'} • $signal',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _OpportunityChip(
-                    label: priority.toUpperCase(),
-                    color: priorityColor,
-                  ),
-                  _OpportunityChip(
-                    label: stage.replaceAll('_', ' ').toUpperCase(),
-                    color: AppTheme.blue,
-                  ),
-                  _OpportunityChip(
-                    label: '$events EVENTS',
-                    color: AppTheme.cyan,
-                  ),
-                  _OpportunityChip(
-                    label: '$distinctSignals SIGNALS',
-                    color: AppTheme.green,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 145,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
+                  const SizedBox(height: 11),
+                  Wrap(spacing: 6, runSpacing: 6, children: chips),
+                  const SizedBox(height: 11),
                   Text(
                     confidence == null
                         ? 'Confidence —'
@@ -7397,25 +7407,73 @@ class _OpportunityListCard extends StatelessWidget {
                   const SizedBox(height: 5),
                   Text(
                     action,
-                    textAlign: TextAlign.right,
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
+                      height: 1.35,
                     ),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppTheme.textMuted,
-              size: 20,
-            ),
-          ],
+              );
+            }
+
+            return Row(
+              children: [
+                rankBlock(compact: false),
+                Container(
+                  width: 1,
+                  height: 52,
+                  color: Colors.white.withOpacity(0.07),
+                ),
+                const SizedBox(width: 14),
+                Expanded(flex: 4, child: identity(compact: false)),
+                Expanded(
+                  flex: 3,
+                  child: Wrap(spacing: 6, runSpacing: 6, children: chips),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 145,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        confidence == null
+                            ? 'Confidence —'
+                            : 'Confidence ${confidence.toStringAsFixed(0)}%',
+                        style: const TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        action,
+                        textAlign: TextAlign.right,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppTheme.textMuted,
+                  size: 20,
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
