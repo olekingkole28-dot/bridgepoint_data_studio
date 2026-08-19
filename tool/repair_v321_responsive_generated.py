@@ -159,10 +159,19 @@ control=control.replace(
     "setState((){_showRadar=true;_radarPlaying=true;_radarFrameIndex=_radarFrames.length-1;_radarRevision++;});",
     "setState((){_showRadar=true;_showClouds=false;_showExpansion=false;_radarPlaying=true;_radarFrameIndex=_radarFrames.length-1;_radarRevision++;_viewportZoom=4.2;});",
 )
-control=control.replace(
-    "United States live weather on • loading the latest NOAA precipitation radar…",
-    "U.S. precipitation radar on • expansion badges hidden so the radar stays clear.",
-)
+desired_notice="ScaffoldMessenger.of(context).showSnackBar(const SnackBar(duration:Duration(seconds:2),content:Text('U.S. precipitation radar on • expansion badges hidden so the radar stays clear.')));"
+if 'U.S. precipitation radar on • expansion badges hidden so the radar stays clear.' not in control:
+    notice_start=control.find('ScaffoldMessenger.of(context).showSnackBar')
+    if notice_start>=0:
+        notice_end=control.find(';',notice_start)
+        if notice_end<0:
+            raise SystemExit('v321 repair: U.S. radar snackbar terminator missing')
+        control=control[:notice_start]+desired_notice+control[notice_end+1:]
+    else:
+        load_call='unawaited(_loadNoaaRadarFramesV271());'
+        if load_call not in control:
+            raise SystemExit('v321 repair: U.S. radar load call missing for snackbar insertion')
+        control=control.replace(load_call,load_call+desired_notice,1)
 if '_showClouds=false' not in control or '_showExpansion=false' not in control:
     raise SystemExit('v321 repair: U.S. radar control did not become radar-first')
 if 'U.S. precipitation radar on • expansion badges hidden so the radar stays clear.' not in control:
