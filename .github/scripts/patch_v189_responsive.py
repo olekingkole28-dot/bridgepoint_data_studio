@@ -1,11 +1,17 @@
 from pathlib import Path
 
-p=Path('tool/apply_premium_navigation_expansion_v189.py')
-s=p.read_text()
-old='''old_top="""    return Container(\n      height: 82,\n      padding: EdgeInsets.symmetric(horizontal: desktop ? 28 : 16),\n      child: Row(\n"""\nnew_top="""    return Container(\n      height: 82,\n      padding: EdgeInsets.symmetric(horizontal: desktop ? 28 : 16),\n      decoration:BoxDecoration(\n        gradient:LinearGradient(colors:[accent.withOpacity(desktop?.07:.18),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),\n        border:Border(bottom:BorderSide(color:accent.withOpacity(desktop?.16:.34),width:desktop?1:2)),\n      ),\n      child: Row(\n"""\nif old_top not in text: raise SystemExit('TopBar container anchor missing')\ntext=text.replace(old_top,new_top,1)\n'''
-new='''mobile_top="""      return Container(\n        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),\n        child: Column(\n"""\nmobile_top_new="""      return Container(\n        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),\n        decoration:BoxDecoration(\n          gradient:LinearGradient(colors:[accent.withOpacity(.18),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),\n          border:Border(bottom:BorderSide(color:accent.withOpacity(.34),width:2)),\n        ),\n        child: Column(\n"""\nif mobile_top not in text: raise SystemExit('responsive mobile TopBar anchor missing')\ntext=text.replace(mobile_top,mobile_top_new,1)\ndesktop_top="""    return Container(\n      height: 82,\n      padding: const EdgeInsets.symmetric(horizontal: 28),\n      child: Row(\n"""\ndesktop_top_new="""    return Container(\n      height: 82,\n      padding: const EdgeInsets.symmetric(horizontal: 28),\n      decoration:BoxDecoration(\n        gradient:LinearGradient(colors:[accent.withOpacity(.07),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),\n        border:Border(bottom:BorderSide(color:accent.withOpacity(.16),width:1)),\n      ),\n      child: Row(\n"""\nif desktop_top not in text: raise SystemExit('responsive desktop TopBar anchor missing')\ntext=text.replace(desktop_top,desktop_top_new,1)\n'''
-if old not in s:
-    raise SystemExit('v189 legacy TopBar patch block not found')
-s=s.replace(old,new,1)
-p.write_text(s)
-print('v189 responsive TopBar matcher repaired')
+p = Path('tool/apply_premium_navigation_expansion_v189.py')
+s = p.read_text()
+
+old = '''old_top="""    return Container(\n      height: 82,\n      padding: EdgeInsets.symmetric(horizontal: desktop ? 28 : 16),\n      child: Row(\n"""\nnew_top="""    return Container(\n      height: 82,\n      padding: EdgeInsets.symmetric(horizontal: desktop ? 28 : 16),\n      decoration:BoxDecoration(\n        gradient:LinearGradient(colors:[accent.withOpacity(desktop?.07:.18),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),\n        border:Border(bottom:BorderSide(color:accent.withOpacity(desktop?.16:.34),width:desktop?1:2)),\n      ),\n      child: Row(\n"""\nif old_top not in text: raise SystemExit('TopBar container anchor missing')\ntext=text.replace(old_top,new_top,1)\n'''
+
+new = '''mobile_top="""      return Container(\n        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),\n        child: Column(\n"""\nmobile_top_new="""      return Container(\n        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),\n        decoration:BoxDecoration(\n          gradient:LinearGradient(colors:[accent.withOpacity(.18),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),\n          border:Border(bottom:BorderSide(color:accent.withOpacity(.34),width:2)),\n        ),\n        child: Column(\n"""\nif mobile_top not in text: raise SystemExit('responsive mobile TopBar anchor missing')\ntext=text.replace(mobile_top,mobile_top_new,1)\ndesktop_top="""    return Container(\n      height: 82,\n      padding: const EdgeInsets.symmetric(horizontal: 28),\n      child: Row(\n"""\ndesktop_top_new="""    return Container(\n      height: 82,\n      padding: const EdgeInsets.symmetric(horizontal: 28),\n      decoration:BoxDecoration(\n        gradient:LinearGradient(colors:[accent.withOpacity(.07),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),\n        border:Border(bottom:BorderSide(color:accent.withOpacity(.16),width:1)),\n      ),\n      child: Row(\n"""\nif desktop_top not in text: raise SystemExit('responsive desktop TopBar anchor missing')\ntext=text.replace(desktop_top,desktop_top_new,1)\n'''
+
+if old in s:
+    s = s.replace(old, new, 1)
+    p.write_text(s)
+    print('v189 responsive TopBar matcher repaired')
+elif new in s:
+    print('v189 responsive TopBar matcher already repaired')
+else:
+    raise SystemExit('v189 TopBar matcher is neither legacy nor expected responsive form')
