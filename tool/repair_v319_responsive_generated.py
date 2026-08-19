@@ -150,25 +150,41 @@ if 'bp-us-radar-preloaded-' not in block:
 
 body=body[:state_start]+block+body[state_end:]
 
-# Hunk 14: Weather Center exact ISO timestamps. Accept any whitespace/layout
-# form of the older latest-frame conditional getter.
+# Hunk 14: replace the Weather Center getter by its stable identifier rather
+# than by the old expression. The semicolon terminates this expression-bodied
+# getter, so this remains a narrow one-getter edit even if formatting evolves.
 new_time="Map<String,String> get timeParametersV271=><String,String>{'TIME':frame.toUtc().toIso8601String()};"
 if new_time not in body:
-    pattern=r"Map<String,String>\s+get\s+timeParametersV271\s*=>\s*isLatestV271\s*\?\s*const\s*<String,String>\{\}\s*:\s*<String,String>\{\s*'TIME'\s*:\s*'\$\{frame\.toUtc\(\)\.millisecondsSinceEpoch\}'\s*\}\s*;"
-    body,n=re.subn(pattern,new_time,body,count=1)
-    if n!=1:
-        raise SystemExit('v319 responsive repair: Weather Center time parameter anchor missing')
+    marker='Map<String,String> get timeParametersV271'
+    getter_start=body.find(marker)
+    if getter_start<0:
+        # tolerate whitespace between the generic type and get keyword
+        m=re.search(r'Map<String,String>\s+get\s+timeParametersV271',body)
+        getter_start=-1 if m is None else m.start()
+    if getter_start<0:
+        raise SystemExit('v319 responsive repair: Weather Center time getter name missing')
+    getter_end=body.find(';',getter_start)
+    if getter_end<0 or getter_end-getter_start>500:
+        raise SystemExit('v319 responsive repair: Weather Center time getter terminator missing')
+    body=body[:getter_start]+new_time+body[getter_end+1:]
 
 # Hunk 15: retain only the eight verified frames animated by Weather Center.
 if 'noaaFramesV271=next.length>8?next.sublist(next.length-8):next' not in body:
-    body,n=re.subn(
-        r"noaaFramesV271\s*=\s*next\.length\s*>\s*25\s*\?\s*next\.sublist\(next\.length\s*-\s*25\)\s*:\s*next",
-        'noaaFramesV271=next.length>8?next.sublist(next.length-8):next',
-        body,
-        count=1,
-    )
-    if n!=1:
-        raise SystemExit('v319 responsive repair: Weather Center frame window anchor missing')
+    marker='noaaFramesV271=next.length'
+    assign_start=body.find(marker)
+    if assign_start<0:
+        m=re.search(r'noaaFramesV271\s*=\s*next\.length',body)
+        assign_start=-1 if m is None else m.start()
+    if assign_start<0:
+        raise SystemExit('v319 responsive repair: Weather Center frame assignment missing')
+    # This assignment sits inside setState and ends before the next semicolon.
+    assign_end=body.find(';',assign_start)
+    if assign_end<0 or assign_end-assign_start>500:
+        raise SystemExit('v319 responsive repair: Weather Center frame assignment terminator missing')
+    assignment=body[assign_start:assign_end]
+    if 'next.sublist' not in assignment:
+        raise SystemExit('v319 responsive repair: Weather Center frame assignment shape unexpected')
+    body=body[:assign_start]+'noaaFramesV271=next.length>8?next.sublist(next.length-8):next'+body[assign_end:]
 
 required=[
     '_BridgePointNationwideWeatherV287(radar:true,clouds:false)',
