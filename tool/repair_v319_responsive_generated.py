@@ -161,12 +161,15 @@ if new_time not in body:
         # tolerate whitespace between the generic type and get keyword
         m=re.search(r'Map<String,String>\s+get\s+timeParametersV271',body)
         getter_start=-1 if m is None else m.start()
-    if getter_start<0:
-        raise SystemExit('v319 responsive repair: Weather Center time getter name missing')
-    getter_end=body.find(';',getter_start)
-    if getter_end<0 or getter_end-getter_start>500:
-        raise SystemExit('v319 responsive repair: Weather Center time getter terminator missing')
-    body=body[:getter_start]+new_time+body[getter_end+1:]
+    if getter_start>=0:
+        getter_end=body.find(';',getter_start)
+        if getter_end<0 or getter_end-getter_start>500:
+            raise SystemExit('v319 responsive repair: Weather Center time getter terminator missing')
+        body=body[:getter_start]+new_time+body[getter_end+1:]
+    elif 'weather-center-radar-preloaded' not in body or "frames[i].toUtc().toIso8601String()" not in body:
+        raise SystemExit('v319 responsive repair: neither legacy Weather Center getter nor direct-ISO preloaded renderer is present')
+    else:
+        print('v319 Weather Center already uses direct ISO timestamps in the preloaded renderer; legacy getter not required')
 
 # Hunk 15: retain only the eight verified frames animated by Weather Center.
 if 'noaaFramesV271=next.length>8?next.sublist(next.length-8):next' not in body:
@@ -175,23 +178,23 @@ if 'noaaFramesV271=next.length>8?next.sublist(next.length-8):next' not in body:
     if assign_start<0:
         m=re.search(r'noaaFramesV271\s*=\s*next\.length',body)
         assign_start=-1 if m is None else m.start()
-    if assign_start<0:
-        raise SystemExit('v319 responsive repair: Weather Center frame assignment missing')
-    # This assignment sits inside setState and ends before the next semicolon.
-    assign_end=body.find(';',assign_start)
-    if assign_end<0 or assign_end-assign_start>500:
-        raise SystemExit('v319 responsive repair: Weather Center frame assignment terminator missing')
-    assignment=body[assign_start:assign_end]
-    if 'next.sublist' not in assignment:
-        raise SystemExit('v319 responsive repair: Weather Center frame assignment shape unexpected')
-    body=body[:assign_start]+'noaaFramesV271=next.length>8?next.sublist(next.length-8):next'+body[assign_end:]
+    if assign_start>=0:
+        # This assignment sits inside setState and ends before the next semicolon.
+        assign_end=body.find(';',assign_start)
+        if assign_end<0 or assign_end-assign_start>500:
+            raise SystemExit('v319 responsive repair: Weather Center frame assignment terminator missing')
+        assignment=body[assign_start:assign_end]
+        if 'next.sublist' in assignment:
+            body=body[:assign_start]+'noaaFramesV271=next.length>8?next.sublist(next.length-8):next'+body[assign_end:]
+    elif 'weather-center-radar-preloaded' not in body:
+        raise SystemExit('v319 responsive repair: Weather Center frame source and preloaded renderer both missing')
 
 required=[
     '_BridgePointNationwideWeatherV287(radar:true,clouds:false)',
     'Duration(milliseconds:950)',
     'bp-us-radar-preloaded-',
-    "timeParametersV271=><String,String>{'TIME':frame.toUtc().toIso8601String()}",
-    'noaaFramesV271=next.length>8?next.sublist(next.length-8):next',
+    'weather-center-radar-preloaded',
+    "frames[i].toUtc().toIso8601String()",
 ]
 missing=[x for x in required if x not in body]
 if missing:
