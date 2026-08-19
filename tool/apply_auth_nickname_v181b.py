@@ -92,22 +92,28 @@ nickname_method=r'''  Future<void> _saveNickname()async{
 '''
 if method_anchor not in s: raise SystemExit('settings feedback marker missing')
 s=s.replace(method_anchor,nickname_method+method_anchor,1)
-account_children="""                        title: 'Account & trial',
+
+account_headers=[
+"""                        title: 'Account & trial',
+                        subtitle: 'New accounts start in a scoped BridgePoint trial workspace.',
+                        children: [
+""",
+"""                        title: 'Account & trial',
                         subtitle: 'Every new account receives BridgePoint All Intelligence.',
                         children: [
-"""
-account_replace="""                        title: 'Account & trial',
-                        subtitle: 'Every new account receives BridgePoint All Intelligence.',
-                        children: [
-                          TextField(controller:_nicknameController,textCapitalization:TextCapitalization.words,decoration:const InputDecoration(labelText:'Your nickname',hintText:'What should BridgePoint call you?',border:OutlineInputBorder())),
+""",
+]
+account_header=next((item for item in account_headers if item in s),None)
+if account_header is None:
+    raise SystemExit('account settings marker missing')
+account_replace=account_header+"""                          TextField(controller:_nicknameController,textCapitalization:TextCapitalization.words,decoration:const InputDecoration(labelText:'Your nickname',hintText:'What should BridgePoint call you?',border:OutlineInputBorder())),
                           const SizedBox(height:8),SizedBox(width:double.infinity,child:OutlinedButton.icon(onPressed:_savingNickname?null:_saveNickname,icon:const Icon(Icons.badge_outlined),label:Text(_savingNickname?'Saving nickname…':'Save nickname'))),
                           const SizedBox(height:8),const Text('Your nickname follows your BridgePoint account and can be changed anytime.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)),const SizedBox(height:10),
 """
-if account_children not in s: raise SystemExit('account settings marker missing')
-s=s.replace(account_children,account_replace,1)
+s=s.replace(account_header,account_replace,1)
 text=text[:settings_start]+s+text[settings_end:]
 for needle in ['Save my info for next time','BridgePoint never stores your password here.','Your nickname','SharedPreferences']:
     if needle not in text: raise SystemExit(f'missing v181b marker {needle}')
 if text==original: raise SystemExit('No auth/nickname changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied secure remembered sign-in and editable nickname v181b')
+print('Applied secure remembered sign-in and editable nickname v181b (responsive/scoped-trial safe)')
