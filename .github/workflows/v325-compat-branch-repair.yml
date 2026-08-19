@@ -1,0 +1,27 @@
+name: BridgePoint v325 compatibility branch repair
+
+on:
+  pull_request:
+    paths:
+      - '.github/v189-repair-trigger.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  repair-v325-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile-v325-release-compat
+          fetch-depth: 0
+      - name: Repair v189 responsive TopBar compatibility
+        run: python .github/scripts/patch_v189_responsive.py
+      - name: Commit branch compatibility repair
+        run: |
+          git config user.name 'BridgePoint Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add tool/apply_premium_navigation_expansion_v189.py
+          git commit -m 'Make v189 premium navigation responsive-safe'
+          git push origin HEAD:mobile-v325-release-compat
