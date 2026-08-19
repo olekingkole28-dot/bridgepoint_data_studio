@@ -1,0 +1,33 @@
+name: Repair v318 contract marker names
+
+on:
+  push:
+    branches: [mobile-v325-release-compat]
+    paths:
+      - '.github/workflows/v318-marker-name-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile-v325-release-compat
+      - shell: python
+        run: |
+          from pathlib import Path
+          p=Path('tool/apply_access_weather_v318.py')
+          s=p.read_text()
+          s=s.replace("'bridgepoint-v315-catalog-package-fit'","'bridgepoint-v315-catalog-aware-onboarding'")
+          s=s.replace("'bridgepoint-v316-manual-social-mode'","'bridgepoint-v316-manual-social-only'")
+          p.write_text(s)
+          Path('.github/workflows/v318-marker-name-fix.yml').unlink()
+      - run: |
+          git config user.name 'BridgePoint Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Use actual v315 and v316 release markers in v318 gate'
+          git push origin HEAD:mobile-v325-release-compat
