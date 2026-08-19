@@ -13,10 +13,11 @@ def forbid(label,*needles):
         if needle in body:
             errors.append(f'{label}: forbidden {needle}')
 
-require('v324 identity','bridgepoint-v324-owner-truth-customer-safe-catalog')
+require('v324 identity','bridgepoint-v324-owner-truth-customer-safe-catalog','bridgepoint-v324-contact-sales-package-ui')
 require('canonical owner truth','class _OwnerTruthPanelV324','bridgepoint_owner_truth_v322','CANONICAL OWNER TRUTH','CUSTOMER ACCOUNTS','PRODUCTION BILLING','CT PERMIT SOURCES','PERMITS MATCHED','DB / QUEUE')
 require('owner/investor placement',"const _OwnerTruthPanelV324()","const _OwnerTruthPanelV324(contextLabel:'INVESTOR ROOM')")
 require('owner catalog proof',"catalog_scope","OWNER CATALOG","owner priority ${model['priority_threshold']}")
+require('contact-sales package safety','CONTACT SALES • FROM','Contact BridgePoint to scope this enterprise deployment','salesMotion')
 forbid('customer package threshold leakage'," • priority ${model['priority_threshold']")
 
 if body.count('_OwnerTruthPanelV324(')<3:
@@ -32,3 +33,4 @@ print('BRIDGEPOINT V324 RELEASE AUDIT PASSED')
 print(' - canonical owner truth is visible in Owner Center and Investor Room')
 print(' - customer package detail no longer exposes scoring thresholds')
 print(' - owner package view retains owner-only threshold detail')
+print(' - contact-sales technology products are presented as scoped sales, not broken checkout')
