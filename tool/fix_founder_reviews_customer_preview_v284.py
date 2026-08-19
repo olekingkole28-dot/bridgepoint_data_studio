@@ -24,7 +24,7 @@ if body.count(bad_review_tail)!=1:
 body=body.replace(bad_review_tail,good_review_tail,1)
 
 model_anchor="""  static const packageModelKeys = <String, String>{
-    'All Intelligence': 'all',
+    'Owner Full Platform': 'all',
     'BridgePoint Homeowner': 'bridgepoint_home',
     'BridgePoint Home': 'bridgepoint_home',
     'BridgePoint Commercial': 'bridgepoint_commercial',
@@ -37,12 +37,11 @@ model_anchor="""  static const packageModelKeys = <String, String>{
 """
 model_replace=model_anchor+"""
   static const packageProductKeysV284 = <String,String>{
-    'All Intelligence':'all_intelligence',
     'BridgePoint Homeowner':'homeowner',
     'BridgePoint Home':'home',
     'BridgePoint Commercial':'commercial',
     'Roofing Opportunity':'home',
-    'BridgePoint General':'all_intelligence',
+    'BridgePoint General':'general',
     'Property Investor':'investor',
     'Development Opportunity':'commercial',
     'Solar Opportunity':'solar',
