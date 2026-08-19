@@ -12,11 +12,28 @@ body=path.read_text(encoding='utf-8')
 fn_start=body.find('Future<void> _loadNoaaRadarFramesV271()')
 if fn_start<0:
     raise SystemExit('v321 repair: _loadNoaaRadarFramesV271 missing')
-fn_end=body.find('\n  }',fn_start)
-if fn_end<0:
+open_brace=body.find('{',fn_start)
+if open_brace<0:
+    raise SystemExit('v321 repair: NOAA frame loader opening brace missing')
+depth=0;quote=None;escaped=False;fn_end=None
+for i in range(open_brace,len(body)):
+    ch=body[i]
+    if quote is not None:
+        if escaped: escaped=False
+        elif ch=='\\': escaped=True
+        elif ch==quote: quote=None
+        continue
+    if ch in ("'",'\"'):
+        quote=ch;continue
+    if ch=='{': depth+=1
+    elif ch=='}':
+        depth-=1
+        if depth==0:
+            fn_end=i+1
+            break
+if fn_end is None:
     raise SystemExit('v321 repair: NOAA frame loader end missing')
-# Include enough of the function to capture compact catch forms.
-segment=body[fn_start:fn_end+4]
+segment=body[fn_start:fn_end]
 desired_catch="}catch(_){if(mounted)setState((){_weatherAllowedV318=true;_noaaRadarFramesV271=<DateTime>[];_radarFrameIndex=0;_radarRevision++;});}"
 if desired_catch not in segment:
     # Replace the catch attached to this loader only; do not alter other weather
@@ -37,7 +54,7 @@ if desired_catch not in segment:
         )
         if n!=1:
             raise SystemExit('v321 repair: NOAA loader failure catch shape not found')
-    body=body[:fn_start]+segment+body[fn_end+4:]
+    body=body[:fn_start]+segment+body[fn_end:]
 
 # ---------------------------------------------------------------------------
 # Conflict 2: strengthen the primary Intelligence Map precipitation overlay.
