@@ -1,1 +1,1 @@
-Full production-chain retest after structural v321 repair for NOAA fallback, visible radar overlay, and radar-first U.S. map mode. Continue through v322/v324 and compile v325 3D fallback, actual NOAA reflectivity colors, responsive phone cards, and Community Share Kit. Retry 14.
+Full production-chain retest after syntax-clean structural v321 NOAA fallback, stronger radar layer, and radar-first U.S. map control repair. Continue through v322/v324 and compile v325 3D fallback, actual NOAA reflectivity colors, responsive phone cards, and Community Share Kit. Retry 15.
