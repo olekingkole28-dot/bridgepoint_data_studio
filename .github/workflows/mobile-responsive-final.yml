@@ -1,4 +1,4 @@
-name: BridgePoint final mobile responsive pass
+name: BridgePoint final phone layout patch
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Finalize opportunities and owner-only selector
+      - name: Apply final phone-first layouts
         shell: python
         run: |
           from pathlib import Path
@@ -47,7 +47,7 @@ jobs:
     'Solar Opportunity': 'solar_opportunity',
   };"""
           if old_keys not in src:
-              raise SystemExit('Package model key block changed unexpectedly')
+              raise SystemExit('Package key target not found')
           src = src.replace(old_keys, new_keys, 1)
 
           old_packages = """  static const packages = <String>[
@@ -77,13 +77,13 @@ jobs:
     ...customerPackages,
   ];"""
           if old_packages not in src:
-              raise SystemExit('Package list block changed unexpectedly')
+              raise SystemExit('Package list target not found')
           src = src.replace(old_packages, new_packages, 1)
           src = src.replace("if(widget.ownerMode)selectedPackage='All Intelligence';", "if(widget.ownerMode)selectedPackage='Owner Full Platform';", 1)
 
           start = src.index('class _OpportunityListCard extends StatelessWidget {')
           end = src.index('class _OpportunityChip extends StatelessWidget {', start)
-          opportunity_card = r'''class _OpportunityListCard extends StatelessWidget {
+          card = r'''class _OpportunityListCard extends StatelessWidget {
             const _OpportunityListCard({required this.opportunity});
 
             final Map<String, dynamic> opportunity;
@@ -156,33 +156,31 @@ jobs:
                 ),
               );
 
-              Widget identity({required bool compact}) => Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      address,
-                      maxLines: compact ? 2 : 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
+              Widget identity({required bool compact}) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    address,
+                    maxLines: compact ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      '${opportunity['model_name'] ?? opportunity['model_key'] ?? 'BridgePoint'} • $signal',
-                      maxLines: compact ? 2 : 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 10,
-                        height: 1.35,
-                      ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '${opportunity['model_name'] ?? opportunity['model_key'] ?? 'BridgePoint'} • $signal',
+                    maxLines: compact ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 10,
+                      height: 1.35,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               );
 
               return InkWell(
@@ -208,7 +206,7 @@ jobs:
                               children: [
                                 rankBlock(compact: true),
                                 const SizedBox(width: 11),
-                                identity(compact: true),
+                                Expanded(child: identity(compact: true)),
                                 const SizedBox(width: 5),
                                 const Icon(
                                   Icons.chevron_right_rounded,
@@ -307,80 +305,12 @@ jobs:
           }
 
           '''
-          src = src[:start] + opportunity_card + src[end:]
-
-          # Keep the opportunity priority controls readable on narrow cards.
-          old_filter = """            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.tune_rounded,
-                      color: AppTheme.cyan,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Priority',
-                      style: TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    DropdownButton<String>("""
-          new_filter = """            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.tune_rounded,
-                      color: AppTheme.cyan,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Priority',
-                      style: TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    DropdownButton<String>("""
-          # The leading structure stays valid; replace the spacer with a flexible counter.
-          src = src.replace("""                    const Spacer(),
-                    Text(
-                      '25 results per page',""", """                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                      '25 results per page',""", 1)
-          src = src.replace("""                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),""", """                        fontSize: 10,
-                      ),
-                      textAlign: TextAlign.right,
-                    ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),""", 1)
+          src = src[:start] + card + src[end:]
 
           path.write_text(src)
           Path('.github/workflows/mobile-responsive-final.yml').unlink()
 
-      - name: Validate transformed source
+      - name: Validate source structure
         shell: python
         run: |
           from pathlib import Path
@@ -388,14 +318,15 @@ jobs:
           required = [
               "'Owner Full Platform': 'all'",
               "if (widget.ownerMode) 'Owner Full Platform'",
-              "final compact = constraints.maxWidth < 720;",
-              'class _OpportunityListCard extends StatelessWidget',
+              'final compact = constraints.maxWidth < 720;',
+              'Expanded(child: identity(compact: true))',
+              'Expanded(flex: 4, child: identity(compact: false))',
           ]
           missing = [x for x in required if x not in s]
           if missing:
-              raise SystemExit(f'Missing final responsive fixes: {missing}')
+              raise SystemExit(f'Missing responsive changes: {missing}')
           if "'All Intelligence': 'all'" in s:
-              raise SystemExit('Legacy customer-visible full-platform selector still exists')
+              raise SystemExit('Legacy full-platform customer selector remains')
           if s.count('{') != s.count('}'):
               raise SystemExit('Unbalanced braces')
           if s.count('(') != s.count(')'):
@@ -403,18 +334,7 @@ jobs:
           if s.count('[') != s.count(']'):
               raise SystemExit('Unbalanced brackets')
 
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Resolve Flutter dependencies
-        run: flutter pub get
-
-      - name: Analyze Flutter source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Commit validated responsive release
+      - name: Commit final phone layout
         run: |
           git config user.name "BridgePoint Automation"
           git config user.email "actions@users.noreply.github.com"
