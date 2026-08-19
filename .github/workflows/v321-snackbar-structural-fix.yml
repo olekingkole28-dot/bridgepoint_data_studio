@@ -1,0 +1,37 @@
+name: Repair v321 radar snackbar structurally
+
+on:
+  push:
+    branches: [mobile-v325-release-compat]
+    paths:
+      - '.github/workflows/v321-snackbar-structural-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile-v325-release-compat
+      - shell: python
+        run: |
+          from pathlib import Path
+          p=Path('tool/repair_v321_responsive_generated.py')
+          s=p.read_text()
+          old='''control=control.replace(\n    "United States live weather on • loading the latest NOAA precipitation radar…",\n    "U.S. precipitation radar on • expansion badges hidden so the radar stays clear.",\n)\n'''
+          new='''desired_notice="ScaffoldMessenger.of(context).showSnackBar(const SnackBar(duration:Duration(seconds:2),content:Text('U.S. precipitation radar on • expansion badges hidden so the radar stays clear.')));"\nif 'U.S. precipitation radar on • expansion badges hidden so the radar stays clear.' not in control:\n    notice_start=control.find('ScaffoldMessenger.of(context).showSnackBar')\n    if notice_start>=0:\n        notice_end=control.find(';',notice_start)\n        if notice_end<0:\n            raise SystemExit('v321 repair: U.S. radar snackbar terminator missing')\n        control=control[:notice_start]+desired_notice+control[notice_end+1:]\n    else:\n        load_call='unawaited(_loadNoaaRadarFramesV271());'\n        if load_call not in control:\n            raise SystemExit('v321 repair: U.S. radar load call missing for snackbar insertion')\n        control=control.replace(load_call,load_call+desired_notice,1)\n'''
+          if old not in s:
+              raise SystemExit('v321 old snackbar replacement block not found')
+          s=s.replace(old,new,1)
+          compile(s,'repair_v321_responsive_generated.py','exec')
+          p.write_text(s)
+          Path('.github/workflows/v321-snackbar-structural-fix.yml').unlink()
+      - run: |
+          git config user.name 'BridgePoint Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Replace v321 U.S. radar snackbar structurally'
+          git push origin HEAD:mobile-v325-release-compat
