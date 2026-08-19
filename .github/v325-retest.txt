@@ -1,1 +1,1 @@
-Full production-chain retest after responsive v188 inner matcher hardening. Retry 2.
+Full production-chain retest after responsive v189 TopBar compatibility repair. Retry 3.
