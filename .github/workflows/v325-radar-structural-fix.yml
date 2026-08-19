@@ -1,0 +1,69 @@
+name: Repair v325 radar patch structurally
+
+on:
+  push:
+    branches: [mobile-v325-release-compat]
+    paths:
+      - '.github/workflows/v325-radar-structural-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile-v325-release-compat
+          fetch-depth: 0
+      - name: Replace stale radar getter anchor with primary TileLayer structural patch
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('tool/apply_mobile_community_share_v325.py')
+          s=p.read_text()
+          start=s.index('time_getter="""')
+          end=s.index("# Make it visually clear that the colors are NOAA reflectivity",start)
+          new=r'''# Patch only the primary Intelligence Map radar TileLayer. Historical/preloaded
+          # verified frames keep the time-enabled ImageServer; the newest/current frame uses
+          # NOAA's symbolized current base-reflectivity MapServer so real reflectivity colors
+          # are visible over the satellite basemap.
+          primary_key="key:ValueKey('noaa-radar-$_radarRevision-${_radarFrame.toIso8601String()}')"
+          key_idx=intel.find(primary_key)
+          if key_idx<0:
+              raise SystemExit('v325 primary Intelligence Map radar key missing')
+          tile_start=intel.rfind('TileLayer(',0,key_idx)
+          if tile_start<0 or key_idx-tile_start>260:
+              raise SystemExit('v325 primary Intelligence Map radar TileLayer start missing')
+          tile_end_marker="userAgentPackageName:'com.bridgepoint.data_studio'"
+          tile_end=intel.find(tile_end_marker,key_idx)
+          if tile_end<0:
+              raise SystemExit('v325 primary Intelligence Map radar TileLayer end marker missing')
+          tile_segment=intel[tile_start:tile_end+len(tile_end_marker)]
+          historical_url="https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?_bp=$_radarRevision&"
+          current_url="https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity/MapServer/WMSServer?_bp=$_radarRevision&"
+          if current_url not in tile_segment:
+              old_base="baseUrl:'"+historical_url+"'"
+              if old_base not in tile_segment:
+                  raise SystemExit('v325 primary radar WMS base URL missing')
+              new_base="baseUrl:_radarIsLatestV271?'"+current_url+"':'"+historical_url+"'"
+              tile_segment=tile_segment.replace(old_base,new_base,1)
+              intel=intel[:tile_start]+tile_segment+intel[tile_end+len(tile_end_marker):]
+          if current_url not in intel or historical_url not in intel:
+              raise SystemExit('v325 current/historical NOAA radar services not both present')
+
+          '''
+          # Normalize indentation to the surrounding Python script.
+          new='\n'.join(line[10:] if line.startswith('          ') else line for line in new.splitlines())
+          s=s[:start]+new+s[end:]
+          compile(s,'apply_mobile_community_share_v325.py','exec')
+          p.write_text(s)
+          Path('.github/workflows/v325-radar-structural-fix.yml').unlink()
+      - name: Commit repair
+        run: |
+          git config user.name 'BridgePoint Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Patch v325 NOAA radar against the live primary TileLayer'
+          git push origin HEAD:mobile-v325-release-compat
