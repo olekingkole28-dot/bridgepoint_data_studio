@@ -1,1 +1,1 @@
-Full production-chain retest after v319 pre/post feature-contract repair. Continue through v321/v324 and compile v325 Community 3D fallback, visible NOAA reflectivity, phone-responsive cards, and Community Share Kit. Retry 9.
+Full production-chain retest with v319 partial-patch structural repair. Validate through v321/v324 and compile v325 Community 3D fallback, real NOAA reflectivity, phone-responsive cards, and Community Share Kit. Retry 10.
