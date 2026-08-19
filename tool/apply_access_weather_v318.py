@@ -12,8 +12,8 @@ if actual!=expected_pre:
         'bridgepoint-v313-dna-data-tunnel-background',
         'bridgepoint-v313-responsive-action-rows',
         'bridgepoint-v314-investor-room',
-        'bridgepoint-v315-catalog-package-fit',
-        'bridgepoint-v316-manual-social-mode',
+        'bridgepoint-v315-catalog-aware-onboarding',
+        'bridgepoint-v316-manual-social-only',
         'CUSTOMER PREVIEW',
         'NOAA LIVE RAIN RADAR',
     ]
