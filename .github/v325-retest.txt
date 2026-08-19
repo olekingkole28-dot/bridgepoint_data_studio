@@ -1,1 +1,1 @@
-Full production-chain retest after responsive v189 TopBar compatibility repair. Retry 3.
+Full production-chain retest after v284 owner-only package mapping compatibility repair. Retry 4.
