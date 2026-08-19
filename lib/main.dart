@@ -211,8 +211,8 @@ class _OnboardingScreenState extends State<_OnboardingScreen>{
     'homeowner':'BridgePoint Homeowner',
     'roofing_opportunity':'Roofing Opportunity','bridgepoint_commercial':'BridgePoint Commercial',
     'property_investor':'Property Investor','solar_opportunity':'Solar Opportunity',
-    'development_opportunity':'Development Opportunity','bridgepoint_home':'BridgePoint Home','all':'All Intelligence'
-  }[key]??'All Intelligence';
+    'development_opportunity':'Development Opportunity','bridgepoint_home':'BridgePoint Home','all':'BridgePoint Intelligence Suite'
+  }[key]??'BridgePoint Intelligence Suite';
   Widget drop(String label,String value,List<String> options,ValueChanged<String?> change)=>DropdownButtonFormField<String>(
     value:value,dropdownColor:AppTheme.panel,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),
     items:options.map((v)=>DropdownMenuItem(value:v,child:Text(v))).toList(),onChanged:loading?null:change);
@@ -1675,7 +1675,7 @@ class _FaqDialogState extends State<_FaqDialog>{
     (question:'What does an opportunity score mean?',answer:'The score ranks how actionable a property looks after BridgePoint checks evidence strength, recency, confidence, source diversity, property fit, and the model’s strict gates. It is a prioritization tool—not a guarantee of a sale, loss, permit, or claim.'),
     (question:'What is confidence, and how is it different from score?',answer:'Score estimates opportunity priority. Confidence estimates how reliable and well-supported the evidence is. A high score with weak confidence should not clear the strict ranking gate.'),
     (question:'Why do matches, signals, and patterns show different counts?',answer:'A signal is one supporting observation. A pattern connects multiple observations over time. A model match is direct evidence that satisfies a specific opportunity rule. Patterns can add context, but a property with no qualifying direct match should not outrank corroborated opportunities in strict mode.'),
-    (question:'Can a score go down?',answer:'Yes. BridgePoint V81 uses negative scoring. Missing direct matches, missing corroboration, weak source diversity, older evidence, and lower confidence subtract visible points. All Intelligence also keeps only the best qualifying opportunity per property, so the lead list stays finite and useful.'),
+    (question:'Can a score go down?',answer:'Yes. BridgePoint V81 uses negative scoring. Missing direct matches, missing corroboration, weak source diversity, older evidence, and lower confidence subtract visible points. The intelligence suite also keeps only the best qualifying opportunity per property, so the lead list stays finite and useful.'),
     (question:'What do the map colors and symbols mean?',answer:'The same intelligence type always keeps the same color and icon. Round markers are ranked opportunities. Diamond markers are supporting signals. Tap any marker or legend item for the source, timing, evidence, confidence, and next step.'),
     (question:'Is the radar live?',answer:'The radar layer uses the official NOAA/NWS Multi-Radar Multi-Sensor reflectivity service. It is live weather context, not a meteorologist-verified hail swath or proof that a specific property was damaged.'),
     (question:'How often does BridgePoint update?',answer:'The workspace refreshes on the interval selected in Settings. Each source also follows its own lawful source schedule. The live strip shows the next app sync; source cards show their health and refresh behavior.'),
@@ -5058,7 +5058,7 @@ class _SignalsPageState extends State<_SignalsPage> {
                             color: Colors.white.withOpacity(0.38),
                             fontSize: 9,
                           ),
-                        )),
+                        ),
                       ],
                     ),
                   ],
@@ -5734,11 +5734,13 @@ class _PropertiesPageState extends State<_PropertiesPage> {
                           label: const Text('Clear'),
                         ),
                         const SizedBox(width: 12),
-                        Flexible(child: Text(
-                          'Search narrows properties before intelligence joins',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.38),
-                            fontSize: 9,
+                        Flexible(
+                          child: Text(
+                            'Search narrows properties before intelligence joins',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.38),
+                              fontSize: 9,
+                            ),
                           ),
                         ),
                       ],
@@ -9008,7 +9010,7 @@ class _SettingsPageState extends State<_SettingsPage> {
                       return _SettingsSection(
                         icon: Icons.workspace_premium_rounded,
                         title: 'Account & trial',
-                        subtitle: 'Every new account receives BridgePoint All Intelligence.',
+                        subtitle: 'New accounts start in a scoped BridgePoint trial workspace.',
                         children: [
                           const _SettingsStatusRow(
                             label: 'Free trial',
@@ -9132,10 +9134,15 @@ class _SettingsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Icon(icon, color: AppTheme.cyan, size: 21),
               const SizedBox(width: 9),
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+              ),
             ]),
             const SizedBox(height: 6),
             Text(subtitle, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10, height: 1.4)),
@@ -9298,41 +9305,59 @@ class _PanelHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 460;
+        final copy = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 11,
-                ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                color: AppTheme.textMuted,
+                fontSize: 11,
+                height: 1.35,
               ),
-            ],
-          ),
-        ),
-        TextButton(
+            ),
+          ],
+        );
+        final actionButton = TextButton(
           onPressed: () => _showInfoDialog(
             context,
             title,
             '$subtitle\n\nOpen the rows or cards below for property-level detail, supporting evidence, timing, confidence, sources, and suggested next steps.',
           ),
           child: Text(action),
-        ),
-      ],
+        );
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              copy,
+              const SizedBox(height: 4),
+              Align(alignment: Alignment.centerLeft, child: actionButton),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: copy),
+            const SizedBox(width: 10),
+            actionButton,
+          ],
+        );
+      },
     );
   }
 }
