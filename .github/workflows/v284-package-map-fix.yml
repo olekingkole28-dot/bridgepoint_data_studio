@@ -1,0 +1,36 @@
+name: Repair v284 owner-only package mapping
+
+on:
+  push:
+    branches: [mobile-v325-release-compat]
+    paths:
+      - '.github/workflows/v284-package-map-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile-v325-release-compat
+      - shell: python
+        run: |
+          from pathlib import Path
+          p=Path('tool/fix_founder_reviews_customer_preview_v284.py')
+          s=p.read_text()
+          old='''model_anchor="""  static const packageModelKeys = <String, String>{\n    'All Intelligence': 'all',\n    'BridgePoint Homeowner': 'bridgepoint_home',\n    'BridgePoint Home': 'bridgepoint_home',\n    'BridgePoint Commercial': 'bridgepoint_commercial',\n    'Roofing Opportunity': 'roofing_opportunity',\n    'BridgePoint General': 'bridgepoint_general_v1',\n    'Property Investor': 'property_investor',\n    'Development Opportunity': 'development_opportunity',\n    'Solar Opportunity': 'solar_opportunity',\n  };\n"""\nmodel_replace=model_anchor+"""\n  static const packageProductKeysV284 = <String,String>{\n    'All Intelligence':'all_intelligence',\n    'BridgePoint Homeowner':'homeowner',\n    'BridgePoint Home':'home',\n    'BridgePoint Commercial':'commercial',\n    'Roofing Opportunity':'home',\n    'BridgePoint General':'all_intelligence',\n    'Property Investor':'investor',\n    'Development Opportunity':'commercial',\n    'Solar Opportunity':'solar',\n  };\n"""\n'''
+          new='''model_anchor="""  static const packageModelKeys = <String, String>{\n    'Owner Full Platform': 'all',\n    'BridgePoint Homeowner': 'bridgepoint_home',\n    'BridgePoint Home': 'bridgepoint_home',\n    'BridgePoint Commercial': 'bridgepoint_commercial',\n    'Roofing Opportunity': 'roofing_opportunity',\n    'BridgePoint General': 'bridgepoint_general_v1',\n    'Property Investor': 'property_investor',\n    'Development Opportunity': 'development_opportunity',\n    'Solar Opportunity': 'solar_opportunity',\n  };\n"""\nmodel_replace=model_anchor+"""\n  static const packageProductKeysV284 = <String,String>{\n    'BridgePoint Homeowner':'homeowner',\n    'BridgePoint Home':'home',\n    'BridgePoint Commercial':'commercial',\n    'Roofing Opportunity':'home',\n    'BridgePoint General':'general',\n    'Property Investor':'investor',\n    'Development Opportunity':'commercial',\n    'Solar Opportunity':'solar',\n  };\n"""\n'''
+          if old not in s:
+              raise SystemExit('v284 legacy package mapping block not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          Path('.github/workflows/v284-package-map-fix.yml').unlink()
+      - run: |
+          git config user.name 'BridgePoint Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Keep v284 customer preview scoped to customer packages'
+          git push origin HEAD:mobile-v325-release-compat
