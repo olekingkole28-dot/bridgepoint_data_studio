@@ -164,3 +164,7 @@ runpy.run_path('tool/preserve_v320_market_guard_marker_v321.py',run_name='__main
 # governed whole-system BridgePoint AI contract. Customers stay customer-safe; owner/co-owner
 # answers can use Owner Truth without exposing backend controls through package entitlements.
 runpy.run_path('tool/apply_whole_system_ai_v322.py',run_name='__main__')
+
+# The v318 recovery layer predates later generated-source drift. Normalize only the exact,
+# audited v325 output after the v323/v324/v325 chain has completed, and fail closed on drift.
+runpy.run_path('tool/repair_v325_v318_generated_compat.py',run_name='__main__')
