@@ -1,0 +1,37 @@
+name: Finalize v321 radar snackbar insertion
+
+on:
+  push:
+    branches: [mobile-v325-release-compat]
+    paths:
+      - '.github/workflows/v321-snackbar-insert-fallback.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile-v325-release-compat
+      - shell: python
+        run: |
+          from pathlib import Path
+          p=Path('tool/repair_v321_responsive_generated.py')
+          s=p.read_text()
+          old="""    else:\n        load_call='unawaited(_loadNoaaRadarFramesV271());'\n        if load_call not in control:\n            raise SystemExit('v321 repair: U.S. radar load call missing for snackbar insertion')\n        control=control.replace(load_call,load_call+desired_notice,1)\n"""
+          new="""    else:\n        load_call='unawaited(_loadNoaaRadarFramesV271());'\n        if load_call in control:\n            control=control.replace(load_call,load_call+desired_notice,1)\n        else:\n            state_call=\"setState((){_showRadar=true;_showClouds=false;_showExpansion=false;_radarPlaying=true;_radarFrameIndex=_radarFrames.length-1;_radarRevision++;_viewportZoom=4.2;});\"\n            if state_call not in control:\n                raise SystemExit('v321 repair: radar-first state call missing for snackbar insertion')\n            control=control.replace(state_call,state_call+desired_notice,1)\n"""
+          if old not in s:
+              raise SystemExit('v321 snackbar fallback block not found')
+          s=s.replace(old,new,1)
+          compile(s,'repair_v321_responsive_generated.py','exec')
+          p.write_text(s)
+          Path('.github/workflows/v321-snackbar-insert-fallback.yml').unlink()
+      - run: |
+          git config user.name 'BridgePoint Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Finish v321 radar-first confirmation insertion'
+          git push origin HEAD:mobile-v325-release-compat
