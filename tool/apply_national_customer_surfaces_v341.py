@@ -65,3 +65,8 @@ print('National customer surfaces v341 verified; broad v345 migration decoupled 
 # materialized its markers. This is deliberately separate from the old v345 migration:
 # it only proves that migration is unreachable from production and cannot silently return.
 runpy.run_path('tool/audit_national_release_compat_v351.py',run_name='__main__')
+
+# v353 is intentionally shell-only. It runs after the national compatibility guard so it
+# cannot change entitlement, state, map, scoring or package semantics. Flutter CI remains
+# the final gate before this polish can reach production.
+runpy.run_path('tool/apply_ui_shell_polish_v353.py',run_name='__main__')
