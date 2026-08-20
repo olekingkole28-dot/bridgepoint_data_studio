@@ -61,12 +61,12 @@ if compat not in text:
 path.write_text(text,encoding='utf-8')
 print('National customer surfaces v341 verified; broad v345 migration decoupled from map release')
 
-# Sprint release safety: make the global sync UI truthful and fail closed if a new
-# generated Flutter surface starts polling count-heavy state contracts while expansion
-# is under I/O pressure. This remains separate from the deprecated broad v345 migration.
-runpy.run_path('tool/apply_national_sprint_release_guard_v352.py',run_name='__main__')
+# Migrate exactly one current-code customer surface at a time. V354 executes the
+# V352 low-I/O Daily Brief/dashboard migration using structural compatibility anchors
+# for the evolved generated release. No other customer surface is touched.
+runpy.run_path('tool/apply_national_dashboard_v354.py',run_name='__main__')
 
-# Verify the complete active release graph after the national customer/map and sprint
-# guard layers have materialized their markers. This proves the old broad v345 migration
-# remains unreachable while compatible surfaces continue to move one at a time.
+# Verify the complete active release graph after the isolated dashboard layer has
+# materialized its markers. The deprecated broad v345 migration must still remain
+# unreachable from production.
 runpy.run_path('tool/audit_national_release_compat_v351.py',run_name='__main__')
