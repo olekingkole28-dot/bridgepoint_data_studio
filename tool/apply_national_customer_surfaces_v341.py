@@ -61,10 +61,10 @@ if compat not in text:
 path.write_text(text,encoding='utf-8')
 print('National customer surfaces v341 verified; broad v345 migration decoupled from map release')
 
-# Migrate exactly one current-code customer surface at a time. V352 moves only
-# Daily Brief/dashboard to national state truth and deliberately leaves the rest
-# of the broad v345 migration unreachable.
-runpy.run_path('tool/apply_national_dashboard_v352.py',run_name='__main__')
+# Migrate exactly one current-code customer surface at a time. V353 executes the
+# V352 Daily Brief/dashboard migration with a structural compatibility repair for
+# the evolved generated ValueKey layout; no other customer surface is touched.
+runpy.run_path('tool/apply_national_dashboard_v353.py',run_name='__main__')
 
 # Verify the complete active release graph after the isolated dashboard layer has
 # materialized its markers. The deprecated broad v345 migration must still remain
