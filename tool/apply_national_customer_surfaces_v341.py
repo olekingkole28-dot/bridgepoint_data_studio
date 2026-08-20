@@ -71,7 +71,13 @@ runpy.run_path('tool/apply_national_sprint_release_guard_v352.py',run_name='__ma
 # for the evolved generated release. No other customer surface is touched.
 runpy.run_path('tool/apply_national_dashboard_v354.py',run_name='__main__')
 
-# Verify the complete active release graph after the isolated dashboard layer has
-# materialized its markers. The deprecated broad v345 migration must still remain
-# unreachable from production.
+# Owner/co-owner Sources can consume the existing V356 payload without any extra
+# national DB polling: bridgepoint_flutter_sources already returns the national
+# accepted-source array only to platform owners. V357 renders that payload with
+# state filtering and preserves the customer-safe hidden-infrastructure response.
+runpy.run_path('tool/apply_owner_national_sources_ui_v357.py',run_name='__main__')
+
+# Verify the complete active release graph after the isolated dashboard and owner
+# Sources layers have materialized their markers. The deprecated broad v345 migration
+# must still remain unreachable from production.
 runpy.run_path('tool/audit_national_release_compat_v351.py',run_name='__main__')
