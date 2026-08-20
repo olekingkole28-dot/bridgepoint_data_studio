@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 path = Path('lib/main.dart')
 text = path.read_text(encoding='utf-8')
@@ -40,7 +41,7 @@ if new not in text:
         raise SystemExit(f'v341 property fallback anchor count {count}')
     text = text.replace(old, new, 1)
 
-# Guard the generated release so CI fails rather than silently reverting to
+# Guard the release layer so CI fails rather than silently reverting to
 # Connecticut-only customer copy after future release-layer regeneration.
 required = [
     "national intelligence coverage",
@@ -63,3 +64,7 @@ if text == original:
 else:
     path.write_text(text, encoding='utf-8')
     print('Applied national customer surfaces v341')
+
+# v345 is the state-aware customer contract layer. It must run after v350 map + v341
+# copy normalization so its state selector and national RPC rewrites see the final generated UI.
+runpy.run_path('tool/apply_national_app_contracts_v345.py', run_name='__main__')
