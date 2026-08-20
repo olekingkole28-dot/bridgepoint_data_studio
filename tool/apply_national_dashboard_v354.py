@@ -3,26 +3,21 @@ from pathlib import Path
 source_path=Path('tool/apply_national_dashboard_v352.py')
 source=source_path.read_text(encoding='utf-8')
 
-# Convert only the known brittle once() blocks in the isolated Daily Brief migration
-# into structural generated-Flutter matchers. V352 runtime behavior is not changed.
+# Convert only the known brittle once() calls in the isolated Daily Brief migration
+# into structural generated-Flutter matchers. Crucially, replace ONLY the current
+# once() call itself; preserve all code/comments between adjacent patch blocks.
 def replace_once_block(script:str,label:str,replacement:str)->str:
-    needle=repr(label)
-    try:
-        label_idx=script.index(needle)
-    except ValueError:
-        # Source uses single-quoted labels, while repr may choose the same. Fall back explicitly.
-        label_idx=script.index("'"+label+"'")
+    needle="'"+label+"'"
+    label_idx=script.index(needle)
     start=script.rfind('once(',0,label_idx)
     if start<0:
         raise SystemExit(f'v354 source block start missing: {label}')
-    next_idx=script.find('\nonce(',label_idx)
-    if next_idx<0:
-        # Last once() before the next non-once section.
-        end=script.find('\n\n# ',label_idx)
-        if end<0:
-            raise SystemExit(f'v354 source block end missing: {label}')
-    else:
-        end=next_idx+1
+    close=script.find('\n)',label_idx)
+    if close<0:
+        raise SystemExit(f'v354 source block close missing: {label}')
+    end=close+2
+    if end<len(script) and script[end]=='\n':
+        end+=1
     return script[:start]+replacement+script[end:]
 
 key_repair=r'''key_pattern=re.compile(r"key\s*:\s*ValueKey\(\s*'brief-[^']*'\s*\),")
@@ -103,4 +98,4 @@ source=replace_once_block(source,'dashboard state controls placement',placement_
 namespace={'__name__':'__main__','__file__':str(source_path)}
 exec(compile(source,str(source_path),'exec'),namespace,namespace)
 print('BRIDGEPOINT NATIONAL DASHBOARD V354 COMPATIBILITY PASSED')
-print(' - Daily Brief migration anchors matched structurally; V352 low-I/O runtime behavior unchanged')
+print(' - Daily Brief migration anchors matched structurally; intervening top-level widgets preserved')
