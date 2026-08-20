@@ -1,0 +1,100 @@
+{
+  "version": "v326",
+  "state": "CT",
+  "purpose": "Authoritative CT DEEP environmental source manifest for lean property-level BridgePoint intelligence. This manifest does not mark sources ACTIVE; activation requires ingest, normalization, property matching, evidence/signals, scoring/opportunities, app contract, monitoring and security verification.",
+  "sources": [
+    {
+      "key": "ct_deep_ust_facility_tank_details",
+      "dataset_id": "utni-rddb",
+      "publisher": "CT Department of Energy & Environmental Protection",
+      "category": "UST_FACILITY_TANK",
+      "refresh": "weekly",
+      "public_domain": true,
+      "match_fields": ["facilityaddr", "facilitycity", "facilityzip", "agencyfacilityid"],
+      "signal_candidates": ["active_ust", "closed_ust", "large_capacity_ust", "regulated_substance_storage"],
+      "status": "QUALIFIED_NOT_ACTIVE"
+    },
+    {
+      "key": "ct_deep_ust_active_facilities",
+      "dataset_id": "ddp2-c9uu",
+      "publisher": "CT Department of Energy & Environmental Protection",
+      "category": "UST_ACTIVE_FACILITY",
+      "refresh": "weekly",
+      "public_domain": true,
+      "match_fields": ["facilityaddr", "facilitycity", "facilityzip", "geocoded_column", "agencyfacilityid"],
+      "signal_candidates": ["active_ust_facility"],
+      "status": "QUALIFIED_NOT_ACTIVE"
+    },
+    {
+      "key": "ct_deep_ust_compliance_details",
+      "dataset_id": "jis9-5rj9",
+      "publisher": "CT Department of Energy & Environmental Protection",
+      "category": "UST_COMPLIANCE",
+      "refresh": "weekly",
+      "public_domain": true,
+      "match_fields": ["facilityaddr", "facilitycity", "agencyfacilityid"],
+      "signal_candidates": ["ust_compliance_issue", "ust_violation", "ust_issue_resolved"],
+      "status": "QUALIFIED_NOT_ACTIVE"
+    },
+    {
+      "key": "ct_deep_ust_enforcement_summary",
+      "dataset_id": "sfgx-68fy",
+      "publisher": "CT Department of Energy & Environmental Protection",
+      "category": "UST_ENFORCEMENT",
+      "refresh": "weekly",
+      "public_domain": true,
+      "match_fields": ["agencyfacilityid"],
+      "signal_candidates": ["ust_enforcement", "ust_red_tag", "ust_warning"],
+      "status": "QUALIFIED_NOT_ACTIVE"
+    },
+    {
+      "key": "ct_deep_ust_release_cases",
+      "dataset_id": "yc6z-jrb5",
+      "publisher": "CT Department of Energy & Environmental Protection",
+      "category": "UST_RELEASE",
+      "refresh": "bimonthly",
+      "public_domain": true,
+      "match_fields": ["siteaddress", "sitetown", "react_case_number"],
+      "signal_candidates": ["documented_ust_release", "environmental_cleanup_candidate"],
+      "status": "QUALIFIED_NOT_ACTIVE"
+    },
+    {
+      "key": "ct_deep_spills_1996_2022",
+      "dataset_id": "wr2a-rnsg",
+      "publisher": "CT Department of Energy & Environmental Protection",
+      "category": "ENVIRONMENTAL_SPILL_HISTORY",
+      "refresh": "quarterly",
+      "public_domain": true,
+      "signal_candidates": ["documented_environmental_spill", "historical_spill_proximity"],
+      "status": "QUALIFIED_NOT_ACTIVE"
+    },
+    {
+      "key": "ct_deep_spills_2022_recent",
+      "dataset_id": "ffju-s5c5",
+      "publisher": "CT Department of Energy & Environmental Protection",
+      "category": "ENVIRONMENTAL_SPILL_RECENT",
+      "refresh": "monthly",
+      "public_domain": true,
+      "signal_candidates": ["recent_environmental_spill", "recent_release_proximity"],
+      "status": "QUALIFIED_NOT_ACTIVE"
+    },
+    {
+      "key": "ct_deep_contaminated_sites",
+      "dataset_id": "xcxg-6jqp",
+      "publisher": "CT Department of Energy & Environmental Protection",
+      "category": "CONTAMINATED_SITE",
+      "public_domain": true,
+      "signal_candidates": ["contaminated_site", "environmental_cleanup_context"],
+      "status": "QUALIFIED_NOT_ACTIVE"
+    }
+  ],
+  "activation_contract": {
+    "required_stages": ["ingest", "normalize", "dedupe", "geocode_or_spatial_align", "property_match", "evidence", "signals", "patterns", "scoring", "opportunities", "ranking", "entitlement", "app_safe_view_or_rpc", "monitoring"],
+    "lean_storage": true,
+    "retain_raw_payload": false,
+    "preserve_provenance": true,
+    "confidence_required": true,
+    "unmatched_records_retained_for_rematch": true,
+    "customer_safe_only": true
+  }
+}
