@@ -8,6 +8,7 @@ marker='bridgepoint-v304-customer-plain-language'
 if marker in body:
     print('v304 already applied')
     runpy.run_path('tool/apply_national_onboarding_scope_v340.py',run_name='__main__')
+    runpy.run_path('tool/apply_national_customer_surfaces_v341.py',run_name='__main__')
     raise SystemExit(0)
 
 # v309 compile repair runs here because v304 is the first guaranteed release layer
@@ -52,3 +53,7 @@ runpy.run_path('tool/apply_cinematic_immersive_v312.py',run_name='__main__')
 # v340 removes the CT-only onboarding bottleneck while preserving the existing CT default
 # and lets new users truthfully select broader national operating territories.
 runpy.run_path('tool/apply_national_onboarding_scope_v340.py',run_name='__main__')
+
+# v341 removes stale Connecticut-only copy from generic customer surfaces now
+# backed by multi-state/national data while preserving truly CT-specific tools.
+runpy.run_path('tool/apply_national_customer_surfaces_v341.py',run_name='__main__')
