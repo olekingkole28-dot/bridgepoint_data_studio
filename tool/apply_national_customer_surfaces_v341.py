@@ -1,5 +1,4 @@
 from pathlib import Path
-import runpy
 
 path=Path('lib/main.dart')
 text=path.read_text(encoding='utf-8')
@@ -30,7 +29,6 @@ if old_fallback in text:
         raise SystemExit('v341 ambiguous legacy property fallback')
     text=text.replace(old_fallback,new_fallback,1)
 
-# Known generic source/opportunity surfaces must be national after this layer.
 for needle in ['national intelligence coverage','live ranked property intelligence']:
     if needle not in text:
         raise SystemExit(f'missing v341 national customer marker: {needle}')
@@ -47,9 +45,17 @@ if marker not in text:
         "\nconst String _bridgePointNationalCustomerSurfacesV341="
         "'bridgepoint-v341-national-customer-surfaces | national coverage copy | truthful partial-state support';\n"
     )
-path.write_text(text,encoding='utf-8')
-print('National customer surfaces v341 verified')
 
-# v345 is the state-aware customer contract layer. It must run after v350 map + v341
-# normalization so its state selector and national RPC rewrites see the final generated UI.
-runpy.run_path('tool/apply_national_app_contracts_v345.py',run_name='__main__')
+# IMPORTANT: v345 is a broad dashboard/opportunities/field/properties/search migration,
+# not a map-only release layer. Its current generator targets an older numeric navigation
+# layout and is intentionally NOT chained into this map/radar/ETA release. The v345 source
+# remains in the repository for a dedicated compatibility release after its own full CI pass.
+# The Intelligence Map itself is already backed by national entitlement-aware RPC aliases
+# plus the v350 national map patch, so deferring v345 does not weaken map geography/package
+# enforcement or radar/build-status behavior.
+compat="const String _bridgePointV345DeferredCompatibilityV350='v345 broad app migration retained for dedicated compatibility validation';"
+if compat not in text:
+    text += compat+"\n"
+
+path.write_text(text,encoding='utf-8')
+print('National customer surfaces v341 verified; broad v345 migration decoupled from map release')
