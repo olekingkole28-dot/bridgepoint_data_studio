@@ -77,6 +77,11 @@ runpy.run_path('tool/apply_national_dashboard_v354.py',run_name='__main__')
 # state filtering and preserves the customer-safe hidden-infrastructure response.
 runpy.run_path('tool/apply_owner_national_sources_ui_v357.py',run_name='__main__')
 
+# V359 adds a low-I/O self-diagnostic to the owner-only Sources surface. It calls the
+# protected V358 owner-access contract only after the V357 owner payload proves this
+# is an owner view, so customer accounts do not incur failed owner RPCs or gain access.
+runpy.run_path('tool/apply_owner_access_health_ui_v359.py',run_name='__main__')
+
 # Verify the complete active release graph after the isolated dashboard and owner
 # Sources layers have materialized their markers. The deprecated broad v345 migration
 # must still remain unreachable from production.
