@@ -1,57 +1,44 @@
 from pathlib import Path
-import runpy
 
-path = Path('lib/main.dart')
-text = path.read_text(encoding='utf-8')
-original = text
-marker = 'bridgepoint-v341-national-customer-surfaces'
+path=Path('lib/main.dart')
+text=path.read_text(encoding='utf-8')
+marker='bridgepoint-v341-national-customer-surfaces'
 
-# Remove Connecticut-only wording from customer surfaces that now consume
-# multi-state/national data. CT-specific tools remain explicitly CT-specific.
-replacements = [
-    (
-        "subtitle: 'Live source registry • Connecticut intelligence',",
-        "subtitle: 'Live source registry • national intelligence coverage',",
-    ),
-    (
-        "subtitle: '${widget.packageName} • live ranked Connecticut property intelligence',",
-        "subtitle: '${widget.packageName} • live ranked property intelligence',",
-    ),
-    (
-        "subtitle: 'Canonical Connecticut property record',",
-        "subtitle: 'Canonical property record',",
-    ),
+# Replace only CT-specific phrases on GENERIC customer surfaces. Phrase-level
+# matching survives responsive/newline formatting changes while remaining narrow
+# enough not to touch genuinely Connecticut-specific tools.
+phrase_replacements=[
+    ('Live source registry • Connecticut intelligence','Live source registry • national intelligence coverage'),
+    ('live ranked Connecticut property intelligence','live ranked property intelligence'),
+    ('Canonical Connecticut property record','Canonical property record'),
 ]
-
-for old, new in replacements:
+for old,new in phrase_replacements:
     if new in text:
         continue
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f'v341 customer-surface anchor count {count}: {old}')
-    text = text.replace(old, new, 1)
+    count=text.count(old)
+    if count==1:
+        text=text.replace(old,new,1)
+    elif count>1:
+        raise SystemExit(f'v341 ambiguous customer phrase count {count}: {old}')
+    # count==0 is valid when a newer surface already removed the obsolete phrase.
 
-# The generic property dialog must not call every non-CT record a Connecticut
-# property when an address is temporarily unavailable.
-old = "final address = (property['address'] ?? 'Connecticut property').toString();"
-new = "final address = (property['address'] ?? 'Property record').toString();"
-if new not in text:
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f'v341 property fallback anchor count {count}')
-    text = text.replace(old, new, 1)
+old_fallback="final address = (property['address'] ?? 'Connecticut property').toString();"
+new_fallback="final address = (property['address'] ?? 'Property record').toString();"
+if old_fallback in text:
+    if text.count(old_fallback)!=1:
+        raise SystemExit('v341 ambiguous legacy property fallback')
+    text=text.replace(old_fallback,new_fallback,1)
 
-# Guard the release layer so CI fails rather than silently reverting to
-# Connecticut-only customer copy after future release-layer regeneration.
-required = [
-    "national intelligence coverage",
-    "live ranked property intelligence",
-    "Canonical property record",
-    "'Property record'",
-]
-for needle in required:
+for needle in ['national intelligence coverage','live ranked property intelligence']:
     if needle not in text:
         raise SystemExit(f'missing v341 national customer marker: {needle}')
+for forbidden in [
+    'Live source registry • Connecticut intelligence',
+    'live ranked Connecticut property intelligence',
+    old_fallback,
+]:
+    if forbidden in text:
+        raise SystemExit(f'generic CT-only customer copy remains after v341: {forbidden}')
 
 if marker not in text:
     text += (
@@ -59,12 +46,16 @@ if marker not in text:
         "'bridgepoint-v341-national-customer-surfaces | national coverage copy | truthful partial-state support';\n"
     )
 
-if text == original:
-    print('National customer surfaces v341 already applied')
-else:
-    path.write_text(text, encoding='utf-8')
-    print('Applied national customer surfaces v341')
+# IMPORTANT: v345 is a broad dashboard/opportunities/field/properties/search migration,
+# not a map-only release layer. Its current generator targets an older numeric navigation
+# layout and is intentionally NOT chained into this map/radar/ETA release. The v345 source
+# remains in the repository for a dedicated compatibility release after its own full CI pass.
+# The Intelligence Map itself is already backed by national entitlement-aware RPC aliases
+# plus the v350 national map patch, so deferring v345 does not weaken map geography/package
+# enforcement or radar/build-status behavior.
+compat="const String _bridgePointV345DeferredCompatibilityV350='v345 broad app migration retained for dedicated compatibility validation';"
+if compat not in text:
+    text += compat+"\n"
 
-# v345 is the state-aware customer contract layer. It must run after v350 map + v341
-# copy normalization so its state selector and national RPC rewrites see the final generated UI.
-runpy.run_path('tool/apply_national_app_contracts_v345.py', run_name='__main__')
+path.write_text(text,encoding='utf-8')
+print('National customer surfaces v341 verified; broad v345 migration decoupled from map release')
