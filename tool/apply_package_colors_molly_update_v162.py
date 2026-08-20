@@ -19,15 +19,29 @@ const _bridgePointRelease = String.fromEnvironment('BRIDGEPOINT_RELEASE', defaul
 """,
 'release-constant')
 
-replace_once(
-"""    if(widget.ownerMode)selectedPackage='All Intelligence';
+owner_init_new="""    if(widget.ownerMode)selectedPackage='Owner Full Platform';
     dashboardRequest = _loadDashboard();
-""",
-"""    if(widget.ownerMode)selectedPackage='All Intelligence';
+"""
+owner_init_legacy="""    if(widget.ownerMode)selectedPackage='All Intelligence';
+    dashboardRequest = _loadDashboard();
+"""
+if text.count(owner_init_new)==1:
+    owner_init=owner_init_new
+elif text.count(owner_init_legacy)==1:
+    owner_init=owner_init_legacy
+else:
+    raise SystemExit(
+        'workspace-restore-init: expected exactly 1 owner workspace initializer '
+        f'(new={text.count(owner_init_new)}, legacy={text.count(owner_init_legacy)})'
+    )
+text=text.replace(
+    owner_init,
+    """    if(widget.ownerMode)selectedPackage='Owner Full Platform';
     dashboardRequest = _loadDashboard();
     unawaited(_restoreWorkspaceState());
 """,
-'workspace-restore-init')
+    1,
+)
 
 marker="""  Future<void> _recordAppActivity(String eventType, String pageName) async {
 """
@@ -38,7 +52,7 @@ persistence=r'''  Future<void> _restoreWorkspaceState()async{
       final prefs=SharedPreferencesAsync();
       final savedPackage=await prefs.getString('bp_workspace_package');
       final savedNav=await prefs.getInt('bp_workspace_navigation');
-      final nextPackage=widget.ownerMode?'All Intelligence':(savedPackage!=null&&packages.contains(savedPackage)?savedPackage:selectedPackage);
+      final nextPackage=widget.ownerMode?'Owner Full Platform':(savedPackage!=null&&packages.contains(savedPackage)?savedPackage:selectedPackage);
       final maxIndex=visibleNavigationItems.length-1;
       final nextNav=savedNav==null?selectedNavigation:savedNav.clamp(0,maxIndex);
       if(!mounted)return;

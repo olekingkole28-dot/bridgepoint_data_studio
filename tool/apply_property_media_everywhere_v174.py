@@ -5,9 +5,10 @@ text=path.read_text(encoding='utf-8')
 original=text
 
 marker='class _PropertyMediaCard extends StatefulWidget'
-if marker not in text:raise SystemExit('property media card marker missing')
+if marker not in text:
+    raise SystemExit('property media card marker missing')
 
-# Replace historical-image browser first so later helper insertion is not overwritten.
+# Replace the historical-image browser first so later helper insertion is not overwritten.
 hs=text.find('Future<void> _showPropertyImageHistory(')
 he=text.find('class _PropertyMediaCard',hs)
 if hs>=0 and he>hs:
@@ -110,21 +111,26 @@ class _PropertyMediaThumbState extends State<_PropertyMediaThumb>{
 }
 
 '''
-if marker not in text:raise SystemExit('property media card missing after history replacement')
-text=text.replace(marker,helpers+marker,1)
+if marker not in text:
+    raise SystemExit('property media card missing after history replacement')
+if 'class _PropertyMediaThumb extends StatefulWidget' not in text:
+    text=text.replace(marker,helpers+marker,1)
 
 # Primary media is tap-to-zoom.
 cs=text.find('class _PropertyMediaCard extends StatefulWidget')
 ce=text.find('class _PropertyMediaMissing',cs)
-if cs<0 or ce<0:raise SystemExit('property media implementation missing')
+if cs<0 or ce<0:
+    raise SystemExit('property media implementation missing')
 card=text[cs:ce]
 chip='''                  Positioned(
                     left: 10,
                     top: 10,
 '''
-pos=card.find(chip)
-if pos<0:raise SystemExit('property media chip marker missing')
-overlay=r'''                  Positioned.fill(
+if 'onTap:()=>_showZoomablePropertyImage(context,url' not in card:
+    pos=card.find(chip)
+    if pos<0:
+        raise SystemExit('property media chip marker missing')
+    overlay=r'''                  Positioned.fill(
                     child:Material(color:Colors.transparent,child:InkWell(
                       onTap:()=>_showZoomablePropertyImage(context,url,title:label,subtitle:'$source • $captured'),
                       child:const Align(alignment:Alignment.bottomRight,child:Padding(
@@ -133,59 +139,80 @@ overlay=r'''                  Positioned.fill(
                     )),
                   ),
 '''
-card=card[:pos]+overlay+card[pos:]
-text=text[:cs]+card+text[ce:]
+    card=card[:pos]+overlay+card[pos:]
+    text=text[:cs]+card+text[ce:]
 
-# Properties list now shows a real/lawful photo or aerial thumbnail.
-old=r'''            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppTheme.cyan.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Icon(
-                Icons.home_work_outlined,
-                color: AppTheme.cyan,
-                size: 20,
-              ),
-            ),
-'''
-responsive_icon=r'''            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppTheme.cyan.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Icon(Icons.home_work_outlined, color: AppTheme.cyan, size: 20),
-            ),
-'''
-thumb="            _PropertyMediaThumb(propertyId:'${property['property_id']??''}'),\\n"
-if old in text:
-    text=text.replace(old,thumb,1)
-elif responsive_icon in text:
-    text=text.replace(responsive_icon,thumb,1)
-elif '_PropertyMediaThumb(propertyId:' not in text:
-    raise SystemExit('property list icon marker missing')
+# Properties list now shows a real/lawful photo or aerial thumbnail. Do not
+# depend on exact whitespace/line wrapping: responsive cards intentionally
+# reflow this icon container.
+if '_PropertyMediaThumb(propertyId:' not in text:
+    ps=text.find('class _PropertyListCard extends StatelessWidget')
+    pe=text.find('void _showPropertyInventoryDetail(',ps)
+    if ps<0 or pe<0:
+        raise SystemExit('property list card block missing')
+    block=text[ps:pe]
+    icon_idx=block.find('Icons.home_work_outlined')
+    if icon_idx<0:
+        raise SystemExit('property list home icon missing')
+    container_idx=block.rfind('Container(',0,icon_idx)
+    if container_idx<0:
+        raise SystemExit('property list icon container missing')
+    depth=0
+    end_idx=None
+    quote=None
+    escaped=False
+    for i in range(container_idx,len(block)):
+        ch=block[i]
+        if quote is not None:
+            if escaped:
+                escaped=False
+            elif ch=='\\':
+                escaped=True
+            elif ch==quote:
+                quote=None
+            continue
+        if ch in ("'",'"'):
+            quote=ch
+            continue
+        if ch=='(':
+            depth+=1
+        elif ch==')':
+            depth-=1
+            if depth==0:
+                end_idx=i+1
+                break
+    if end_idx is None:
+        raise SystemExit('property list icon container did not balance')
+    while end_idx<len(block) and block[end_idx] in ' \t':
+        end_idx+=1
+    if end_idx<len(block) and block[end_idx]==',':
+        end_idx+=1
+    line_start=block.rfind('\n',0,container_idx)+1
+    indent=block[line_start:container_idx]
+    replacement=f"_PropertyMediaThumb(propertyId:'${{property['property_id']??''}}'),"
+    block=block[:container_idx]+replacement+block[end_idx:]
+    text=text[:ps]+block+text[pe:]
 
 # Full Properties detail gets photo/aerial + image history just like Opportunities.
 ps=text.find('class _PropertyIntelligenceDialogState')
 pe=text.find('List<Map<String, dynamic>> _detailList',ps)
-if ps<0 or pe<0:raise SystemExit('property detail block missing')
+if ps<0 or pe<0:
+    raise SystemExit('property detail block missing')
 block=text[ps:pe]
-children='''                      children: [
+if '_PropertyMediaCard(propertyId:widget.propertyId)' not in block:
+    children='''                      children: [
                         Wrap(
 '''
-if children not in block:raise SystemExit('property detail content marker missing')
-block=block.replace(children,'''                      children: [
+    if children not in block:
+        raise SystemExit('property detail content marker missing')
+    block=block.replace(children,'''                      children: [
                         _PropertyMediaCard(propertyId:widget.propertyId),
                         const SizedBox(height:16),
                         Wrap(
 ''',1)
-text=text[:ps]+block+text[pe:]
+    text=text[:ps]+block+text[pe:]
 
-# Homeowner image also opens the same zoom viewer.
+# Homeowner image also opens the same zoom viewer when the matching card exists.
 home="child:Image.network('${primary['media_url']}',width:wide?280:double.infinity,height:190,fit:BoxFit.cover,errorBuilder:(_,__,___)=>const _HomePhotoMissing()),"
 if home in text:
     text=text.replace(home,"""child:GestureDetector(
@@ -193,8 +220,14 @@ if home in text:
                       child:Image.network('${primary['media_url']}',width:wide?280:double.infinity,height:190,fit:BoxFit.cover,errorBuilder:(_,__,___)=>const _HomePhotoMissing()),
                     ),""",1)
 
-for needle in ['_PropertyMediaThumb(propertyId:', 'PINCH / SCROLL TO ZOOM','Tap any dated image to open the full zoomable aerial view.']:
-    if needle not in text:raise SystemExit(f'missing media marker: {needle}')
-if text==original:raise SystemExit('no property media changes applied')
+for needle in [
+    '_PropertyMediaThumb(propertyId:',
+    'PINCH / SCROLL TO ZOOM',
+    'Tap any dated image to open the full zoomable aerial view.',
+]:
+    if needle not in text:
+        raise SystemExit(f'missing media marker: {needle}')
+if text==original:
+    raise SystemExit('no property media changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied property media everywhere + zoom v174')
+print('Applied property media everywhere + zoom v174 (responsive-safe)')

@@ -38,22 +38,36 @@ new_ctor="""  const _TopBar({
 if old_ctor not in text: raise SystemExit('TopBar constructor anchor missing')
 text=text.replace(old_ctor,new_ctor,1)
 text=text.replace("final bool desktop;\n  final String package;","final bool desktop;\n  final Color accent;\n  final String package;",1)
-old_top="""    return Container(
+mobile_top="""      return Container(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+        child: Column(
+"""
+mobile_top_new="""      return Container(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+        decoration:BoxDecoration(
+          gradient:LinearGradient(colors:[accent.withOpacity(.18),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),
+          border:Border(bottom:BorderSide(color:accent.withOpacity(.34),width:2)),
+        ),
+        child: Column(
+"""
+if mobile_top not in text: raise SystemExit('responsive mobile TopBar anchor missing')
+text=text.replace(mobile_top,mobile_top_new,1)
+desktop_top="""    return Container(
       height: 82,
-      padding: EdgeInsets.symmetric(horizontal: desktop ? 28 : 16),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Row(
 """
-new_top="""    return Container(
+desktop_top_new="""    return Container(
       height: 82,
-      padding: EdgeInsets.symmetric(horizontal: desktop ? 28 : 16),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       decoration:BoxDecoration(
-        gradient:LinearGradient(colors:[accent.withOpacity(desktop?.07:.18),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),
-        border:Border(bottom:BorderSide(color:accent.withOpacity(desktop?.16:.34),width:desktop?1:2)),
+        gradient:LinearGradient(colors:[accent.withOpacity(.07),Colors.transparent],begin:Alignment.centerLeft,end:Alignment.centerRight),
+        border:Border(bottom:BorderSide(color:accent.withOpacity(.16),width:1)),
       ),
       child: Row(
 """
-if old_top not in text: raise SystemExit('TopBar container anchor missing')
-text=text.replace(old_top,new_top,1)
+if desktop_top not in text: raise SystemExit('responsive desktop TopBar anchor missing')
+text=text.replace(desktop_top,desktop_top_new,1)
 text=text.replace("_TopBar(\n                        desktop: desktop,","_TopBar(\n                        desktop: desktop,\n                        accent:_bridgePointPageAccent(selectedNavigation),",1)
 
 # Mobile/compact nav chips use per-page accents.
