@@ -1,0 +1,41 @@
+name: Verify BridgePoint Live Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/live-release-verification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-v325:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify published production receipt
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --retry-delay 2 \
+            https://raw.githubusercontent.com/olekingkole28-dot/bridgepoint-live/main/live-release-status.json \
+            -o /tmp/live-release-status.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          receipt = json.loads(Path('/tmp/live-release-status.json').read_text())
+          expected_merged = '714842f9849fc56ce66cf0c276db0e05d3100e03'
+          expected_origin = 'https://bridgepointintelligence.online/'
+
+          assert receipt.get('status') == 'PUBLISHED', receipt
+          assert receipt.get('merged_v325_sha') == expected_merged, receipt
+          assert receipt.get('public_origin') == expected_origin, receipt
+          assert receipt.get('pages_url') == expected_origin, receipt
+          assert receipt.get('release_label') == 'BridgePoint v325 mobile responsiveness + community/radar/share polish', receipt
+          assert receipt.get('artifact_sha256'), receipt
+          assert receipt.get('deployed_at'), receipt
+
+          print('Verified live BridgePoint v325 deployment receipt:')
+          print(json.dumps(receipt, indent=2))
+          PY
