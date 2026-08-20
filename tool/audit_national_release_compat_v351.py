@@ -78,12 +78,22 @@ for marker in (
     'bridgepoint-v341-national-customer-surfaces',
     'national intelligence coverage',
     'live ranked property intelligence',
+    'bridgepoint-v352-national-dashboard-low-io',
+    '_DashboardStateSelectorV352',
+    '_StateTruthBannerV352',
+    'bridgepoint_flutter_map_state_status_v349',
+    "'live_count_rpc_used':false",
 ):
     if marker not in body:
-        raise SystemExit(f'v351 release compatibility audit: national customer/map compatibility marker missing: {marker}')
+        raise SystemExit(f'v351 release compatibility audit: national customer compatibility marker missing: {marker}')
+
+# Daily Brief must not fall back to the legacy CT-only dashboard payload. V345 live
+# counts remain permitted because V352 gates them behind actual LIVE/customer-visible truth.
+if '$_supabaseUrl/rest/v1/rpc/bridgepoint_flutter_dashboard_v57' in body:
+    raise SystemExit('v351 release compatibility audit: legacy CT-only dashboard RPC returned after V352')
 
 print('BRIDGEPOINT NATIONAL RELEASE COMPATIBILITY V351 PASSED')
 print(f' - traced {len(visited)} active Python release scripts from workflow roots')
 print(' - deprecated broad v345 migration source is retained but unreachable from production')
 print(' - generated Flutter source does not contain the broad v345 migration marker')
-print(' - explicit deferred-compatibility and validated national customer markers remain present')
+print(' - V352 Daily Brief is national and low-I/O while later surfaces remain isolated')
