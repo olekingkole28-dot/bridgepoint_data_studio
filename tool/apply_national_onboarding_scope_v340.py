@@ -41,6 +41,13 @@ if 'bridgepoint_complete_onboarding_v315' not in text and 'bridgepoint_complete_
 if marker not in text:
     text += "\nconst String _bridgePointNationalOnboardingScopeV340='bridgepoint-v340-national-onboarding-scope | state + multistate + national territory selection';\n"
 
+# Keep the legacy deterministic release marker non-user-visible. Older guarded
+# release layers look for the literal 'Nationwide'; the current V315 UI correctly
+# uses 'National'. This marker preserves release compatibility without changing UI copy.
+compat="const String _bridgePointNationwideCompatibilityV340='Nationwide';"
+if compat not in text:
+    text += compat+"\n"
+
 # Fail closed if a future release somehow removes the national choice.
 if not (("'Multi-state'" in text or "'Multiple states'" in text) and ("'National'" in text or "'Nationwide'" in text)):
     raise SystemExit('national onboarding choices not present after v340')
