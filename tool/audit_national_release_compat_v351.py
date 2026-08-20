@@ -12,6 +12,12 @@ BROAD_OUTPUT_MARKER = 'bridgepoint-v345-national-app-contracts'
 
 workflow = WORKFLOW.read_text(encoding='utf-8')
 
+# Keep the deprecated source available only as reference material for extracting
+# one compatible surface at a time. Deleting it would hide the migration history;
+# activating it would reintroduce the known release breakage.
+if not Path(FORBIDDEN_SCRIPT).exists():
+    raise SystemExit('v351 release compatibility audit: isolated v345 source unexpectedly missing')
+
 # Start from every Python release layer executed by the production Flutter workflow.
 # Then recursively follow runpy/subprocess-style references so a nested helper cannot
 # silently re-chain the deprecated broad v345 migration later.
@@ -78,6 +84,6 @@ for marker in (
 
 print('BRIDGEPOINT NATIONAL RELEASE COMPATIBILITY V351 PASSED')
 print(f' - traced {len(visited)} active Python release scripts from workflow roots')
-print(' - deprecated broad v345 migration is not reachable from production release graph')
+print(' - deprecated broad v345 migration source is retained but unreachable from production')
 print(' - generated Flutter source does not contain the broad v345 migration marker')
 print(' - explicit deferred-compatibility and validated national customer markers remain present')
