@@ -61,8 +61,13 @@ if compat not in text:
 path.write_text(text,encoding='utf-8')
 print('National customer surfaces v341 verified; broad v345 migration decoupled from map release')
 
+# Sprint guard runs before the isolated Daily Brief migration so the base generated app
+# must still be free of count-heavy state polling. V354 may then add only the explicitly
+# allowed cached map-state shell plus live-only state-status lookup.
+runpy.run_path('tool/apply_national_sprint_release_guard_v352.py',run_name='__main__')
+
 # Migrate exactly one current-code customer surface at a time. V354 executes the
-# V352 low-I/O Daily Brief/dashboard migration using structural compatibility anchors
+# low-I/O Daily Brief/dashboard migration using structural compatibility anchors
 # for the evolved generated release. No other customer surface is touched.
 runpy.run_path('tool/apply_national_dashboard_v354.py',run_name='__main__')
 
