@@ -6,36 +6,67 @@ on:
     branches: [main]
     paths:
       - .github/workflows/live-release-verification.yml
+      - web/deployment-status.json
+      - web/release-pipeline-status.json
 
 permissions:
   contents: read
 
 jobs:
-  verify-live-v325:
+  verify-live-release:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify published production receipt
+      - uses: actions/checkout@v4
+
+      - name: Fetch public production markers
         run: |
           set -euo pipefail
-          curl -fsSL --retry 3 --retry-delay 2 \
-            https://raw.githubusercontent.com/olekingkole28-dot/bridgepoint-live/main/live-release-status.json \
-            -o /tmp/live-release-status.json
+          curl -fsSL --retry 4 --retry-delay 3 \
+            https://bridgepointintelligence.online/bridgepoint-release.json \
+            -o /tmp/live-release.json
+          curl -fsSL --retry 4 --retry-delay 3 \
+            https://bridgepointintelligence.online/ \
+            -o /tmp/live-index.html
+          test -s /tmp/live-release.json
+          test -s /tmp/live-index.html
+
+      - name: Verify receipt matches public production artifact
+        run: |
+          set -euo pipefail
           python - <<'PY'
           import json
           from pathlib import Path
 
-          receipt = json.loads(Path('/tmp/live-release-status.json').read_text())
-          expected_merged = '714842f9849fc56ce66cf0c276db0e05d3100e03'
+          receipt_path = Path('web/deployment-status.json')
+          pipeline_path = Path('web/release-pipeline-status.json')
+          if not receipt_path.exists():
+              raise SystemExit('Missing web/deployment-status.json')
+          if not pipeline_path.exists():
+              raise SystemExit('Missing web/release-pipeline-status.json')
+
+          receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
+          pipeline = json.loads(pipeline_path.read_text(encoding='utf-8'))
+          live = json.loads(Path('/tmp/live-release.json').read_text(encoding='utf-8'))
+          index = Path('/tmp/live-index.html').read_text(encoding='utf-8', errors='ignore')
+
           expected_origin = 'https://bridgepointintelligence.online/'
-
           assert receipt.get('status') == 'PUBLISHED', receipt
-          assert receipt.get('merged_v325_sha') == expected_merged, receipt
+          assert pipeline.get('conclusion') == 'success', pipeline
           assert receipt.get('public_origin') == expected_origin, receipt
-          assert receipt.get('pages_url') == expected_origin, receipt
-          assert receipt.get('release_label') == 'BridgePoint v325 mobile responsiveness + community/radar/share polish', receipt
-          assert receipt.get('artifact_sha256'), receipt
+          assert receipt.get('source_sha'), receipt
+          assert receipt.get('version') == receipt.get('source_sha'), receipt
+          assert live.get('public_origin') == expected_origin, live
+          assert live.get('version') == receipt.get('version'), (live, receipt)
+          assert live.get('version') == pipeline.get('source_sha'), (live, pipeline)
           assert receipt.get('deployed_at'), receipt
+          assert len(index.strip()) > 200, 'Public index.html unexpectedly small'
+          assert ('flutter_bootstrap.js' in index or 'main.dart.js' in index), 'Flutter boot marker missing from public index.html'
 
-          print('Verified live BridgePoint v325 deployment receipt:')
-          print(json.dumps(receipt, indent=2))
+          print('BridgePoint production verification passed')
+          print(json.dumps({
+              'version': live.get('version'),
+              'deployed_at': receipt.get('deployed_at'),
+              'public_origin': live.get('public_origin'),
+              'source_workflow_run_id': receipt.get('source_workflow_run_id'),
+          }, indent=2))
           PY
