@@ -61,7 +61,12 @@ if compat not in text:
 path.write_text(text,encoding='utf-8')
 print('National customer surfaces v341 verified; broad v345 migration decoupled from map release')
 
-# Verify the complete active release graph after the national customer/map layer has
-# materialized its markers. This is deliberately separate from the old v345 migration:
-# it only proves that migration is unreachable from production and cannot silently return.
+# Sprint release safety: make the global sync UI truthful and fail closed if a new
+# generated Flutter surface starts polling count-heavy state contracts while expansion
+# is under I/O pressure. This remains separate from the deprecated broad v345 migration.
+runpy.run_path('tool/apply_national_sprint_release_guard_v352.py',run_name='__main__')
+
+# Verify the complete active release graph after the national customer/map and sprint
+# guard layers have materialized their markers. This proves the old broad v345 migration
+# remains unreachable while compatible surfaces continue to move one at a time.
 runpy.run_path('tool/audit_national_release_compat_v351.py',run_name='__main__')
