@@ -7,9 +7,15 @@ on:
   pull_request:
     branches: [main]
 
+# PRs should supersede older PR builds quickly, but production main releases must
+# finish their audited build + Pages deploy + receipt write. With cancel-in-progress
+# enabled on main, unrelated sprint pushes could repeatedly cancel a valid deploy
+# before production verification completed. GitHub concurrency keeps at most one
+# running and one pending run for the main ref, so this serializes production while
+# naturally replacing stale pending pushes with the newest main revision.
 concurrency:
-  group: bridgepoint-release-${{ github.ref }}
-  cancel-in-progress: true
+  group: bridgepoint-release-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
