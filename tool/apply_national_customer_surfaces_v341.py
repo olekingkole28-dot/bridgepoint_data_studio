@@ -61,7 +61,12 @@ if compat not in text:
 path.write_text(text,encoding='utf-8')
 print('National customer surfaces v341 verified; broad v345 migration decoupled from map release')
 
-# Verify the complete active release graph after the national customer/map layer has
-# materialized its markers. This is deliberately separate from the old v345 migration:
-# it only proves that migration is unreachable from production and cannot silently return.
+# Migrate exactly one current-code customer surface at a time. V352 moves only
+# Daily Brief/dashboard to national state truth and deliberately leaves the rest
+# of the broad v345 migration unreachable.
+runpy.run_path('tool/apply_national_dashboard_v352.py',run_name='__main__')
+
+# Verify the complete active release graph after the isolated dashboard layer has
+# materialized its markers. The deprecated broad v345 migration must still remain
+# unreachable from production.
 runpy.run_path('tool/audit_national_release_compat_v351.py',run_name='__main__')
