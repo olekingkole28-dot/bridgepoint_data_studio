@@ -2,37 +2,28 @@ from pathlib import Path
 
 path=Path('lib/main.dart')
 text=path.read_text(encoding='utf-8')
-original=text
 marker='bridgepoint-v341-national-customer-surfaces'
 
-# Remove Connecticut-only wording only from GENERIC customer surfaces. Genuine
-# Connecticut-specific tools and source descriptions remain explicitly CT.
-replacements=[
-    (
-        "subtitle: 'Live source registry • Connecticut intelligence',",
-        "subtitle: 'Live source registry • national intelligence coverage',",
-    ),
-    (
-        "subtitle: '${widget.packageName} • live ranked Connecticut property intelligence',",
-        "subtitle: '${widget.packageName} • live ranked property intelligence',",
-    ),
-    (
-        "subtitle: 'Canonical Connecticut property record',",
-        "subtitle: 'Canonical property record',",
-    ),
+# Replace only the CT-specific phrases on generic customer surfaces. Phrase-level
+# matching survives responsive/newline formatting changes while remaining narrow
+# enough not to touch genuinely Connecticut-specific tools.
+phrase_replacements=[
+    ('Live source registry • Connecticut intelligence','Live source registry • national intelligence coverage'),
+    ('live ranked Connecticut property intelligence','live ranked property intelligence'),
+    ('Canonical Connecticut property record','Canonical property record'),
 ]
-for old,new in replacements:
+for old,new in phrase_replacements:
     if new in text:
         continue
     count=text.count(old)
     if count==1:
         text=text.replace(old,new,1)
     elif count>1:
-        raise SystemExit(f'v341 ambiguous customer-surface anchor count {count}: {old}')
-    # count==0 is valid when a newer customer surface has already removed that legacy copy.
+        raise SystemExit(f'v341 ambiguous customer phrase count {count}: {old}')
+    # count==0 is valid when a newer surface already removed that obsolete phrase.
 
-# Older generic property dialogs used this fallback. Replace it when present;
-# newer V3xx property components already use neutral 'Property record' copy.
+# Older generic property dialogs used this exact fallback. Replace it when present;
+# newer V3xx property components already use neutral property-record wording.
 old_fallback="final address = (property['address'] ?? 'Connecticut property').toString();"
 new_fallback="final address = (property['address'] ?? 'Property record').toString();"
 if old_fallback in text:
@@ -40,11 +31,9 @@ if old_fallback in text:
         raise SystemExit('v341 ambiguous legacy property fallback')
     text=text.replace(old_fallback,new_fallback,1)
 
-# These two generic surfaces are known national surfaces and therefore must be
-# national after the patch. Do not require obsolete UI strings that no longer
-# exist in the current generated property detail layout.
-required=['national intelligence coverage','live ranked property intelligence']
-for needle in required:
+# These generic source/opportunity surfaces are known national surfaces and must
+# be national after the patch. Do not require obsolete property-detail strings.
+for needle in ['national intelligence coverage','live ranked property intelligence']:
     if needle not in text:
         raise SystemExit(f'missing v341 national customer marker: {needle}')
 
