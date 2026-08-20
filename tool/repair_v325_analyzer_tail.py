@@ -1,16 +1,22 @@
 from pathlib import Path
 import hashlib
+import runpy
 
 path=Path('lib/main.dart')
 PRE='d1aa4c6e972937b7053bfe94dc9f9c8c677c0cac716b0800bbc3fec48eac3755'
 V325='81f4d0efea6d22a6bdaeb427d82a83bc3fa4e08848fb2f0c61569ddd80d3ccf3'
-POST='5396f6b6aeb5f8a2e3e8bfc5f14225916a77500eefdaa8f92c014b182c373bb2'
-raw=path.read_bytes(); actual=hashlib.sha256(raw).hexdigest()
-if actual==POST:
-    print('BridgePoint national map release already applied.'); raise SystemExit(0)
+MAP_POST='5396f6b6aeb5f8a2e3e8bfc5f14225916a77500eefdaa8f92c014b182c373bb2'
+raw=path.read_bytes(); actual=hashlib.sha256(raw).hexdigest(); body=raw.decode('utf-8')
+
+# Final output is intentionally marker-guarded because v340/v341 are applied only after
+# the deterministic v325 + map hash has been verified.
+if ('bridgepoint-v350-national-map' in body and
+    'bridgepoint-v341-national-customer-surfaces' in body and
+    "'Nationwide'" in body):
+    print('BridgePoint national map + national customer release already applied.')
+    raise SystemExit(0)
 if actual not in (PRE,V325):
     raise SystemExit(f'map release baseline mismatch: {actual}')
-body=raw.decode('utf-8')
 
 def once(old,new,label):
     global body
@@ -187,7 +193,14 @@ once("""                          setState((){_showRadar=true;_showClouds=false;
 """,'US button')
 once("subtitle:'${widget.packageName} • live property intelligence with visible expansion markets',","subtitle:'${widget.packageName} • nationwide weather + build status for everyone • purchased intelligence only inside entitled states',",'subtitle')
 body=body.replace("class _IntelligenceMapPage extends StatefulWidget {","// bridgepoint-v350-national-map + paused-stable-radar + 50-state-measured-eta\nclass _IntelligenceMapPage extends StatefulWidget {",1)
-out=body.encode(); post=hashlib.sha256(out).hexdigest()
-if post!=POST: raise SystemExit(f'post hash mismatch {post}')
+out=body.encode(); map_post=hashlib.sha256(out).hexdigest()
+if map_post!=MAP_POST: raise SystemExit(f'map post hash mismatch {map_post}')
 path.write_bytes(out)
-print('BridgePoint national map release applied.',post)
+
+# Apply the newer national customer layers only after the old deterministic guard has passed.
+runpy.run_path('tool/apply_national_onboarding_scope_v340.py',run_name='__main__')
+runpy.run_path('tool/apply_national_customer_surfaces_v341.py',run_name='__main__')
+final=path.read_text(encoding='utf-8')
+for needle in ('bridgepoint-v350-national-map','bridgepoint-v341-national-customer-surfaces',"'Nationwide'",'national intelligence coverage'):
+    if needle not in final: raise SystemExit(f'final national release marker missing: {needle}')
+print('BridgePoint national map/customer release applied.',hashlib.sha256(final.encode()).hexdigest())
