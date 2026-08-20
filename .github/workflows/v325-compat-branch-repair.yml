@@ -18,10 +18,15 @@ jobs:
           fetch-depth: 0
       - name: Repair v189 responsive TopBar compatibility
         run: python .github/scripts/patch_v189_responsive.py
-      - name: Commit branch compatibility repair
+      - name: Commit branch compatibility repair when needed
         run: |
+          set -euo pipefail
           git config user.name 'BridgePoint Automation'
           git config user.email 'actions@users.noreply.github.com'
           git add tool/apply_premium_navigation_expansion_v189.py
-          git commit -m 'Make v189 premium navigation responsive-safe'
-          git push origin HEAD:mobile-v325-release-compat
+          if git diff --cached --quiet; then
+            echo 'Responsive compatibility repair is already applied; no commit needed.'
+          else
+            git commit -m 'Make v189 premium navigation responsive-safe'
+            git push origin HEAD:mobile-v325-release-compat
+          fi
