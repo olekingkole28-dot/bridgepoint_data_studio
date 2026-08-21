@@ -45,3 +45,7 @@ runpy.run_path('tool/apply_owner_release_truth_v417.py',run_name='__main__')
 # V418 elevates unavailable, contradicted and warning owner metrics into the Today/Attention surface.
 # It uses the already-loaded V417 payload and adds no database reads.
 runpy.run_path('tool/apply_owner_truth_gaps_v418.py',run_name='__main__')
+
+# V419 makes every Owner Everything Details dialog understandable without reading raw JSON.
+# It summarizes already-loaded payloads, preserves truth limitations, and keeps raw audit data collapsed.
+runpy.run_path('tool/apply_owner_human_details_v419.py',run_name='__main__')
