@@ -2,7 +2,7 @@
   const supabaseUrl='https://xdfsjztwgsbmabshzsjw.supabase.co';
   const apikey='sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25';
   const endpoint=`${supabaseUrl}/rest/v1/rpc/track_acquisition_event_v400`;
-  const CAPTURE_VERSION=436;
+  const CAPTURE_VERSION=440;
   const safeId=()=>globalThis.crypto?.randomUUID?.()||`${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   const getStored=(storage,key)=>{try{return storage.getItem(key)}catch(_){return null}};
   const setStored=(storage,key,value)=>{try{storage.setItem(key,value)}catch(_){}};
@@ -46,8 +46,8 @@
   };
   const normalize=(raw)=>(raw||'').replace(/\s+/g,' ').trim().toLowerCase();
   const formKind=(raw)=>{const s=normalize(raw);if(/signup|sign up|account|trial|register/.test(s))return 'signup';if(/demo/.test(s))return 'demo';if(/sample|preview/.test(s))return 'sample';if(/contact|talk to|sales|question/.test(s))return 'contact';return 'other';};
-  const classifyClick=(raw)=>{const s=normalize(raw);if(!s)return null;if(/checkout|buy now|subscribe|upgrade|purchase/.test(s))return 'CHECKOUT_START';if(/create account|sign up|signup|start 7-day trial|start free trial|free trial|try bridgepoint/.test(s))return 'CREATE_ACCOUNT_CLICK';if(/pricing|plans?|packages?|subscription/.test(s))return 'PRICING_VIEW';if(/sample|demo|preview|see it work|how it works|why bridgepoint|explore|intelligence/.test(s))return 'VALUE_VIEW';return null;};
-  const inspectRoute=()=>{const route=`${location.pathname}${location.hash}`.toLowerCase();if(/checkout|subscribe|purchase/.test(route))send('CHECKOUT_START',{route},3000);if(/signup|sign-up|register|create-account|trial/.test(route))send('SIGNUP_VIEW',{route},3000);if(/pricing|plans|packages/.test(route))send('PRICING_VIEW',{route},3000);if(/sample|demo|preview|how-it-works|why-bridgepoint/.test(route))send('VALUE_VIEW',{route},3000);};
+  const classifyClick=(raw)=>{const s=normalize(raw);if(!s)return null;if(/checkout|buy now|subscribe|upgrade|purchase/.test(s))return 'CHECKOUT_START';if(/create account|sign up|signup|start 7-day trial|start free trial|free trial|try bridgepoint|mode=signup|campaign=start_trial|proof_to_trial/.test(s))return 'CREATE_ACCOUNT_CLICK';if(/pricing|plans?|packages?|subscription/.test(s))return 'PRICING_VIEW';if(/open app|sign in|sample|demo|preview|see it work|how it works|why bridgepoint|explore|intelligence/.test(s))return 'VALUE_VIEW';return null;};
+  const inspectRoute=()=>{const route=`${location.pathname}${location.search}${location.hash}`.toLowerCase();if(/checkout|subscribe|purchase/.test(route))send('CHECKOUT_START',{route},3000);if(/signup|sign-up|register|create-account|trial|mode=signup/.test(route))send('SIGNUP_VIEW',{route},3000);if(/pricing|plans|packages/.test(route))send('PRICING_VIEW',{route},3000);if(/sample|demo|preview|how-it-works|why-bridgepoint/.test(route))send('VALUE_VIEW',{route},3000);};
   const describeForm=(form)=>normalize(`${form.getAttribute('aria-label')||''} ${form.getAttribute('name')||''} ${form.getAttribute('id')||''} ${form.innerText||''} ${form.action||''}`);
   const emitFormStart=(form)=>{const kind=formKind(describeForm(form));if(kind==='signup')send('SIGNUP_FORM_START',{form_kind:kind},60000);};
   const boot=async()=>{await loadCoarseGeo();send(location.pathname==='/sample/'?'SAMPLE_VIEW':location.pathname.startsWith('/app/')?'VALUE_VIEW':'LANDING_VIEW',{visibility:document.visibilityState},3000);if(location.pathname==='/sample/')send('VALUE_VIEW',{route:location.pathname},3000);inspectRoute();};
