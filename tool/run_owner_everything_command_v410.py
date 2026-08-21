@@ -26,35 +26,15 @@ if replaced!=1:
     raise SystemExit(f'V410 wrapper structural source rewrite count {replaced}')
 exec(compile(source,str(script_path),'exec'),{'__name__':'__main__','__file__':str(script_path)})
 
-# V415 keeps the V410 Everything shell but switches it to the bounded cached owner-truth contract
-# and promotes reconciled intelligence, billing, source-task, OAuth and warning headlines.
 runpy.run_path('tool/apply_owner_everything_live_metrics_v411.py',run_name='__main__')
-
-# V416 adds the owner-first Today/Attention summary using only the already-loaded V415 payload.
-# It adds no database polling and keeps owner actions separate from automatic recovery work.
 runpy.run_path('tool/apply_owner_attention_v416.py',run_name='__main__')
-
-# V417 shows the exact compile-time release SHA inside Owner Attention.
-# This is zero-DB deployment truth: the owner sees the version embedded in the running browser/PWA artifact.
 runpy.run_path('tool/apply_owner_release_truth_v417.py',run_name='__main__')
-
-# V418 elevates unavailable, contradicted and warning owner metrics into the Today/Attention surface.
-# It uses the already-loaded V417 payload and adds no database reads.
 runpy.run_path('tool/apply_owner_truth_gaps_v418.py',run_name='__main__')
-
-# V419 makes every Owner Everything Details dialog understandable without reading raw JSON.
-# It summarizes already-loaded payloads, preserves truth limitations, and keeps raw audit data collapsed.
 runpy.run_path('tool/apply_owner_human_details_v419.py',run_name='__main__')
-
-# V420 adds truth-aware state/vertical/package/channel/worker filters without new database reads.
-# Sections lacking a requested dimension remain visible rather than disappearing like a fake zero.
 runpy.run_path('tool/apply_owner_cross_filters_v420.py',run_name='__main__')
-
-# V422 upgrades the Acquisition Funnel to the bounded cached stage-conversion truth model.
-# The owner sees Today / 7d / since-launch counts, browser-capture health and the largest observable drop-off without new page-load scans.
 runpy.run_path('tool/apply_owner_funnel_truth_v422.py',run_name='__main__')
-
-# V431 makes the default Owner Center a simple business command view backed by the
-# owner-only V431 essentials contract. Deep technical Command Center detail remains
-# available, but collapsed behind More details by default.
 runpy.run_path('tool/apply_owner_essentials_v431.py',run_name='__main__')
+
+# V438 intentionally does not touch avatar/profile identity. It only strengthens install,
+# unauthenticated entry, and BridgePoint A.I. discoverability.
+runpy.run_path('tool/apply_install_entry_v438.py',run_name='__main__')
