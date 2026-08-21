@@ -58,3 +58,7 @@ runpy.run_path('tool/apply_owner_funnel_truth_v422.py',run_name='__main__')
 # owner-only V431 essentials contract. Deep technical Command Center detail remains
 # available, but collapsed behind More details by default.
 runpy.run_path('tool/apply_owner_essentials_v431.py',run_name='__main__')
+
+# V437 removes founder-specific avatar fallbacks from customer sessions, strengthens the
+# unauthenticated app entry, aligns BridgePoint A.I. wording, and makes PWA install impossible to miss.
+runpy.run_path('tool/apply_user_identity_install_entry_v437.py',run_name='__main__')
