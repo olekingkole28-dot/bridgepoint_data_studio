@@ -1,0 +1,4 @@
+BridgePoint production release trigger v380
+Owner national expansion cockpit + UI cleanup
+Expected feature marker: bridgepoint-v380-owner-national-cockpit
+Triggered after PR #32 passed Flutter analyze, tests, and release web build.
