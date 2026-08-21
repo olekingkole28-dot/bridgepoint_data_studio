@@ -8,6 +8,7 @@ marker = 'bridgepoint-v219-owner-outreach'
 
 if marker in body:
     print('Owner outreach v219 already applied.')
+    subprocess.run([sys.executable,'tool/apply_owner_everything_command_v410.py'],check=True)
     raise SystemExit(0)
 
 old_data = """      final offer=map(data['founding_offer']),intel=map(data['intelligence']);
@@ -84,3 +85,4 @@ body = body.replace(old_heading, new_heading, 1)
 path.write_text(body, encoding='utf-8')
 print('Applied BridgePoint owner outreach v219 UI.')
 subprocess.run([sys.executable,'tool/apply_billing_live_readiness_v220.py'],check=True)
+subprocess.run([sys.executable,'tool/apply_owner_everything_command_v410.py'],check=True)
