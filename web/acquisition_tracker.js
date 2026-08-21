@@ -32,13 +32,13 @@
     if(!el)return;
     const label=(el.textContent||el.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim().slice(0,120);
     const normalized=label.toLowerCase();
-    if(normalized.includes('start 7-day trial')||normalized.includes('start free trial')||normalized.includes('create account')){
-      const type=normalized.includes('start free trial')?'SIGNUP_SUBMIT':'SIGNUP_VIEW';
-      if(type!=='SIGNUP_VIEW'||Date.now()-lastSignupView>1000){send(type,{control:label});if(type==='SIGNUP_VIEW')lastSignupView=Date.now()}
+    if(normalized.includes('start 7-day trial')||normalized.includes('create account')){
+      if(Date.now()-lastSignupView>1000){send('SIGNUP_VIEW',{control:label});lastSignupView=Date.now()}
       return;
     }
-    if(normalized==='sign in'||normalized.includes('already have an account')){send('SIGNIN_INTENT',{control:label});return;}
-    if(normalized.includes('pricing')||normalized.includes('plan')||normalized.includes('sample')||normalized.includes('checkout'))send('HIGH_INTENT_CLICK',{control:label});
+    if(normalized.includes('start free trial')){send('SIGNUP_SUBMIT',{control:label});return;}
+    if(normalized.includes('pricing')||normalized.includes('plan')){send('PRICING_VIEW',{control:label});return;}
+    if(normalized.includes('sample')){send('SAMPLE_REQUEST',{control:label});return;}
+    if(normalized.includes('checkout')||normalized.includes('buy now')||normalized.includes('subscribe'))send('CHECKOUT_START',{control:label});
   },true);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')send('PAGE_EXIT',{reason:'hidden'})});
 })();
