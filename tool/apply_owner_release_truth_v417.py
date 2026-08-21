@@ -45,8 +45,11 @@ auto_anchor="    if(reviewPending>0)automatic.add('$reviewPending record${review
 if text.count(auto_anchor)!=1:
     raise SystemExit(f'V417 automatic truth anchor count {text.count(auto_anchor)}')
 auto_insert=auto_anchor+r'''
-    if((podcastTruth['approved_scripts'] as num?)?.toInt()??0>0 && ((podcastTruth['published_audio_episodes'] as num?)?.toInt()??0)==0)automatic.add('${podcastTruth['approved_scripts']} approved podcast script is prepared; audio/MP3/RSS publication is not yet proven.');
-    if((lifecycleTruth['approved_newsletter_derivatives'] as num?)?.toInt()??0>0 && lifecycleTruth['send_ledger_observable']!=true)automatic.add('${lifecycleTruth['approved_newsletter_derivatives']} approved newsletter item is prepared; subscriber/send lifecycle telemetry is not yet proven.');'''
+    final approvedPodcastScripts=((podcastTruth['approved_scripts'] as num?)?.toInt() ?? 0);
+    final publishedAudioEpisodes=((podcastTruth['published_audio_episodes'] as num?)?.toInt() ?? 0);
+    final approvedNewsletterItems=((lifecycleTruth['approved_newsletter_derivatives'] as num?)?.toInt() ?? 0);
+    if(approvedPodcastScripts>0 && publishedAudioEpisodes==0)automatic.add('$approvedPodcastScripts approved podcast script${approvedPodcastScripts==1?' is':'s are'} prepared; audio/MP3/RSS publication is not yet proven.');
+    if(approvedNewsletterItems>0 && lifecycleTruth['send_ledger_observable']!=true)automatic.add('$approvedNewsletterItems approved newsletter item${approvedNewsletterItems==1?' is':'s are'} prepared; subscriber/send lifecycle telemetry is not yet proven.');'''
 text=text.replace(auto_anchor,auto_insert,1)
 
 anchor="    moving.add('${oauth['publish_ready']??0} of ${oauth['configured']??oauth['providers']??6} social targets are publish-ready.');"
