@@ -53,3 +53,8 @@ runpy.run_path('tool/apply_owner_cross_filters_v420.py',run_name='__main__')
 # V422 upgrades the Acquisition Funnel to the bounded cached stage-conversion truth model.
 # The owner sees Today / 7d / since-launch counts, browser-capture health and the largest observable drop-off without new page-load scans.
 runpy.run_path('tool/apply_owner_funnel_truth_v422.py',run_name='__main__')
+
+# V431 makes the default Owner Center a simple business command view backed by the
+# owner-only V431 essentials contract. Deep technical Command Center detail remains
+# available, but collapsed behind More details by default.
+runpy.run_path('tool/apply_owner_essentials_v431.py',run_name='__main__')
