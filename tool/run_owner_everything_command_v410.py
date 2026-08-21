@@ -41,3 +41,7 @@ runpy.run_path('tool/apply_owner_attention_v416.py',run_name='__main__')
 # V417 shows the exact compile-time release SHA inside Owner Attention.
 # This is zero-DB deployment truth: the owner sees the version embedded in the running browser/PWA artifact.
 runpy.run_path('tool/apply_owner_release_truth_v417.py',run_name='__main__')
+
+# V418 elevates unavailable, contradicted and warning owner metrics into the Today/Attention surface.
+# It uses the already-loaded V417 payload and adds no database reads.
+runpy.run_path('tool/apply_owner_truth_gaps_v418.py',run_name='__main__')
