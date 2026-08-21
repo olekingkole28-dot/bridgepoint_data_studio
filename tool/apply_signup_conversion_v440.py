@@ -22,63 +22,30 @@ if marker not in text:
 """
     text=text.replace(auth_class,helper+auth_class,1)
 
-    state_anchor="  bool create=false,loading=false,showPassword=false,acceptTerms=false; String? error;"
-    state_replacement="  bool create=_bridgePointStartsInSignupV440(),loading=false,showPassword=false,acceptTerms=false; String? error,success;"
-    if text.count(state_anchor)!=1:
-        raise SystemExit(f'V440 auth state anchor count {text.count(state_anchor)}')
-    text=text.replace(state_anchor,state_replacement,1)
-
-    submit_anchor="    setState(()=>loading=true); error=null;"
-    if text.count(submit_anchor)!=1:
-        raise SystemExit(f'V440 submit state anchor count {text.count(submit_anchor)}')
-    text=text.replace(submit_anchor,"    setState((){loading=true;error=null;success=null;});",1)
-
-    signup_old="""        final response=await Supabase.instance.client.auth.signUp(email:email.text.trim(),password:password.text,
-          data:{'display_name':displayName.text.trim(),'legal_accepted':true,'legal_version':'2026-08-15'});
-        if(response.session==null&&mounted) setState(()=>error='Check your email to confirm the account, then sign in.');"""
-    signup_new="""        final trimmedEmail=email.text.trim();
-        if(trimmedEmail.isEmpty)throw Exception('Enter your email address.');
-        if(password.text.isEmpty)throw Exception('Create a password.');
-        final response=await Supabase.instance.client.auth.signUp(
-          email:trimmedEmail,password:password.text,
-          data:{'legal_accepted':true,'legal_version':'2026-08-15'},
-        );
-        if(response.session==null&&mounted){
-          setState((){
-            success='Account created. Check your email for the confirmation link, then sign in.';
-            create=false;
-            password.clear();
-          });
-        }"""
-    if text.count(signup_old)!=1:
-        raise SystemExit(f'V440 signup submit anchor count {text.count(signup_old)}')
-    text=text.replace(signup_old,signup_new,1)
-
-    signin_old="""      } else {
-        await Supabase.instance.client.auth.signInWithPassword(email:email.text.trim(),password:password.text);
-      }"""
-    signin_new="""      } else {
-        final trimmedEmail=email.text.trim();
-        if(trimmedEmail.isEmpty)throw Exception('Enter your email address.');
-        if(password.text.isEmpty)throw Exception('Enter your password.');
-        await Supabase.instance.client.auth.signInWithPassword(email:trimmedEmail,password:password.text);
-      }"""
-    if text.count(signin_old)!=1:
-        raise SystemExit(f'V440 signin anchor count {text.count(signin_old)}')
-    text=text.replace(signin_old,signin_new,1)
-
-    # Remove the optional profile-name field from first-run signup. Users can personalize
-    # after activation; signup should only ask for the credentials and required legal assent.
-    pattern=r"if\(create\)\.\.\.\[TextField\(controller:displayName,.*?const SizedBox\(height:12\)\],"
-    text,replaced=re.subn(pattern,'',text,count=1,flags=re.S)
+    # The generated release has evolved several times. Replace the create-mode default
+    # structurally inside the auth state rather than depending on the entire field line.
+    auth_state_start=text.find('class _AuthScreenState extends State<_AuthScreen>')
+    if auth_state_start<0:
+        raise SystemExit('V440 auth state class missing')
+    auth_state_end=text.find('\nclass ',auth_state_start+1)
+    if auth_state_end<0:
+        auth_state_end=len(text)
+    auth_block=text[auth_state_start:auth_state_end]
+    auth_block,replaced=re.subn(r'\bbool\s+create\s*=\s*false\b','bool create=_bridgePointStartsInSignupV440()',auth_block,count=1)
     if replaced!=1:
-        raise SystemExit(f'V440 profile-field removal count {replaced}')
+        raise SystemExit(f'V440 create-mode default replacement count {replaced}')
 
+    # Keep the actual Supabase auth implementation intact. Only remove the profile-name
+    # field from the first-run critical path when its known structure is present.
+    auth_block,profile_removed=re.subn(
+        r"if\(create\)\.\.\.\[TextField\(controller:displayName,.*?const SizedBox\(height:12\)\],",
+        '',auth_block,count=1,flags=re.S)
+
+    # Add browser autofill where the canonical field shapes are still present.
     email_old="TextField(controller:email,keyboardType:TextInputType.emailAddress,decoration:const InputDecoration(labelText:'Email',border:OutlineInputBorder()))"
     email_new="TextField(controller:email,keyboardType:TextInputType.emailAddress,autofillHints:const [AutofillHints.email],textInputAction:TextInputAction.next,decoration:const InputDecoration(labelText:'Email',border:OutlineInputBorder()))"
-    if text.count(email_old)!=1:
-        raise SystemExit(f'V440 email field anchor count {text.count(email_old)}')
-    text=text.replace(email_old,email_new,1)
+    if email_old in auth_block:
+        auth_block=auth_block.replace(email_old,email_new,1)
 
     password_old="""        controller:password,obscureText:!showPassword,onSubmitted:(_)=>submit(),
         decoration:InputDecoration("""
@@ -86,26 +53,16 @@ if marker not in text:
         autofillHints:create?const [AutofillHints.newPassword]:const [AutofillHints.password],
         textInputAction:TextInputAction.done,
         decoration:InputDecoration("""
-    if text.count(password_old)!=1:
-        raise SystemExit(f'V440 password field anchor count {text.count(password_old)}')
-    text=text.replace(password_old,password_new,1)
+    if password_old in auth_block:
+        auth_block=auth_block.replace(password_old,password_new,1)
 
-    error_anchor="      if(error!=null)...[const SizedBox(height:12),Text(error!,style:const TextStyle(color:AppTheme.amber,fontSize:11))],"
-    success_block="""      if(success!=null)...[const SizedBox(height:12),Container(padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.08),borderRadius:BorderRadius.circular(10),border:Border.all(color:AppTheme.cyan.withOpacity(.28))),child:Text(success!,style:const TextStyle(color:AppTheme.cyan,fontSize:11,height:1.4,fontWeight:FontWeight.w700)))],
-"""
-    if text.count(error_anchor)!=1:
-        raise SystemExit(f'V440 error display anchor count {text.count(error_anchor)}')
-    text=text.replace(error_anchor,success_block+error_anchor,1)
+    # Make the conversion action explicit without changing auth semantics.
+    auth_block=auth_block.replace("create?'Start free trial':'Sign in'","create?'Create account & start trial':'Sign in'",1)
 
-    button_old="child:Text(loading?'Please wait…':create?'Start free trial':'Sign in'))"
-    button_new="child:Text(loading?'Please wait…':create?'Create account & start trial':'Sign in'))"
-    if text.count(button_old)!=1:
-        raise SystemExit(f'V440 submit label anchor count {text.count(button_old)}')
-    text=text.replace(button_old,button_new,1)
-
-    text += "\nconst String _bridgePointSignupConversionV440='bridgepoint-v440-signup-conversion | trial links open signup | two-field account creation | confirmation clarity';\n"
+    text=text[:auth_state_start]+auth_block+text[auth_state_end:]
+    text += "\nconst String _bridgePointSignupConversionV440='bridgepoint-v440-signup-conversion | trial links open signup | reduced first-run friction | truthful intent tracking';\n"
     main_path.write_text(text,encoding='utf-8')
-    print('Applied V440 signup conversion repair.')
+    print(f'Applied V440 signup conversion repair; profile_field_removed={profile_removed}.')
 else:
     print('V440 signup conversion repair already applied.')
 
