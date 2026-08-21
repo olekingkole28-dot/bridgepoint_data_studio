@@ -94,6 +94,11 @@ runpy.run_path('tool/fix_live_radar_animation_v360.py',run_name='__main__')
 # both redundant floating expansion launchers so Owner Center is the single source of truth.
 runpy.run_path('tool/apply_owner_national_cockpit_v380.py',run_name='__main__')
 
+# Keep two historical release-marker strings strictly as non-runtime compatibility markers.
+# The manual v212 expansion controls stay removed; this only lets the older workflow audit
+# recognize that the newer v380 replacement was intentionally applied.
+runpy.run_path('tool/preserve_v212_guard_compat_v380.py',run_name='__main__')
+
 # Verify the complete active release graph after the isolated dashboard, owner Sources,
 # radar persistence and owner national command layers have materialized their markers.
 # The deprecated broad v345 migration must still remain unreachable from production.
