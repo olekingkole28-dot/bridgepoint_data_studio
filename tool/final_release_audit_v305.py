@@ -173,4 +173,4 @@ runpy.run_path('tool/repair_v325_analyzer_tail.py',run_name='__main__')
 # V410 is deliberately layered last. Older guarded generators rely on exact Owner Center
 # anchors, so inserting Owner Everything earlier would create release-order coupling. The
 # command center is additive and must never narrow or disrupt the established product layers.
-runpy.run_path('tool/apply_owner_everything_command_v410.py',run_name='__main__')
+runpy.run_path('tool/run_owner_everything_command_v410.py',run_name='__main__')
