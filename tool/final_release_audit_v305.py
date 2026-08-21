@@ -174,3 +174,8 @@ runpy.run_path('tool/repair_v325_analyzer_tail.py',run_name='__main__')
 # anchors, so inserting Owner Everything earlier would create release-order coupling. The
 # command center is additive and must never narrow or disrupt the established product layers.
 runpy.run_path('tool/run_owner_everything_command_v410.py',run_name='__main__')
+
+# V425 removes the legacy founder avatar from both responsive headers and makes the profile
+# explicitly per authenticated account. Users can edit their own name and avatar color from
+# the top-right profile control; owner/co-owner accounts use the same safe identity path.
+runpy.run_path('tool/apply_per_user_profiles_v425.py',run_name='__main__')
