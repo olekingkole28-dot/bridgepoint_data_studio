@@ -68,10 +68,7 @@ if web_marker not in web:
     install_button='  <button id="bp-install-fab-v439" type="button" aria-label="Download or install the BridgePoint app"><span class="bp-dl-icon" aria-hidden="true">↓</span><span><strong>DOWNLOAD / INSTALL APP</strong><small>Put BridgePoint on this device</small></span></button>\n\n'
     web=web[:line_start]+install_button+web[line_start:]
 
-    bootstrap='  <script src="flutter_bootstrap.js" async></script>'
-    if bootstrap not in web:
-        raise SystemExit('V439 bootstrap anchor missing')
-    install_script=r'''  <script>
+    install_script=r'''  <script id="bridgepoint-v439-install-runtime">
   (()=>{
     const button=document.getElementById('bp-install-fab-v439');
     if(!button)return;
@@ -87,9 +84,10 @@ if web_marker not in web:
     sync();
   })();
   </script>
-
 '''
-    web=web.replace(bootstrap,install_script+bootstrap,1)
+    if '</body>' not in web:
+        raise SystemExit('V439 body end anchor missing')
+    web=web.replace('</body>',install_script+'</body>',1)
     web_path.write_text(web,encoding='utf-8')
     print('Applied persistent gold install CTA V439.')
 else:
