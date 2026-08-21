@@ -33,3 +33,7 @@ exec(compile(source,str(script_path),'exec'),{'__name__':'__main__','__file__':s
 # V415 keeps the V410 Everything shell but switches it to the bounded cached owner-truth contract
 # and promotes reconciled intelligence, billing, source-task, OAuth and warning headlines.
 runpy.run_path('tool/apply_owner_everything_live_metrics_v411.py',run_name='__main__')
+
+# V416 adds the owner-first Today/Attention summary using only the already-loaded V415 payload.
+# It adds no database polling and keeps owner actions separate from automatic recovery work.
+runpy.run_path('tool/apply_owner_attention_v416.py',run_name='__main__')
