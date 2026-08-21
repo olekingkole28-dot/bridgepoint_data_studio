@@ -94,16 +94,17 @@ runpy.run_path('tool/fix_live_radar_animation_v360.py',run_name='__main__')
 # both redundant floating expansion launchers so Owner Center is the single source of truth.
 runpy.run_path('tool/apply_owner_national_cockpit_v380.py',run_name='__main__')
 
-# V390-V395 are post-v380 generated-app cleanup layers. They run last so no historical
+# V390-V397 are post-v380 generated-app cleanup layers. They run last so no historical
 # release generator can re-add mobile floating controls, cluttered expansion defaults,
-# cosmetic owner preview, unscoped preview data, generic CT-only coverage copy, or
-# per-frame radar TileLayer identity churn.
+# cosmetic owner preview, unscoped preview data, generic CT-only coverage copy, per-frame
+# radar TileLayer churn, or unprefetched adjacent radar frames.
 runpy.run_path('tool/apply_mobile_shell_cleanup_v390.py',run_name='__main__')
 runpy.run_path('tool/apply_map_cleanup_radar_v391.py',run_name='__main__')
 runpy.run_path('tool/apply_owner_customer_preview_v392.py',run_name='__main__')
 runpy.run_path('tool/apply_preview_pages_v393.py',run_name='__main__')
 runpy.run_path('tool/apply_national_coverage_copy_v394.py',run_name='__main__')
 runpy.run_path('tool/fix_radar_layer_identity_v395.py',run_name='__main__')
+runpy.run_path('tool/apply_radar_adjacent_prefetch_v397.py',run_name='__main__')
 
 # Keep two historical release-marker strings strictly as non-runtime compatibility markers.
 # The manual v212 expansion controls stay removed; this only lets the older workflow audit
@@ -111,6 +112,6 @@ runpy.run_path('tool/fix_radar_layer_identity_v395.py',run_name='__main__')
 runpy.run_path('tool/preserve_v212_guard_compat_v380.py',run_name='__main__')
 
 # Verify the complete active release graph after the isolated dashboard, owner Sources,
-# radar persistence and owner national command layers have materialized their markers.
-# The deprecated broad v345 migration must still remain unreachable from production.
+# radar persistence, adjacent-frame preload and owner national command layers have
+# materialized their markers. The deprecated broad v345 migration must remain unreachable.
 runpy.run_path('tool/audit_national_release_compat_v351.py',run_name='__main__')
