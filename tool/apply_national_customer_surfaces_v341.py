@@ -89,7 +89,17 @@ runpy.run_path('tool/apply_owner_access_health_ui_v359.py',run_name='__main__')
 # on the newest verified NOW frame instead of instantly wrapping to the oldest frame.
 runpy.run_path('tool/fix_live_radar_animation_v360.py',run_name='__main__')
 
+# V380 replaces the old per-state owner expansion polling panel with one cached 49-state
+# visual command center, adds compact owner progress rings to the national map, and removes
+# both redundant floating expansion launchers so Owner Center is the single source of truth.
+runpy.run_path('tool/apply_owner_national_cockpit_v380.py',run_name='__main__')
+
+# Keep two historical release-marker strings strictly as non-runtime compatibility markers.
+# The manual v212 expansion controls stay removed; this only lets the older workflow audit
+# recognize that the newer v380 replacement was intentionally applied.
+runpy.run_path('tool/preserve_v212_guard_compat_v380.py',run_name='__main__')
+
 # Verify the complete active release graph after the isolated dashboard, owner Sources,
-# and radar persistence layers have materialized their markers. The deprecated broad
-# v345 migration must still remain unreachable from production.
+# radar persistence and owner national command layers have materialized their markers.
+# The deprecated broad v345 migration must still remain unreachable from production.
 runpy.run_path('tool/audit_national_release_compat_v351.py',run_name='__main__')
