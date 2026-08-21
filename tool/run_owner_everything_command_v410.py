@@ -49,3 +49,7 @@ runpy.run_path('tool/apply_owner_truth_gaps_v418.py',run_name='__main__')
 # V419 makes every Owner Everything Details dialog understandable without reading raw JSON.
 # It summarizes already-loaded payloads, preserves truth limitations, and keeps raw audit data collapsed.
 runpy.run_path('tool/apply_owner_human_details_v419.py',run_name='__main__')
+
+# V420 adds truth-aware state/vertical/package/channel/worker filters without new database reads.
+# Sections lacking a requested dimension remain visible rather than disappearing like a fake zero.
+runpy.run_path('tool/apply_owner_cross_filters_v420.py',run_name='__main__')
