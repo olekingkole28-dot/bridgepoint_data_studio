@@ -35,6 +35,6 @@ runpy.run_path('tool/apply_owner_cross_filters_v420.py',run_name='__main__')
 runpy.run_path('tool/apply_owner_funnel_truth_v422.py',run_name='__main__')
 runpy.run_path('tool/apply_owner_essentials_v431.py',run_name='__main__')
 
-# V438 intentionally does not touch avatar/profile identity. It only strengthens install,
+# V439 intentionally does not touch avatar/profile identity. It only strengthens install,
 # unauthenticated entry, and BridgePoint A.I. discoverability.
-runpy.run_path('tool/apply_install_entry_v438.py',run_name='__main__')
+runpy.run_path('tool/apply_install_entry_v439.py',run_name='__main__')
