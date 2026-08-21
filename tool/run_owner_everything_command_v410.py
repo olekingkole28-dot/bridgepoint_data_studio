@@ -38,3 +38,8 @@ runpy.run_path('tool/apply_owner_essentials_v431.py',run_name='__main__')
 # V439 intentionally does not touch avatar/profile identity. It only strengthens install,
 # unauthenticated entry, and BridgePoint A.I. discoverability.
 runpy.run_path('tool/apply_install_entry_v439.py',run_name='__main__')
+
+# V440 repairs the public conversion path and funnel truth. Trial links open directly in
+# account-creation mode, signup is reduced to email/password + legal assent, and open-app
+# navigation is no longer misreported as account-creation intent.
+runpy.run_path('tool/apply_signup_conversion_v440.py',run_name='__main__')
