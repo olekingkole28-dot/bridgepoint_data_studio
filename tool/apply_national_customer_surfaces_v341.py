@@ -82,7 +82,14 @@ runpy.run_path('tool/apply_owner_national_sources_ui_v357.py',run_name='__main__
 # is an owner view, so customer accounts do not incur failed owner RPCs or gain access.
 runpy.run_path('tool/apply_owner_access_health_ui_v359.py',run_name='__main__')
 
-# Verify the complete active release graph after the isolated dashboard and owner
-# Sources layers have materialized their markers. The deprecated broad v345 migration
-# must still remain unreachable from production.
+# P0 radar playback repair runs after the current owner/customer surface layers so it
+# patches the exact generated Intelligence Map that ships. V360 keeps a stable latest
+# NOAA reflectivity safety layer behind historical playback, crossfades frame swaps,
+# slows dwell time for mobile/slow networks, preserves pause/resume position, and holds
+# on the newest verified NOW frame instead of instantly wrapping to the oldest frame.
+runpy.run_path('tool/fix_live_radar_animation_v360.py',run_name='__main__')
+
+# Verify the complete active release graph after the isolated dashboard, owner Sources,
+# and radar persistence layers have materialized their markers. The deprecated broad
+# v345 migration must still remain unreachable from production.
 runpy.run_path('tool/audit_national_release_compat_v351.py',run_name='__main__')
