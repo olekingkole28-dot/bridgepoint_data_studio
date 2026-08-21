@@ -2,6 +2,14 @@
 {{flutter_build_config}}
 
 (() => {
+  const tracker = document.createElement('script');
+  tracker.src = 'acquisition_tracker.js';
+  tracker.async = true;
+  tracker.dataset.bridgepointAcquisitionTracker = 'v421';
+  document.head.appendChild(tracker);
+})();
+
+(() => {
   const MARKER = 'bridgepoint-pwa-update-handoff-v396';
   const STYLE_ID = 'bp-pwa-update-style-v396';
   const BANNER_ID = 'bp-pwa-update-v396';
