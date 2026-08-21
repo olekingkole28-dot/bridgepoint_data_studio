@@ -20,7 +20,7 @@ old_head="""    if(key=='social')return '${rows(social['connections']).length} p
     if(key=='registry')return '${rows(live['features']).length} major workstreams registered';
 """
 new_head="""    if(key=='social')return '${rows(social['connections']).length} provider targets • ${_socialCount(social,'PUBLISHED')} published attempts recorded';
-    if(key=='billing'){final b=map(live['billing']),s=map(b['subscriptions']),r=map(b['readiness']);return '${s['active_trials']??0} active trials • ${s['active_paid']??0} paid • ${r['readiness']??'billing status unavailable'}';}
+    if(key=='billing'){final b=map(live['billing']),s=map(b['subscriptions']),r=map(b['readiness']);return '${s['customer_active_trials']??0} customer trials • ${s['customer_active_paid']??0} paid customers • ${s['owner_admin_trial_rows']??0} owner/test trial rows • ${r['readiness']??'billing status unavailable'}';}
     if(key=='referrals'){final r=map(live['referrals']),s=map(r['summary']);return '${s['active_links']??0} tracked links • ${s['clicks']??0} clicks • ${s['signups']??0} signups • ${s['paid']??0} paid';}
     if(key=='activity'){final a=map(live['activity']);return '${rows(a['feed']).length} meaningful events in selected window • cross-system feed expanding';}
     if(key=='registry')return '${rows(live['features']).length} major workstreams registered';
