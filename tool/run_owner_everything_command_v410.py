@@ -37,3 +37,7 @@ runpy.run_path('tool/apply_owner_everything_live_metrics_v411.py',run_name='__ma
 # V416 adds the owner-first Today/Attention summary using only the already-loaded V415 payload.
 # It adds no database polling and keeps owner actions separate from automatic recovery work.
 runpy.run_path('tool/apply_owner_attention_v416.py',run_name='__main__')
+
+# V417 shows the exact compile-time release SHA inside Owner Attention.
+# This is zero-DB deployment truth: the owner sees the version embedded in the running browser/PWA artifact.
+runpy.run_path('tool/apply_owner_release_truth_v417.py',run_name='__main__')
