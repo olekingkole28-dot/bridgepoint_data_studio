@@ -1,0 +1,1 @@
+BridgePoint v394 validation trigger: national generic coverage copy + neutral property fallback.
