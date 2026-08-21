@@ -94,9 +94,17 @@ runpy.run_path('tool/fix_live_radar_animation_v360.py',run_name='__main__')
 # both redundant floating expansion launchers so Owner Center is the single source of truth.
 runpy.run_path('tool/apply_owner_national_cockpit_v380.py',run_name='__main__')
 
+# V390-V393 are post-v380 generated-app cleanup layers. They run last so no historical
+# release generator can re-add the mobile floating controls, cluttered expansion defaults,
+# cosmetic owner preview, or unscoped preview data after these fixes have been applied.
+runpy.run_path('tool/apply_mobile_shell_cleanup_v390.py',run_name='__main__')
+runpy.run_path('tool/apply_map_cleanup_radar_v391.py',run_name='__main__')
+runpy.run_path('tool/apply_owner_customer_preview_v392.py',run_name='__main__')
+runpy.run_path('tool/apply_preview_pages_v393.py',run_name='__main__')
+
 # Keep two historical release-marker strings strictly as non-runtime compatibility markers.
 # The manual v212 expansion controls stay removed; this only lets the older workflow audit
-# recognize that the newer v380 replacement was intentionally applied.
+# recognize that the newer replacement was intentionally applied.
 runpy.run_path('tool/preserve_v212_guard_compat_v380.py',run_name='__main__')
 
 # Verify the complete active release graph after the isolated dashboard, owner Sources,
