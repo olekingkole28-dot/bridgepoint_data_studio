@@ -57,13 +57,19 @@ class _OwnerEverythingCommandV410State extends State<_OwnerEverythingCommandV410
     'experiments'=>Icons.science_outlined,'security'=>Icons.security_rounded,'registry'=>Icons.inventory_2_outlined,
     'activity'=>Icons.timeline_rounded,'glossary'=>Icons.menu_book_outlined,_=>Icons.dashboard_customize_outlined};
 
+  int _socialCount(Map<String,dynamic> social,String status){
+    for(final row in rows(social['attempt_summary'])){
+      if('${row['status']??''}'.toUpperCase()==status.toUpperCase())return (row['cnt'] as num?)?.toInt()??0;
+    }
+    return 0;
+  }
   String _headline(String key,Map<String,dynamic> live){
     final systems=map(live['systems']),national=map(live['national']),funnel=map(live['funnel']),outreach=map(live['outreach']),social=map(live['social']);
     if(key=='overview')return '${systems['overall_status']??'Status loading'} • ${rows(systems['systems']).length} monitored systems';
     if(key=='coverage')return '${national['average_verified_progress_pct']??'—'}% average verified progress • ${rows(national['states']).length} states';
     if(key=='funnel')return '${funnel['unique_visitors']??0} unique visitors • ${funnel['known_users']??0} known users in selected window';
     if(key=='outreach')return '${outreach['emails_sent']??0} sent • ${outreach['replies']??0} replies • ${outreach['paid_customers']??0} paid';
-    if(key=='social')return '${rows(social['connections']).length} provider targets • ${map(social['attempt_summary'])['published']??0} published attempts recorded';
+    if(key=='social')return '${rows(social['connections']).length} provider targets • ${_socialCount(social,'PUBLISHED')} published attempts recorded';
     if(key=='registry')return '${rows(live['features']).length} major workstreams registered';
     if(key=='glossary')return '${rows(live['glossary']).length} owner terms explained';
     return 'Open Details for current source-of-truth status';
@@ -82,7 +88,7 @@ class _OwnerEverythingCommandV410State extends State<_OwnerEverythingCommandV410
         _OwnerEverythingExplainV410(label:'WHY IT MATTERS',text:'${section['why_matters']??''}',icon:Icons.lightbulb_outline_rounded,color:AppTheme.blue),
         _OwnerEverythingExplainV410(label:'WHAT HAPPENS AUTOMATICALLY NEXT',text:'${section['auto_next']??''}',icon:Icons.autorenew_rounded,color:AppTheme.green),
         const SizedBox(height:5),
-        Row(children:[const Icon(Icons.schedule_rounded,color:AppTheme.textMuted,size:15),const SizedBox(width:6),Expanded(child:Text('Freshness • ${_bpDateTime(live['generated_at'])}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)))]),
+        Row(children:[const Icon(Icons.schedule_rounded,color:AppTheme.textMuted,size:15),const SizedBox(width:6),Expanded(child:Text('Freshness • ${_bpDateTime(live['_generated_at'])}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)))]),
         const SizedBox(height:12),
         ExpansionTile(initiallyExpanded:true,tilePadding:EdgeInsets.zero,title:const Text('Live source-of-truth details',style:TextStyle(fontSize:11,fontWeight:FontWeight.w900)),subtitle:Text(payload==null?'Instrumentation is still building':'Owner-only backend payload • secrets redacted',style:const TextStyle(color:AppTheme.textMuted,fontSize:8.5)),children:[Container(width:double.infinity,padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:const Color(0xFF07111F),borderRadius:BorderRadius.circular(10),border:Border.all(color:Colors.white10)),child:SelectableText(pretty,style:const TextStyle(fontFamily:'monospace',color:Colors.white70,fontSize:8.2,height:1.45)))])
       ])),
@@ -103,6 +109,7 @@ class _OwnerEverythingCommandV410State extends State<_OwnerEverythingCommandV410
     if(snapshot.connectionState==ConnectionState.waiting&&!snapshot.hasData)return Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('Building your live Command Center…',style:TextStyle(fontWeight:FontWeight.w900)),const SizedBox(height:10),const LinearProgressIndicator(color:AppTheme.cyan,minHeight:3)])));
     if(snapshot.hasError)return _DashboardError(title:'Owner Command Center could not load',message:snapshot.error.toString(),onRetry:refresh);
     final data=snapshot.data??const <String,dynamic>{},live=map(data['live']);
+    live['_generated_at']=data['generated_at'];
     final all=rows(data['sections']);
     final needle=search.trim().toLowerCase();
     final visible=all.where((section){final state='${section['status']??''}';if(status!='ALL'&&state!=status)return false;if(needle.isEmpty)return true;final hay='${section['title']} ${section['what_is']} ${section['why_matters']} ${section['auto_next']}'.toLowerCase();return hay.contains(needle);}).toList();
@@ -139,9 +146,9 @@ for needle in (
     marker,
     'bridgepoint_owner_everything_v410',
     'BRIDGEPOINT COMMAND CENTER',
-    'Overview / Today',
     'What does this mean?',
-    'Unavailable instrumentation',
+    'Live source-of-truth details',
+    'Owner Everything • live truth',
 ):
     if needle not in text:
         raise SystemExit(f'V410 required marker missing: {needle}')
