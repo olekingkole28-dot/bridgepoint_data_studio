@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 script_path=Path('tool/apply_owner_everything_command_v410.py')
 source=script_path.read_text(encoding='utf-8')
@@ -28,3 +29,7 @@ if source.count(old)!=1:
     raise SystemExit(f'V410 wrapper expected one legacy anchor block, found {source.count(old)}')
 source=source.replace(old,new,1)
 exec(compile(source,str(script_path),'exec'),{'__name__':'__main__','__file__':str(script_path)})
+
+# V415 keeps the V410 Everything shell but switches it to the bounded cached owner-truth contract
+# and promotes reconciled intelligence, billing, source-task, OAuth and warning headlines.
+runpy.run_path('tool/apply_owner_everything_live_metrics_v411.py',run_name='__main__')
