@@ -26,9 +26,15 @@ if text.count(fields_old)!=1:
     raise SystemExit(f'V420 fields anchor count {text.count(fields_old)}')
 text=text.replace(fields_old,fields_new,1)
 
-map_old="""  Map<String,dynamic> map(dynamic v)=>v is Map?Map<String,dynamic>.from(v):<String,dynamic>{};
+helper_old="""  Future<Map<String,dynamic>> _load()=>_callRpc('bridgepoint_owner_everything_v415',{'p_since':_since().toUtc().toIso8601String()});
+  void refresh()=>setState(()=>request=_load());
+  List<Map<String,dynamic>> rows(dynamic v)=>v is List?v.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList():<Map<String,dynamic>>[];
+  Map<String,dynamic> map(dynamic v)=>v is Map?Map<String,dynamic>.from(v):<String,dynamic>{};
 """
-map_new=r'''  Map<String,dynamic> map(dynamic v)=>v is Map?Map<String,dynamic>.from(v):<String,dynamic>{};
+helper_new=r'''  Future<Map<String,dynamic>> _load()=>_callRpc('bridgepoint_owner_everything_v415',{'p_since':_since().toUtc().toIso8601String()});
+  void refresh()=>setState(()=>request=_load());
+  List<Map<String,dynamic>> rows(dynamic v)=>v is List?v.whereType<Map>().map((e)=>Map<String,dynamic>.from(e)).toList():<Map<String,dynamic>>[];
+  Map<String,dynamic> map(dynamic v)=>v is Map?Map<String,dynamic>.from(v):<String,dynamic>{};
   String _normKey(String value)=>value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'),'');
   Set<String> _collectDimensionValues(dynamic node,Set<String> keys,[int depth=0]){
     final found=<String>{};
@@ -87,9 +93,9 @@ map_new=r'''  Map<String,dynamic> map(dynamic v)=>v is Map?Map<String,dynamic>.f
     return <String>['ALL',...values.take(limit)];
   }
 '''
-if text.count(map_old)!=1:
-    raise SystemExit(f'V420 map anchor count {text.count(map_old)}')
-text=text.replace(map_old,map_new,1)
+if text.count(helper_old)!=1:
+    raise SystemExit(f'V420 helper anchor count {text.count(helper_old)}')
+text=text.replace(helper_old,helper_new,1)
 
 visible_old="""    final visible=all.where((section){final state='${section['status']??''}';if(status!='ALL'&&state!=status)return false;if(needle.isEmpty)return true;final hay='${section['title']} ${section['what_is']} ${section['why_matters']} ${section['auto_next']}'.toLowerCase();return hay.contains(needle);}).toList();
 """
