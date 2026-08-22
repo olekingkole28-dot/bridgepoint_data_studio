@@ -1,10 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Typed client for BridgePoint's partner-safe AI RPC surface.
+/// Typed client for BridgePoint's partner-safe AI RPC and Edge Function surface.
 ///
-/// All functions called here are authenticated public wrappers. The backend
-/// remains responsible for package/state entitlements, tenant attribution,
-/// usage metering, provenance policy, and model/data export boundaries.
+/// All calls are authenticated. The backend remains responsible for package and
+/// state entitlements, tenant attribution, usage metering, provenance policy,
+/// model lifecycle gates, and raw-data/model-internals export boundaries.
 class BridgePointAiService {
   BridgePointAiService({SupabaseClient? client})
       : _client = client ?? Supabase.instance.client;
@@ -21,6 +21,12 @@ class BridgePointAiService {
     throw const FormatException('Unexpected BridgePoint AI response.');
   }
 
+  Map<String, dynamic> _map(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    throw const FormatException('Unexpected BridgePoint AI response.');
+  }
+
   Future<Map<String, dynamic>> home() =>
       _rpc('bridgepoint_ai_home_v509');
 
@@ -33,6 +39,60 @@ class BridgePointAiService {
       _rpc('bridgepoint_property_climate_profile_v510', {
         'p_property_id': propertyId,
       });
+
+  Future<Map<String, dynamic>> climateProjection({
+    required String propertyId,
+    String scenarioKey = 'SSP245',
+    int horizonDecade = 2050,
+    int baselineDecade = 2000,
+    bool forceRefresh = false,
+  }) async {
+    final response = await _client.functions.invoke(
+      'bridgepoint-climate-projection-v511',
+      body: <String, dynamic>{
+        'property_id': propertyId,
+        'scenario_key': scenarioKey,
+        'horizon_decade': horizonDecade,
+        'baseline_decade': baselineDecade,
+        'force_refresh': forceRefresh,
+      },
+    );
+    if (response.status < 200 || response.status >= 300) {
+      throw Exception('Climate projection request failed (${response.status}).');
+    }
+    return _map(response.data);
+  }
+
+  Future<Map<String, dynamic>> scenarioClimateProfile({
+    required String propertyId,
+    String scenarioKey = 'SSP245',
+    int horizonDecade = 2050,
+    int baselineDecade = 2000,
+    bool refreshIfNeeded = true,
+  }) async {
+    Future<Map<String, dynamic>> read() =>
+        _rpc('bridgepoint_scenario_climate_profile_v512', {
+          'p_property_id': propertyId,
+          'p_scenario_key': scenarioKey,
+          'p_horizon_decade': horizonDecade,
+          'p_baseline_decade': baselineDecade,
+        });
+
+    var result = await read();
+    final needsProjection = result['projection_ready'] != true ||
+        result['refresh_required'] == true;
+    if (refreshIfNeeded && needsProjection) {
+      await climateProjection(
+        propertyId: propertyId,
+        scenarioKey: scenarioKey,
+        horizonDecade: horizonDecade,
+        baselineDecade: baselineDecade,
+        forceRefresh: result['projection_ready'] == true,
+      );
+      result = await read();
+    }
+    return result;
+  }
 
   Future<Map<String, dynamic>> twinIngestionRequirements() =>
       _rpc('bridgepoint_twin_ingestion_requirements_v509');
@@ -68,7 +128,7 @@ class BridgePointAiService {
     double adaptiveCapacityScore = 50,
     double sourceConfidence = 0.7,
     int horizonYear = 2050,
-    String scenarioKey = 'CMRA_MULTI_HAZARD',
+    String scenarioKey = 'SSP245',
   }) =>
       _rpc('bridgepoint_climate_risk_score_v509', {
         'p_state_code': stateCode,
@@ -83,7 +143,7 @@ class BridgePointAiService {
   Future<Map<String, dynamic>> portfolioClimateSummary({
     required List<double> propertyScores,
     required int horizonYear,
-    String scenarioKey = 'CMRA_MULTI_HAZARD',
+    String scenarioKey = 'SSP245',
   }) =>
       _rpc('bridgepoint_portfolio_climate_summary_v509', {
         'p_scores': propertyScores
