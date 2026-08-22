@@ -29,6 +29,11 @@ class BridgePointAiService {
         'p_property_id': propertyId,
       });
 
+  Future<Map<String, dynamic>> propertyClimateProfile(String propertyId) =>
+      _rpc('bridgepoint_property_climate_profile_v510', {
+        'p_property_id': propertyId,
+      });
+
   Future<Map<String, dynamic>> twinIngestionRequirements() =>
       _rpc('bridgepoint_twin_ingestion_requirements_v509');
 
