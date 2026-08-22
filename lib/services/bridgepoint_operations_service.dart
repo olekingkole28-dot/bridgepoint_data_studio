@@ -21,6 +21,9 @@ class BridgePointOperationsService {
     throw const FormatException('Unexpected BridgePoint response.');
   }
 
+  Future<Map<String, dynamic>> capabilityReadiness() =>
+      _rpc('bridgepoint_capability_readiness_v522');
+
   Future<Map<String, dynamic>> addPreStormClient({
     required String propertyId,
     required String phoneE164,
@@ -124,6 +127,11 @@ class BridgePointOperationsService {
 
   Future<Map<String, dynamic>> propertyHealth(String propertyId) =>
       _rpc('bridgepoint_property_health_v519', {
+        'p_property_id': propertyId,
+      });
+
+  Future<Map<String, dynamic>> propertyHealthCapturePlan(String propertyId) =>
+      _rpc('bridgepoint_health_capture_plan_v524', {
         'p_property_id': propertyId,
       });
 
