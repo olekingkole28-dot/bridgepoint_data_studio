@@ -149,12 +149,10 @@ replace_once('ownerMode:widget.ownerMode,','ownerMode:_effectiveOwnerMode,','set
 replace_once(
 """    required this.onPropertySelected,
     required this.onNotifications,
-    required this.onAvatarTap,
   });
 """,
 """    required this.onPropertySelected,
     required this.onNotifications,
-    required this.onAvatarTap,
     required this.onTraining,
   });
 """,
@@ -162,11 +160,9 @@ replace_once(
 replace_once(
 """  final ValueChanged<Map<String, dynamic>> onPropertySelected;
   final VoidCallback onNotifications;
-  final VoidCallback onAvatarTap;
 """,
 """  final ValueChanged<Map<String, dynamic>> onPropertySelected;
   final VoidCallback onNotifications;
-  final VoidCallback onAvatarTap;
   final VoidCallback onTraining;
 """,
 'topbar-training-field')
