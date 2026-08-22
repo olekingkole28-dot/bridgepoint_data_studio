@@ -47,3 +47,7 @@ runpy.run_path('tool/apply_signup_conversion_v440.py',run_name='__main__')
 # V441 repairs the reported mobile gold CTA failure. The native HTML control is a guaranteed
 # touch target and always offers a direct app-open fallback when install APIs are unavailable.
 runpy.run_path('tool/apply_mobile_install_fallback_v441.py',run_name='__main__')
+
+# V442 fixes the real-touch narrow-screen overflow found by the V441 hard verifier: the
+# install-guide action row and direct fallback are clamped inside the mobile viewport.
+runpy.run_path('tool/apply_install_guide_mobile_width_v442.py',run_name='__main__')
