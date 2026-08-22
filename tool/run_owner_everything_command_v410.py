@@ -51,3 +51,8 @@ runpy.run_path('tool/apply_mobile_install_fallback_v441.py',run_name='__main__')
 # V442 fixes the real-touch narrow-screen overflow found by the V441 hard verifier: the
 # install-guide action row and direct fallback are clamped inside the mobile viewport.
 runpy.run_path('tool/apply_install_guide_mobile_width_v442.py',run_name='__main__')
+
+# V443 repairs the real customer runtime uncovered after V442: restore the missing install
+# sheet CSS, make dismissal actually hide it, replace the circular fallback navigation with
+# an in-place continuation, and keep all controls mobile-safe down to 320px.
+runpy.run_path('tool/apply_install_guide_runtime_v443.py',run_name='__main__')
