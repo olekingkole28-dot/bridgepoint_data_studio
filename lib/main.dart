@@ -957,7 +957,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           context:context,
                           builder:(context)=>const _NotificationCenterDialog(),
                         ),
-                        onAvatarTap: () => _navigateTo(12),
                       ),
                       _LiveSyncStrip(
                         secondsRemaining:_secondsToRefresh,
@@ -1200,7 +1199,6 @@ class _TopBar extends StatelessWidget {
     required this.onSearch,
     required this.onPropertySelected,
     required this.onNotifications,
-    required this.onAvatarTap,
   });
 
   final bool desktop;
@@ -1210,7 +1208,6 @@ class _TopBar extends StatelessWidget {
   final ValueChanged<String> onSearch;
   final ValueChanged<Map<String, dynamic>> onPropertySelected;
   final VoidCallback onNotifications;
-  final VoidCallback onAvatarTap;
 
   Widget _packageSelector() => Container(
     constraints: const BoxConstraints(maxWidth: 230),
@@ -1242,63 +1239,6 @@ class _TopBar extends StatelessWidget {
     ),
   );
 
-  String get _profileLabel {
-    final user = Supabase.instance.client.auth.currentUser;
-    final displayName =
-        user?.userMetadata?['display_name']?.toString().trim() ?? '';
-    if (displayName.isNotEmpty) return displayName;
-    final email = user?.email?.trim() ?? '';
-    return email.isNotEmpty ? email : 'BridgePoint account';
-  }
-
-  String _profileInitials(String label) {
-    if (label == 'BridgePoint account') return 'BP';
-    final base = label.contains('@') ? label.split('@').first : label;
-    final parts = base
-        .split(RegExp(r'[^A-Za-z0-9]+'))
-        .where((part) => part.isNotEmpty)
-        .toList();
-    if (parts.isEmpty) return 'BP';
-    if (parts.length > 1) {
-      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-    }
-    final only = parts.first;
-    return only.substring(0, only.length >= 2 ? 2 : 1).toUpperCase();
-  }
-
-  Widget _accountAvatar(BuildContext context) {
-    final label = _profileLabel;
-    return Semantics(
-      button: true,
-      label: 'Open Account & Settings for $label',
-      child: Tooltip(
-        message: '$label • Account & Settings',
-        child: InkWell(
-          onTap: onAvatarTap,
-          borderRadius: BorderRadius.circular(24),
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: Center(
-              child: CircleAvatar(
-                radius: desktop ? 19 : 18,
-                backgroundColor: AppTheme.blue,
-                child: Text(
-                  _profileInitials(label),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: desktop ? 12 : 11,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!desktop) {
@@ -1321,7 +1261,18 @@ class _TopBar extends StatelessWidget {
                   onTap: onNotifications,
                 ),
                 const SizedBox(width: 7),
-                _accountAvatar(context),
+                const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppTheme.blue,
+                  child: Text(
+                    'KJ',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 9),
@@ -1369,7 +1320,18 @@ class _TopBar extends StatelessWidget {
             onTap: onNotifications,
           ),
           const SizedBox(width: 10),
-          _accountAvatar(context),
+          const CircleAvatar(
+            radius: 19,
+            backgroundColor: AppTheme.blue,
+            child: Text(
+              'KJ',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
         ],
       ),
     );
