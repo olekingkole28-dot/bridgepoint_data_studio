@@ -43,3 +43,7 @@ runpy.run_path('tool/apply_install_entry_v439.py',run_name='__main__')
 # account-creation mode, signup is reduced to email/password + legal assent, and open-app
 # navigation is no longer misreported as account-creation intent.
 runpy.run_path('tool/apply_signup_conversion_v440.py',run_name='__main__')
+
+# V441 repairs the reported mobile gold CTA failure. The native HTML control is a guaranteed
+# touch target and always offers a direct app-open fallback when install APIs are unavailable.
+runpy.run_path('tool/apply_mobile_install_fallback_v441.py',run_name='__main__')
