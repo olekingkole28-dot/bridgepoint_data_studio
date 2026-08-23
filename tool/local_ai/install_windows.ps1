@@ -18,28 +18,42 @@ function Require-Windows {
   if ([Environment]::OSVersion.Version.Major -lt 10) { throw 'BridgePoint Local AI requires Windows 10 or newer.' }
 }
 function Resolve-Ollama {
-  $cmd=Get-Command ollama -ErrorAction SilentlyContinue
-  if($cmd){return $cmd.Source}
-  $known=Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe'
-  if(Test-Path $known){return $known}
+  $cmd=Get-Command ollama -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+  if($cmd){
+    $candidate=$null
+    if($cmd.Path){$candidate=[string]$cmd.Path}elseif($cmd.Source){$candidate=[string]$cmd.Source}
+    if($candidate -and (Test-Path $candidate)){return [string]$candidate}
+  }
+  $known=@(
+    (Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe'),
+    (Join-Path $env:USERPROFILE 'AppData\Local\Programs\Ollama\ollama.exe'),
+    (Join-Path $env:ProgramFiles 'Ollama\ollama.exe')
+  )
+  foreach($p in $known){if($p -and (Test-Path $p)){return [string]$p}}
   return $null
 }
 function Ensure-Ollama {
   $o=Resolve-Ollama
-  if($o){return $o}
+  if($o){Write-Host "Ollama found: $o" -ForegroundColor Green;return [string]$o}
   Banner 'Installing Ollama'
   try {
-    $script=(Invoke-WebRequest -UseBasicParsing 'https://ollama.com/install.ps1').Content
-    & ([scriptblock]::Create($script))
+    $script=(Invoke-WebRequest -UseBasicParsing -TimeoutSec 45 'https://ollama.com/install.ps1').Content
+    & ([scriptblock]::Create($script)) | Out-Host
   } catch {
-    $winget=Get-Command winget -ErrorAction SilentlyContinue
-    if($winget){ & winget install --id Ollama.Ollama -e --accept-package-agreements --accept-source-agreements }
-    else { throw "Could not install Ollama automatically. Install it from ollama.com/download/windows and rerun this file. $($_.Exception.Message)" }
+    Write-Warning "Direct Ollama installer did not complete cleanly: $($_.Exception.Message)"
+    $winget=Get-Command winget -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if($winget){
+      & ([string]$winget.Path) install --id Ollama.Ollama -e --accept-package-agreements --accept-source-agreements | Out-Host
+      if($LASTEXITCODE -ne 0){throw "winget could not install Ollama (exit $LASTEXITCODE)."}
+    } else {
+      throw 'Could not install Ollama automatically. Install Ollama for Windows, then rerun this BridgePoint installer.'
+    }
   }
-  Start-Sleep -Seconds 4
+  Start-Sleep -Seconds 3
   $o=Resolve-Ollama
-  if(-not $o){throw 'Ollama installation finished but ollama.exe was not found. Reopen PowerShell and rerun the installer.'}
-  return $o
+  if(-not $o){throw 'Ollama appears installed but ollama.exe was not found. Close this window, reopen the BridgePoint installer, and it will detect the completed Ollama install.'}
+  Write-Host "Ollama ready: $o" -ForegroundColor Green
+  return [string]$o
 }
 function Get-Hardware {
   $cs=Get-CimInstance Win32_ComputerSystem
@@ -54,13 +68,14 @@ function Choose-Models($hw){
   if([double]$hw.ram_gb -ge 12){return @('qwen2.5:7b-instruct','deepseek-r1:1.5b',1)}
   return @('qwen2.5:3b','deepseek-r1:1.5b',1)
 }
-function Start-Ollama($exe){
-  try{Invoke-RestMethod 'http://127.0.0.1:11434/api/tags' -TimeoutSec 3|Out-Null;return}catch{}
+function Start-Ollama([string]$exe){
+  try{Invoke-RestMethod 'http://127.0.0.1:11434/api/tags' -TimeoutSec 3|Out-Null;Write-Host 'Ollama service is already running.' -ForegroundColor Green;return}catch{}
+  if([string]::IsNullOrWhiteSpace($exe) -or -not (Test-Path $exe)){throw "Ollama executable path is invalid: $exe"}
   Start-Process -FilePath $exe -ArgumentList 'serve' -WindowStyle Hidden
-  for($i=0;$i -lt 20;$i++){Start-Sleep -Seconds 1;try{Invoke-RestMethod 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2|Out-Null;return}catch{}}
-  throw 'Ollama did not start on http://127.0.0.1:11434.'
+  for($i=0;$i -lt 30;$i++){Start-Sleep -Seconds 1;try{Invoke-RestMethod 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2|Out-Null;Write-Host 'Ollama service started.' -ForegroundColor Green;return}catch{}}
+  throw 'Ollama installed, but its local service did not start on http://127.0.0.1:11434.'
 }
-function Pull-Model($exe,$model){Banner "Pulling $model";& $exe pull $model;if($LASTEXITCODE -ne 0){throw "Ollama could not pull $model"}}
+function Pull-Model([string]$exe,[string]$model){Banner "Pulling $model";& $exe pull $model | Out-Host;if($LASTEXITCODE -ne 0){throw "Ollama could not pull $model"}}
 function Protect-Token([string]$token){ConvertTo-SecureString $token -AsPlainText -Force | ConvertFrom-SecureString}
 
 Require-Windows
@@ -72,24 +87,20 @@ $choice=Choose-Models $hw
 $primary=[string]$choice[0];$reviewer=[string]$choice[1];$claimLimit=[int]$choice[2]
 Write-Host "Selected primary: $primary"
 Write-Host "Selected reviewer: $reviewer"
-
-$ollama=Ensure-Ollama
-Start-Ollama $ollama
-if(-not $SkipModelPull){Pull-Model $ollama $primary;if($reviewer -ne $primary){Pull-Model $ollama $reviewer}}
-
+$ollama=[string](Ensure-Ollama)
+Start-Ollama -exe $ollama
+if(-not $SkipModelPull){Pull-Model -exe $ollama -model $primary;if($reviewer -ne $primary){Pull-Model -exe $ollama -model $reviewer}}
 Banner 'Installing BridgePoint agent'
-Invoke-WebRequest -UseBasicParsing -Uri $AgentUrl -OutFile $AgentPath
+Invoke-WebRequest -UseBasicParsing -TimeoutSec 60 -Uri $AgentUrl -OutFile $AgentPath
 if(-not (Test-Path $AgentPath)){throw 'BridgePoint agent download failed.'}
-
-if([string]::IsNullOrWhiteSpace($EnrollmentCode)){$EnrollmentCode=Read-Host 'Paste the one-time enrollment code from Owner Center > Local AI'}
+if([string]::IsNullOrWhiteSpace($EnrollmentCode)){$EnrollmentCode=Read-Host 'Paste the one-time enrollment code from the main Owner Center'}
 if([string]::IsNullOrWhiteSpace($EnrollmentCode) -or $EnrollmentCode.Trim().Length -lt 24){throw 'A valid enrollment code is required.'}
-$cap=@{provider='OLLAMA';primary_model=$primary;reviewer_model=$reviewer;agent_version=610;outbound_only=$true;execution_authority=$false;hardware_aware=$true}
+$cap=@{provider='OLLAMA';primary_model=$primary;reviewer_model=$reviewer;agent_version=624;outbound_only=$true;execution_authority=$false;hardware_aware=$true}
 $body=@{action='enroll';enrollment_code=$EnrollmentCode.Trim();node_name=("BridgePoint Owner PC - "+$env:COMPUTERNAME);capabilities=$cap;hardware=$hw}|ConvertTo-Json -Depth 20 -Compress
 $enroll=Invoke-RestMethod -Method Post -Uri $Endpoint -ContentType 'application/json' -Body $body -TimeoutSec 60
 if(-not $enroll.ok -or -not $enroll.node_id -or -not $enroll.node_token){throw 'Enrollment did not return a usable node credential.'}
-$config=[ordered]@{endpoint=$Endpoint;node_id=$enroll.node_id;token_protected=(Protect-Token ([string]$enroll.node_token));primary_model=$enroll.primary_model;reviewer_model=$enroll.reviewer_model;claim_limit=$claimLimit;installed_at=(Get-Date).ToUniversalTime().ToString('o');agent_path=$AgentPath;agent_version=610}
+$config=[ordered]@{endpoint=$Endpoint;node_id=$enroll.node_id;token_protected=(Protect-Token ([string]$enroll.node_token));primary_model=$enroll.primary_model;reviewer_model=$enroll.reviewer_model;claim_limit=$claimLimit;installed_at=(Get-Date).ToUniversalTime().ToString('o');agent_path=$AgentPath;agent_version=624}
 $config|ConvertTo-Json -Depth 20|Set-Content -Encoding UTF8 $ConfigPath
-
 Banner 'Registering automatic startup'
 $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$AgentPath`""
 $trigger=New-ScheduledTaskTrigger -AtLogOn
@@ -98,7 +109,6 @@ Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction Silent
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Description 'BridgePoint outbound-only local AI reasoning node' | Out-Null
 Start-ScheduledTask -TaskName $TaskName
 Start-Sleep -Seconds 3
-
 Banner 'Verification'
 $secure=ConvertTo-SecureString ([string]$config.token_protected);$ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
 try{$token=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)}finally{[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)}
