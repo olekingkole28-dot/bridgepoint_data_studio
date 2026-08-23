@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Expose immediate paid activation and tracked referral sharing
+      - name: Apply revenue conversion improvements
         shell: bash
         run: |
           set -euo pipefail
@@ -33,11 +33,12 @@ jobs:
     'package_key':package['package_key'],'interval':interval,
     if(immediatePaid) 'skip_trial':true,
   });"""
-          if old not in s:
-              raise SystemExit('V648 checkout helper marker not found')
-          s=s.replace(old,new,1)
+          if old in s:
+              s=s.replace(old,new,1)
+          elif 'immediatePaid=false' not in s:
+              raise SystemExit('checkout helper marker not found')
 
-          old="""                Row(children:[
+          package_buttons="""                Row(children:[
                   Expanded(child:FilledButton.icon(
                     onPressed:package['monthly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'month');},
                     icon:const Icon(Icons.bolt_rounded),
@@ -49,8 +50,8 @@ jobs:
                     child:Text(package['yearly_price']==null?'Annual unavailable':'Annual • \\$${(package['yearly_price'] as num).toStringAsFixed(0)}'),
                   )),
                 ]),"""
-          new=old+"""
-                if((package['trial_days'] as num?)?.toInt() case final trialDays? when trialDays>0)...[
+          paid_extra="""
+                if(package['trial_days'] is num && (package['trial_days'] as num).toInt()>0)...[
                   const SizedBox(height:8),
                   SizedBox(width:double.infinity,child:TextButton.icon(
                     onPressed:package['monthly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'month',immediatePaid:true);},
@@ -59,13 +60,13 @@ jobs:
                   )),
                   const Text('Optional: this skips the free-trial waiting period and starts paid access immediately. The 7-day trial remains available above.',textAlign:TextAlign.center,style:TextStyle(color:AppTheme.textMuted,fontSize:8.5,height:1.4)),
                 ],"""
-          if old not in s:
-              raise SystemExit('V648 package checkout buttons marker not found')
-          s=s.replace(old,new,1)
+          if 'Ready to subscribe now? Activate today' not in s:
+              if package_buttons not in s: raise SystemExit('package button marker not found')
+              s=s.replace(package_buttons,package_buttons+paid_extra,1)
 
-          marker="""const _bridgePointShareMessage =
+          share_marker="""const _bridgePointShareMessage =
     'See property opportunities, live weather context, explainable evidence, maps, timelines, and field tools in one place. Try BridgePoint Intelligence free for 7 days: $_bridgePointLiveUrl';"""
-          helper=marker+"""
+          share_helper=share_marker+"""
 
 Future<String> _bridgePointReferralUrl() async {
   if(Supabase.instance.client.auth.currentSession==null)return _bridgePointLiveUrl;
@@ -75,48 +76,93 @@ Future<String> _bridgePointReferralUrl() async {
     return value.startsWith('https://bridgepointintelligence.online/')?value:_bridgePointLiveUrl;
   }catch(_){return _bridgePointLiveUrl;}
 }"""
-          if marker not in s:
-              raise SystemExit('V648 share constant marker not found')
-          s=s.replace(marker,helper,1)
+          if 'Future<String> _bridgePointReferralUrl()' not in s:
+              if share_marker not in s: raise SystemExit('share marker not found')
+              s=s.replace(share_marker,share_helper,1)
 
-          old="""Future<void> _shareBridgePointNatively(BuildContext context)async{
+          old_native="""Future<void> _shareBridgePointNatively(BuildContext context)async{
   try{
     final box=context.findRenderObject() as RenderBox?;
     await SharePlus.instance.share(ShareParams(
       title:'BridgePoint Intelligence',subject:_bridgePointShareSubject,text:_bridgePointShareMessage,"""
-          new="""Future<void> _shareBridgePointNatively(BuildContext context)async{
+          new_native="""Future<void> _shareBridgePointNatively(BuildContext context)async{
   try{
     final referralUrl=await _bridgePointReferralUrl();
     final referralMessage='See property opportunities, live weather context, explainable evidence, maps, timelines, and field tools in one place. Try BridgePoint Intelligence free for 7 days: $referralUrl';
     final box=context.findRenderObject() as RenderBox?;
     await SharePlus.instance.share(ShareParams(
       title:'BridgePoint Intelligence',subject:_bridgePointShareSubject,text:referralMessage,"""
-          if old not in s:
-              raise SystemExit('V648 native share marker not found')
-          s=s.replace(old,new,1)
+          if old_native in s:
+              s=s.replace(old_native,new_native,1)
+          elif 'text:referralMessage' not in s:
+              raise SystemExit('native share marker not found')
 
-          old="""  Future<void> _copy(BuildContext context)async{
+          old_copy="""  Future<void> _copy(BuildContext context)async{
     await Clipboard.setData(const ClipboardData(text:_bridgePointLiveUrl));
     if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('BridgePoint link copied.')));
   }"""
-          new="""  Future<void> _copy(BuildContext context)async{
+          new_copy="""  Future<void> _copy(BuildContext context)async{
     final referralUrl=await _bridgePointReferralUrl();
     await Clipboard.setData(ClipboardData(text:referralUrl));
     if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Your tracked BridgePoint referral link was copied.')));
   }"""
-          if old not in s:
-              raise SystemExit('V648 copy share marker not found')
-          s=s.replace(old,new,1)
+          if old_copy in s:
+              s=s.replace(old_copy,new_copy,1)
+          elif 'tracked BridgePoint referral link' not in s:
+              raise SystemExit('copy share marker not found')
+
+          old_map="""  static String _packageName(dynamic key)=>const {
+    'homeowner':'BridgePoint Homeowner',
+    'roofing_opportunity':'Roofing Opportunity','bridgepoint_commercial':'BridgePoint Commercial',
+    'property_investor':'Property Investor','solar_opportunity':'Solar Opportunity',
+    'development_opportunity':'Development Opportunity','bridgepoint_home':'BridgePoint Home','all':'BridgePoint Intelligence Suite'
+  }[key]??'BridgePoint Intelligence Suite';"""
+          new_map="""  static String _packageName(dynamic key)=>const {
+    'homeowner':'BridgePoint Homeowner','home':'BridgePoint Home',
+    'commercial':'BridgePoint Commercial','investor':'BridgePoint Investor','company':'BridgePoint Company',
+    'roofing_opportunity':'BridgePoint Home','bridgepoint_commercial':'BridgePoint Commercial',
+    'property_investor':'BridgePoint Investor','solar_opportunity':'BridgePoint Home',
+    'development_opportunity':'BridgePoint Investor','bridgepoint_home':'BridgePoint Home','all':'BridgePoint Home'
+  }[key]??'BridgePoint Home';"""
+          if old_map in s:
+              s=s.replace(old_map,new_map,1)
+
+          old_dialog="""    await showDialog(context:context,builder:(context)=>AlertDialog(
+      title:const Row(children:[Icon(Icons.auto_awesome_rounded,color:AppTheme.cyan),SizedBox(width:10),Text('Your recommended workspace')]),
+      content:Text('${_packageName(result['recommended_package_key'])}\\n\\n${result['reason']}',style:const TextStyle(height:1.5)),
+      actions:[FilledButton(onPressed:()=>Navigator.pop(context),child:const Text('Open my workspace'))],));
+    widget.onComplete();"""
+          new_dialog="""    final packageName='${result['package_name']??_packageName(result['recommended_package_key'])}';
+    final monthly=result['monthly_price'];
+    await showDialog(context:context,builder:(dialogContext)=>AlertDialog(
+      title:const Row(children:[Icon(Icons.auto_awesome_rounded,color:AppTheme.cyan),SizedBox(width:10),Expanded(child:Text('Your recommended workspace'))]),
+      content:Text('$packageName${monthly==null?'':' • \\$$monthly/month'}\\n\\n${result['reason']}\\n\\nStart the 7-day Stripe trial to unlock the paid package, or preview the workspace first.',style:const TextStyle(height:1.5)),
+      actions:[
+        TextButton(onPressed:()=>Navigator.pop(dialogContext),child:const Text('Preview first')),
+        if(monthly!=null)TextButton(onPressed:(){Navigator.pop(dialogContext);_startCheckout(context,result,'month',immediatePaid:true);},child:const Text('Activate paid now')),
+        if(monthly!=null)FilledButton.icon(onPressed:(){Navigator.pop(dialogContext);_startCheckout(context,result,'month');},icon:const Icon(Icons.lock_open_rounded),child:const Text('Start 7-day Stripe trial')),
+      ],));
+    widget.onComplete();"""
+          if old_dialog in s:
+              s=s.replace(old_dialog,new_dialog,1)
+          elif 'Start 7-day Stripe trial' not in s:
+              raise SystemExit('onboarding dialog marker not found')
+
+          old_industries="""const ['Homeowner','Roofing','Home services','Restoration','Public adjusting','Commercial real estate','Property investing','Development','Solar','Other']"""
+          new_industries="""const ['Homeowner','Roofing','Home services','Restoration','Public adjusting','Property management','Commercial real estate','Property investing','Development','Solar','Other']"""
+          s=s.replace(old_industries,new_industries)
 
           p.write_text(s,encoding='utf-8')
-          print('Applied V648 revenue conversion patch')
+          print('Applied hardened V648/V651 revenue conversion patch')
           PY
-      - name: Confirm V648 markers
+      - name: Confirm revenue markers
         run: |
           grep -q "immediatePaid=false" lib/main.dart
           grep -q "Ready to subscribe now? Activate today" lib/main.dart
           grep -q "bridgepoint_growth_create_referral_v648" lib/main.dart
           grep -q "tracked BridgePoint referral link" lib/main.dart
+          grep -q "Start 7-day Stripe trial" lib/main.dart
+          grep -q "Property management" lib/main.dart
       - name: Commit patch
         shell: bash
         run: |
@@ -125,8 +171,8 @@ Future<String> _bridgePointReferralUrl() async {
           git config user.email 'actions@users.noreply.github.com'
           git add lib/main.dart
           if git diff --cached --quiet; then
-            echo 'V648 already applied.'
+            echo 'Revenue conversion patch already applied.'
           else
-            git commit -m 'Apply V648 revenue conversion improvements'
+            git commit -m 'Apply BridgePoint revenue conversion V651'
             git push origin HEAD:main
           fi
