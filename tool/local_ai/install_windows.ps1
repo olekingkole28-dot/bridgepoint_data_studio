@@ -11,6 +11,7 @@ $AgentPath=Join-Path $Root 'bridgepoint_local_ai.ps1'
 $ConfigPath=Join-Path $Root 'config.json'
 $AgentUrl='https://raw.githubusercontent.com/olekingkole28-dot/bridgepoint-live/live-artifact/downloads/local-ai/bridgepoint_local_ai.ps1'
 $TaskName='BridgePoint Local AI'
+$RunValueName='BridgePoint Local AI'
 
 function Banner($x){Write-Host "`n=== $x ===" -ForegroundColor Cyan}
 function Require-Windows {
@@ -75,8 +76,74 @@ function Start-Ollama([string]$exe){
   for($i=0;$i -lt 30;$i++){Start-Sleep -Seconds 1;try{Invoke-RestMethod 'http://127.0.0.1:11434/api/tags' -TimeoutSec 2|Out-Null;Write-Host 'Ollama service started.' -ForegroundColor Green;return}catch{}}
   throw 'Ollama installed, but its local service did not start on http://127.0.0.1:11434.'
 }
-function Pull-Model([string]$exe,[string]$model){Banner "Pulling $model";& $exe pull $model | Out-Host;if($LASTEXITCODE -ne 0){throw "Ollama could not pull $model"}}
+function Test-ModelInstalled([string]$model){
+  try{
+    $tags=Invoke-RestMethod 'http://127.0.0.1:11434/api/tags' -TimeoutSec 5
+    foreach($m in @($tags.models)){if(([string]$m.name) -eq $model -or ([string]$m.model) -eq $model){return $true}}
+  }catch{}
+  return $false
+}
+function Pull-Model([string]$exe,[string]$model){
+  if(Test-ModelInstalled $model){Write-Host "Model already present: $model" -ForegroundColor Green;return}
+  Banner "Pulling $model"
+  & $exe pull $model | Out-Host
+  if($LASTEXITCODE -ne 0){throw "Ollama could not pull $model"}
+}
 function Protect-Token([string]$token){ConvertTo-SecureString $token -AsPlainText -Force | ConvertFrom-SecureString}
+function Unprotect-Token([string]$protected){
+  $secure=ConvertTo-SecureString $protected
+  $ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+  try{return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)}finally{[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)}
+}
+function Test-ExistingEnrollment {
+  if(-not (Test-Path $ConfigPath)){return $null}
+  try{
+    $existing=Get-Content $ConfigPath -Raw | ConvertFrom-Json
+    if(-not $existing.node_id -or -not $existing.token_protected){return $null}
+    $token=Unprotect-Token ([string]$existing.token_protected)
+    $status=Invoke-RestMethod -Method Post -Uri $Endpoint -Headers @{'x-bridgepoint-node-token'=$token} -ContentType 'application/json' -Body (@{action='status';node_id=[string]$existing.node_id}|ConvertTo-Json -Compress) -TimeoutSec 20
+    if($status.ok){
+      Write-Host "Existing BridgePoint enrollment found: $($existing.node_id)" -ForegroundColor Green
+      return $existing
+    }
+  }catch{
+    Write-Warning 'Existing local enrollment could not be validated; a new Owner Center code will be requested.'
+  }
+  return $null
+}
+function Test-IsElevated {
+  try{
+    $id=[Security.Principal.WindowsIdentity]::GetCurrent()
+    $p=New-Object Security.Principal.WindowsPrincipal($id)
+    return $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  }catch{return $false}
+}
+function Register-AutoStart([string]$agentPath){
+  $args="-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$agentPath`""
+  if(Test-IsElevated){
+    try{
+      $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $args
+      $trigger=New-ScheduledTaskTrigger -AtLogOn
+      $settings=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -RestartCount 99 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero)
+      Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+      Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Description 'BridgePoint outbound-only local AI reasoning node' | Out-Null
+      Write-Host "Auto-start registered with Windows Task Scheduler: $TaskName" -ForegroundColor Green
+      return 'SCHEDULED_TASK'
+    }catch{
+      Write-Warning "Task Scheduler registration was blocked; switching to per-user startup. $($_.Exception.Message)"
+    }
+  }
+  $runPath='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+  New-Item -Path $runPath -Force | Out-Null
+  $runCommand="powershell.exe $args"
+  New-ItemProperty -Path $runPath -Name $RunValueName -Value $runCommand -PropertyType String -Force | Out-Null
+  Write-Host 'Auto-start registered for this Windows user (no administrator permission required).' -ForegroundColor Green
+  return 'HKCU_RUN'
+}
+function Start-AgentNow([string]$agentPath){
+  $arg="-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$agentPath`""
+  Start-Process -FilePath 'powershell.exe' -ArgumentList $arg -WindowStyle Hidden
+}
 
 Require-Windows
 New-Item -ItemType Directory -Force -Path $Root | Out-Null
@@ -90,34 +157,40 @@ Write-Host "Selected reviewer: $reviewer"
 $ollama=[string](Ensure-Ollama)
 Start-Ollama -exe $ollama
 if(-not $SkipModelPull){Pull-Model -exe $ollama -model $primary;if($reviewer -ne $primary){Pull-Model -exe $ollama -model $reviewer}}
+
 Banner 'Installing BridgePoint agent'
 Invoke-WebRequest -UseBasicParsing -TimeoutSec 60 -Uri $AgentUrl -OutFile $AgentPath
 if(-not (Test-Path $AgentPath)){throw 'BridgePoint agent download failed.'}
-if([string]::IsNullOrWhiteSpace($EnrollmentCode)){$EnrollmentCode=Read-Host 'Paste the one-time enrollment code from the main Owner Center'}
-if([string]::IsNullOrWhiteSpace($EnrollmentCode) -or $EnrollmentCode.Trim().Length -lt 24){throw 'A valid enrollment code is required.'}
-$cap=@{provider='OLLAMA';primary_model=$primary;reviewer_model=$reviewer;agent_version=624;outbound_only=$true;execution_authority=$false;hardware_aware=$true}
-$body=@{action='enroll';enrollment_code=$EnrollmentCode.Trim();node_name=("BridgePoint Owner PC - "+$env:COMPUTERNAME);capabilities=$cap;hardware=$hw}|ConvertTo-Json -Depth 20 -Compress
-$enroll=Invoke-RestMethod -Method Post -Uri $Endpoint -ContentType 'application/json' -Body $body -TimeoutSec 60
-if(-not $enroll.ok -or -not $enroll.node_id -or -not $enroll.node_token){throw 'Enrollment did not return a usable node credential.'}
-$config=[ordered]@{endpoint=$Endpoint;node_id=$enroll.node_id;token_protected=(Protect-Token ([string]$enroll.node_token));primary_model=$enroll.primary_model;reviewer_model=$enroll.reviewer_model;claim_limit=$claimLimit;installed_at=(Get-Date).ToUniversalTime().ToString('o');agent_path=$AgentPath;agent_version=624}
-$config|ConvertTo-Json -Depth 20|Set-Content -Encoding UTF8 $ConfigPath
+
+$config=Test-ExistingEnrollment
+if(-not $config){
+  if([string]::IsNullOrWhiteSpace($EnrollmentCode)){$EnrollmentCode=Read-Host 'Paste the one-time enrollment code from the main Owner Center'}
+  if([string]::IsNullOrWhiteSpace($EnrollmentCode) -or $EnrollmentCode.Trim().Length -lt 24){throw 'A valid enrollment code is required.'}
+  $cap=@{provider='OLLAMA';primary_model=$primary;reviewer_model=$reviewer;agent_version=625;outbound_only=$true;execution_authority=$false;hardware_aware=$true}
+  $body=@{action='enroll';enrollment_code=$EnrollmentCode.Trim();node_name=("BridgePoint Owner PC - "+$env:COMPUTERNAME);capabilities=$cap;hardware=$hw}|ConvertTo-Json -Depth 20 -Compress
+  $enroll=Invoke-RestMethod -Method Post -Uri $Endpoint -ContentType 'application/json' -Body $body -TimeoutSec 60
+  if(-not $enroll.ok -or -not $enroll.node_id -or -not $enroll.node_token){throw 'Enrollment did not return a usable node credential.'}
+  $config=[ordered]@{endpoint=$Endpoint;node_id=$enroll.node_id;token_protected=(Protect-Token ([string]$enroll.node_token));primary_model=$enroll.primary_model;reviewer_model=$enroll.reviewer_model;claim_limit=$claimLimit;installed_at=(Get-Date).ToUniversalTime().ToString('o');agent_path=$AgentPath;agent_version=625}
+  $config|ConvertTo-Json -Depth 20|Set-Content -Encoding UTF8 $ConfigPath
+}else{
+  $config.agent_path=$AgentPath
+  $config.agent_version=625
+  $config|ConvertTo-Json -Depth 20|Set-Content -Encoding UTF8 $ConfigPath
+}
+
 Banner 'Registering automatic startup'
-$action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$AgentPath`""
-$trigger=New-ScheduledTaskTrigger -AtLogOn
-$settings=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -RestartCount 99 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero)
-Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Description 'BridgePoint outbound-only local AI reasoning node' | Out-Null
-Start-ScheduledTask -TaskName $TaskName
-Start-Sleep -Seconds 3
+$startupMode=Register-AutoStart -agentPath $AgentPath
+Start-AgentNow -agentPath $AgentPath
+Start-Sleep -Seconds 4
+
 Banner 'Verification'
-$secure=ConvertTo-SecureString ([string]$config.token_protected);$ptr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-try{$token=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)}finally{[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)}
-$status=Invoke-RestMethod -Method Post -Uri $Endpoint -Headers @{'x-bridgepoint-node-token'=$token} -ContentType 'application/json' -Body (@{action='status';node_id=$config.node_id}|ConvertTo-Json -Compress) -TimeoutSec 30
-if(-not $status.ok){throw 'Node enrolled but status verification failed.'}
+$token=Unprotect-Token ([string]$config.token_protected)
+$status=Invoke-RestMethod -Method Post -Uri $Endpoint -Headers @{'x-bridgepoint-node-token'=$token} -ContentType 'application/json' -Body (@{action='status';node_id=[string]$config.node_id}|ConvertTo-Json -Compress) -TimeoutSec 30
+if(-not $status.ok){throw 'Node is configured locally but status verification failed.'}
 Write-Host 'BridgePoint Local AI is enrolled and running.' -ForegroundColor Green
 Write-Host "Node: $($config.node_id)"
 Write-Host "Primary: $($config.primary_model)"
 Write-Host "Reviewer: $($config.reviewer_model)"
-Write-Host "Auto-start task: $TaskName"
+Write-Host "Auto-start mode: $startupMode"
 Write-Host "Local files: $Root"
-Write-Host 'Once enrolled, BridgePoint can use this PC for queued reasoning while ChatGPT is closed.' -ForegroundColor Green
+Write-Host 'You can close this window. BridgePoint can use this PC for queued reasoning while ChatGPT is closed.' -ForegroundColor Green
