@@ -55,3 +55,5 @@ jobs:
             git commit -m 'Apply V550 native Technology Center'
             git push origin HEAD:main
           fi
+
+# V550 retrigger: capability catalog backend and app-shell experience are already live.
