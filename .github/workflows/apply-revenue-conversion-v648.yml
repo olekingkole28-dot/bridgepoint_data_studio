@@ -1,0 +1,132 @@
+name: Apply Revenue Conversion V648
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-revenue-conversion-v648.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Expose immediate paid activation and tracked referral sharing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('lib/main.dart')
+          s=p.read_text(encoding='utf-8')
+
+          old="""Future<void> _startCheckout(BuildContext context,Map<String,dynamic> package,String interval)=>
+  _openStripeFlow(context,'bridgepoint-checkout-v67',{'package_key':package['package_key'],'interval':interval});"""
+          new="""Future<void> _startCheckout(BuildContext context,Map<String,dynamic> package,String interval,{bool immediatePaid=false})=>
+  _openStripeFlow(context,'bridgepoint-checkout-v67',{
+    'package_key':package['package_key'],'interval':interval,
+    if(immediatePaid) 'skip_trial':true,
+  });"""
+          if old not in s:
+              raise SystemExit('V648 checkout helper marker not found')
+          s=s.replace(old,new,1)
+
+          old="""                Row(children:[
+                  Expanded(child:FilledButton.icon(
+                    onPressed:package['monthly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'month');},
+                    icon:const Icon(Icons.bolt_rounded),
+                    label:Text(package['monthly_price']==null?'Monthly unavailable':'Start monthly • \\$${(package['monthly_price'] as num).toStringAsFixed(0)}'),
+                  )),
+                  const SizedBox(width:10),
+                  Expanded(child:OutlinedButton(
+                    onPressed:package['yearly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'year');},
+                    child:Text(package['yearly_price']==null?'Annual unavailable':'Annual • \\$${(package['yearly_price'] as num).toStringAsFixed(0)}'),
+                  )),
+                ]),"""
+          new=old+"""
+                if((package['trial_days'] as num?)?.toInt() case final trialDays? when trialDays>0)...[
+                  const SizedBox(height:8),
+                  SizedBox(width:double.infinity,child:TextButton.icon(
+                    onPressed:package['monthly_price']==null?null:(){Navigator.of(context).pop();_startCheckout(context,package,'month',immediatePaid:true);},
+                    icon:const Icon(Icons.payments_outlined),
+                    label:Text(package['monthly_price']==null?'Immediate activation unavailable':'Ready to subscribe now? Activate today • \\$${(package['monthly_price'] as num).toStringAsFixed(0)}/mo'),
+                  )),
+                  const Text('Optional: this skips the free-trial waiting period and starts paid access immediately. The 7-day trial remains available above.',textAlign:TextAlign.center,style:TextStyle(color:AppTheme.textMuted,fontSize:8.5,height:1.4)),
+                ],"""
+          if old not in s:
+              raise SystemExit('V648 package checkout buttons marker not found')
+          s=s.replace(old,new,1)
+
+          marker="""const _bridgePointShareMessage =
+    'See property opportunities, live weather context, explainable evidence, maps, timelines, and field tools in one place. Try BridgePoint Intelligence free for 7 days: $_bridgePointLiveUrl';"""
+          helper=marker+"""
+
+Future<String> _bridgePointReferralUrl() async {
+  if(Supabase.instance.client.auth.currentSession==null)return _bridgePointLiveUrl;
+  try{
+    final result=await _callRpc('bridgepoint_growth_create_referral_v648',{'p_label':'Customer share'});
+    final value='${result['url']??''}'.trim();
+    return value.startsWith('https://bridgepointintelligence.online/')?value:_bridgePointLiveUrl;
+  }catch(_){return _bridgePointLiveUrl;}
+}"""
+          if marker not in s:
+              raise SystemExit('V648 share constant marker not found')
+          s=s.replace(marker,helper,1)
+
+          old="""Future<void> _shareBridgePointNatively(BuildContext context)async{
+  try{
+    final box=context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(ShareParams(
+      title:'BridgePoint Intelligence',subject:_bridgePointShareSubject,text:_bridgePointShareMessage,"""
+          new="""Future<void> _shareBridgePointNatively(BuildContext context)async{
+  try{
+    final referralUrl=await _bridgePointReferralUrl();
+    final referralMessage='See property opportunities, live weather context, explainable evidence, maps, timelines, and field tools in one place. Try BridgePoint Intelligence free for 7 days: $referralUrl';
+    final box=context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(ShareParams(
+      title:'BridgePoint Intelligence',subject:_bridgePointShareSubject,text:referralMessage,"""
+          if old not in s:
+              raise SystemExit('V648 native share marker not found')
+          s=s.replace(old,new,1)
+
+          old="""  Future<void> _copy(BuildContext context)async{
+    await Clipboard.setData(const ClipboardData(text:_bridgePointLiveUrl));
+    if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('BridgePoint link copied.')));
+  }"""
+          new="""  Future<void> _copy(BuildContext context)async{
+    final referralUrl=await _bridgePointReferralUrl();
+    await Clipboard.setData(ClipboardData(text:referralUrl));
+    if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Your tracked BridgePoint referral link was copied.')));
+  }"""
+          if old not in s:
+              raise SystemExit('V648 copy share marker not found')
+          s=s.replace(old,new,1)
+
+          p.write_text(s,encoding='utf-8')
+          print('Applied V648 revenue conversion patch')
+          PY
+      - name: Confirm V648 markers
+        run: |
+          grep -q "immediatePaid=false" lib/main.dart
+          grep -q "Ready to subscribe now? Activate today" lib/main.dart
+          grep -q "bridgepoint_growth_create_referral_v648" lib/main.dart
+          grep -q "tracked BridgePoint referral link" lib/main.dart
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo 'V648 already applied.'
+          else
+            git commit -m 'Apply V648 revenue conversion improvements'
+            git push origin HEAD:main
+          fi
