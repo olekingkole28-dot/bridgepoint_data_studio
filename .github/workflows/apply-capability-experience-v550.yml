@@ -1,0 +1,57 @@
+name: Apply V550 Native Technology Center
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tool/apply_capability_experience_v550.py
+      - tool/fix_capability_experience_v550.py
+      - .github/workflows/apply-capability-experience-v550.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-v550-source-patch
+  cancel-in-progress: false
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Apply V550 capability experience
+        run: |
+          set -euo pipefail
+          python tool/apply_capability_experience_v550.py
+          python tool/fix_capability_experience_v550.py
+          grep -q "_NavigationItem('Technology'" lib/main.dart
+          grep -q 'class _TechnologyCenterPageV550' lib/main.dart
+          grep -q 'bridgepoint_capability_experience_v550' lib/main.dart
+          grep -q 'Nothing is hidden from owner mode.' lib/main.dart
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Verify Flutter source before commit
+        run: |
+          set -euo pipefail
+          flutter pub get
+          dart format lib/main.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Commit verified V550 source
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo 'V550 capability experience already present.'
+          else
+            git commit -m 'Apply V550 native Technology Center'
+            git push origin HEAD:main
+          fi
