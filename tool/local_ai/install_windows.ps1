@@ -24,8 +24,6 @@ if (-not (Has-Cmd 'python')) {
 Write-Host 'Ensuring primary model gpt-oss:20b is available...' -ForegroundColor Yellow
 & ollama pull gpt-oss:20b
 
-# Reviewer is intentionally smaller so it can fit on more owner machines.
-# If this pull fails, the Python runner falls back to a second adversarial pass on the primary.
 try {
   Write-Host 'Ensuring reviewer model qwen3:8b is available...' -ForegroundColor Yellow
   & ollama pull qwen3:8b
@@ -40,20 +38,7 @@ $TaskName = 'BridgePoint Local AI'
 $PythonExe = if ($Python -eq 'py') { (Get-Command py).Source } else { (Get-Command python).Source }
 $Args = if ($Python -eq 'py') { "-3 `"$Runner`"" } else { "`"$Runner`"" }
 
-Write-Host ''
-Write-Host 'You will need a one-time enrollment code from:' -ForegroundColor Cyan
-Write-Host 'https://bridgepointintelligence.online/owner/completion/' -ForegroundColor White
-Write-Host 'The runner stores only its node token in your Windows user profile. It does not store the Supabase service-role key.' -ForegroundColor DarkGray
-Write-Host ''
-
-# First run interactively so enrollment can be completed.
-if ($Python -eq 'py') {
-  & $PythonExe -3 $Runner
-} else {
-  & $PythonExe $Runner
-}
-
-# If the interactive process exits, register a logon task so subsequent starts are automatic.
+# Register startup BEFORE launching the never-ending worker.
 $Action = New-ScheduledTaskAction -Execute $PythonExe -Argument $Args -WorkingDirectory $Root
 $Trigger = New-ScheduledTaskTrigger -AtLogOn
 $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 20 -RestartInterval (New-TimeSpan -Minutes 1)
@@ -62,4 +47,17 @@ try {
   Write-Host "Registered '$TaskName' to start automatically at Windows logon." -ForegroundColor Green
 } catch {
   Write-Warning "Could not register startup task automatically: $($_.Exception.Message)"
+}
+
+Write-Host ''
+Write-Host 'Generate a one-time enrollment code from:' -ForegroundColor Cyan
+Write-Host 'https://bridgepointintelligence.online/owner/completion/' -ForegroundColor White
+Write-Host 'The runner stores only its own node token in your Windows user profile. It does not store the Supabase service-role key.' -ForegroundColor DarkGray
+Write-Host ''
+
+# First run interactively so enrollment can be completed. The process is expected to stay running.
+if ($Python -eq 'py') {
+  & $PythonExe -3 $Runner
+} else {
+  & $PythonExe $Runner
 }
