@@ -2,9 +2,11 @@ param(
   [string]$Destination = "$env:USERPROFILE\BridgePointBackups",
   [string]$DbUrl = '',
   [switch]$SkipStorage,
-  [switch]$SkipFunctions
+  [switch]$SkipFunctions,
+  [switch]$SkipGit
 )
 $ErrorActionPreference='Stop'
+$ProgressPreference='SilentlyContinue'
 $ProjectRef='xdfsjztwgsbmabshzsjw'
 $ProjectUrl='https://xdfsjztwgsbmabshzsjw.supabase.co'
 $Region='us-east-1'
@@ -19,11 +21,13 @@ New-Item -ItemType Directory -Force -Path $DbDir,$FnDir,$StorageDir,$SourceDir |
 function Has-Cmd([string]$n){ [bool](Get-Command $n -ErrorAction SilentlyContinue) }
 function Secure-ToPlain([Security.SecureString]$s){$p=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($s);try{[Runtime.InteropServices.Marshal]::PtrToStringBSTR($p)}finally{[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($p)}}
 function Require-Cmd([string]$n,[string]$how){if(-not (Has-Cmd $n)){throw "$n is required. $how"}}
-function Run([string]$exe,[string[]]$args){Write-Host ("> "+$exe+' '+($args -join ' ')) -ForegroundColor DarkGray;& $exe @args;if($LASTEXITCODE -ne 0){throw "$exe failed with exit code $LASTEXITCODE"}}
+function Run([string]$exe,[string[]]$args){Write-Host ("> "+$exe+' '+(($args|ForEach-Object{if($_ -match 'postgres(ql)?://'){ '[DATABASE_URL]' }else{$_}}) -join ' ')) -ForegroundColor DarkGray;& $exe @args;if($LASTEXITCODE -ne 0){throw "$exe failed with exit code $LASTEXITCODE"}}
 
 Write-Host "BridgePoint full export -> $Root" -ForegroundColor Cyan
 Require-Cmd 'supabase' 'Install the Supabase CLI, then rerun.'
-Require-Cmd 'git' 'Install Git for Windows, then rerun.'
+Require-Cmd 'pg_dump' 'Install PostgreSQL client tools (v17 preferred), then rerun.'
+Require-Cmd 'pg_restore' 'Install PostgreSQL client tools (v17 preferred), then rerun.'
+if(-not $SkipGit){Require-Cmd 'git' 'Install Git for Windows, then rerun.'}
 
 if(-not $DbUrl){
   Write-Host 'Paste the BridgePoint database connection string from Supabase Dashboard > Connect.' -ForegroundColor Yellow
@@ -31,16 +35,26 @@ if(-not $DbUrl){
 }
 if([string]::IsNullOrWhiteSpace($DbUrl) -or $DbUrl -notmatch '^postgres(ql)?://'){throw 'A PostgreSQL connection URL is required.'}
 
-# Supabase-recommended logical backup split for portable restore.
+# A single portable custom-format archive is the primary disaster-recovery artifact.
+# It captures application schemas plus auth/storage metadata that may not be present in a normal CLI split dump.
+Run 'pg_dump' @('--format=custom','--no-owner','--no-acl','--verbose','--file',(Join-Path $DbDir 'bridgepoint_full.dump'),$DbUrl)
+
+# Also retain Supabase-friendly split SQL for inspectability and migration workflows.
 Run 'supabase' @('db','dump','--db-url',$DbUrl,'-f',(Join-Path $DbDir 'roles.sql'),'--role-only')
 Run 'supabase' @('db','dump','--db-url',$DbUrl,'-f',(Join-Path $DbDir 'schema.sql'))
 Run 'supabase' @('db','dump','--db-url',$DbUrl,'-f',(Join-Path $DbDir 'data.sql'),'--use-copy','--data-only','-x','storage.buckets_vectors','-x','storage.vector_indexes')
 Run 'supabase' @('db','dump','--db-url',$DbUrl,'-f',(Join-Path $DbDir 'migration_history_schema.sql'),'--schema','supabase_migrations')
 Run 'supabase' @('db','dump','--db-url',$DbUrl,'-f',(Join-Path $DbDir 'migration_history_data.sql'),'--use-copy','--data-only','--schema','supabase_migrations')
 
-# Keep the application/source snapshot beside the data backup.
-Run 'git' @('clone','--mirror','https://github.com/olekingkole28-dot/bridgepoint_data_studio.git',(Join-Path $SourceDir 'bridgepoint_data_studio.git'))
-Run 'git' @('clone','--mirror','https://github.com/olekingkole28-dot/bridgepoint-live.git',(Join-Path $SourceDir 'bridgepoint-live.git'))
+# Store a catalog listing so backup validity can be checked without restoring 100+ GB.
+Run 'pg_restore' @('--list',(Join-Path $DbDir 'bridgepoint_full.dump'))
+& pg_restore --list (Join-Path $DbDir 'bridgepoint_full.dump') | Set-Content (Join-Path $DbDir 'bridgepoint_full.catalog.txt') -Encoding UTF8
+if($LASTEXITCODE -ne 0){throw 'pg_restore could not read the full archive catalog.'}
+
+if(-not $SkipGit){
+  Run 'git' @('clone','--mirror','https://github.com/olekingkole28-dot/bridgepoint_data_studio.git',(Join-Path $SourceDir 'bridgepoint_data_studio.git'))
+  Run 'git' @('clone','--mirror','https://github.com/olekingkole28-dot/bridgepoint-live.git',(Join-Path $SourceDir 'bridgepoint-live.git'))
+}
 
 if(-not $SkipFunctions){
   try {
@@ -58,7 +72,7 @@ if(-not $SkipFunctions){
 }
 
 if(-not $SkipStorage){
-  Require-Cmd 'rclone' 'Install rclone, then rerun without -SkipStorage. Large Storage backups are intentionally copied through Supabase S3.'
+  Require-Cmd 'rclone' 'Install rclone, then rerun without -SkipStorage. Storage is copied through the Supabase S3 endpoint.'
   Write-Host 'Create/read an S3 access key in Supabase Dashboard > Storage > Configuration > S3.' -ForegroundColor Yellow
   $Access=Read-Host 'S3 Access Key ID'
   $SecretSecure=Read-Host 'S3 Secret Access Key' -AsSecureString
@@ -77,11 +91,12 @@ if(-not $SkipStorage){
   } finally { $Secret=$null; $SecretSecure=$null }
 }
 
-# Machine-readable manifest + file hashes. Secrets are intentionally not exported.
+$full=Get-Item (Join-Path $DbDir 'bridgepoint_full.dump')
 $manifest=[ordered]@{
   project_ref=$ProjectRef; project_url=$ProjectUrl; region=$Region; exported_at=(Get-Date).ToUniversalTime().ToString('o');
-  postgres_major=17; format_version=1; database_files=@('roles.sql','schema.sql','data.sql','migration_history_schema.sql','migration_history_data.sql');
-  storage_included=(-not $SkipStorage); edge_functions_attempted=(-not $SkipFunctions);
+  postgres_major=17; format_version=2; primary_database_archive='database/bridgepoint_full.dump'; primary_database_archive_bytes=$full.Length;
+  database_files=@('bridgepoint_full.dump','bridgepoint_full.catalog.txt','roles.sql','schema.sql','data.sql','migration_history_schema.sql','migration_history_data.sql');
+  storage_included=(-not $SkipStorage); edge_functions_attempted=(-not $SkipFunctions); git_mirrors_included=(-not $SkipGit);
   source_repositories=@('olekingkole28-dot/bridgepoint_data_studio','olekingkole28-dot/bridgepoint-live');
   secrets_exported=$false; note='API/JWT/OAuth/SMTP/payment secrets are intentionally not placed in the archive. Recreate or migrate them separately.'
 }
@@ -111,4 +126,4 @@ Get-ChildItem $Root -Recurse -File | Where-Object {$_.Name -ne 'SHA256SUMS.txt'}
 Write-Host ''
 Write-Host 'BridgePoint full export completed.' -ForegroundColor Green
 Write-Host "Archive folder: $Root" -ForegroundColor Green
-Write-Host 'Run bridgepoint_verify_backup_windows.ps1 against this folder before treating it as a disaster-recovery copy.' -ForegroundColor Yellow
+Write-Host 'Next: run bridgepoint_verify_backup_windows.ps1 against this folder.' -ForegroundColor Yellow
