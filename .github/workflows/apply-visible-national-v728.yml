@@ -1,0 +1,47 @@
+name: Apply Visible National Fixes V728
+
+on:
+  push:
+    branches: [chatgpt/v728-visible-national-clean]
+    paths:
+      - tool/apply_visible_national_v728.py
+      - .github/workflows/apply-visible-national-v728.yml
+      - coordination/V728_TRIGGER.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-visible-national-v728
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/v728-visible-national-clean
+      - run: python tool/apply_visible_national_v728.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - name: Analyze without reformatting the monolith
+        run: flutter analyze --no-fatal-infos
+      - name: Verify exact release invariants
+        run: |
+          set -euo pipefail
+          grep -q 'bridgepoint-visible-national-v728' lib/main.dart
+          grep -q 'Authorized U.S. property universe' lib/main.dart
+          grep -q 'onSubmitted:(_){onFieldSubmitted();}' lib/main.dart
+          ! grep -q "'KJ'" lib/main.dart
+      - name: Persist only source change
+        run: |
+          git config user.name 'BridgePoint UI Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/main.dart
+          if ! git diff --cached --quiet; then
+            git commit -m 'Apply minimal visible national fixes V728 [skip ci]'
+            git push origin HEAD:chatgpt/v728-visible-national-clean
+          fi
