@@ -239,8 +239,17 @@ class _AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<_AuthScreen> {
+  // bridgepoint-v685-signup-deeplink
   final displayName=TextEditingController(); final email=TextEditingController(); final password=TextEditingController();
   bool create=false,loading=false,showPassword=false,acceptTerms=false; String? error;
+
+  @override
+  void initState(){
+    super.initState();
+    final mode=(Uri.base.queryParameters['mode']??'').trim().toLowerCase();
+    create=mode=='signup'||mode=='create'||mode=='trial';
+  }
+
   Future<void> submit() async {
     setState(()=>loading=true); error=null;
     try {
