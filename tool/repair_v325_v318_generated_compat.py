@@ -69,7 +69,19 @@ if actual!=pre:
       final fallbackPackage=allowedPackages.contains(selectedPackage)?selectedPackage:(allowedPackages.isNotEmpty?allowedPackages.first:selectedPackage);
       final nextPackage=widget.ownerMode?'Owner Full Platform':(savedPackage!=null&&allowedPackages.contains(savedPackage)?savedPackage:fallbackPackage);
       final maxIndex=visibleNavigationItems.length-1;
-""",'workspace restore',['final prefs=SharedPreferencesAsync();','final fallbackPackage=allowedPackages.contains(selectedPackage)'])
+""",'workspace restore',['final prefs=SharedPreferencesAsync();'])
+
+    workspace_start=body.find('  Future<void> _restoreWorkspaceState()async{')
+    workspace_end=body.find('  Future<void> _persistWorkspaceState',workspace_start)
+    if workspace_start<0 or workspace_end<0:
+        raise SystemExit('v325 evolved-source workspace restore boundaries missing')
+    workspace=body[workspace_start:workspace_end]
+    if workspace.count('final nextPackage=')!=1:
+        raise SystemExit(f"v325 evolved-source workspace restore nextPackage declarations={workspace.count('final nextPackage=')}")
+    if 'SharedPreferencesAsync()' not in workspace or 'savedPackage' not in workspace:
+        raise SystemExit('v325 evolved-source workspace restore persistence contract missing')
+    if '_availablePackagesV318' not in workspace and 'packages.contains(savedPackage)' not in workspace:
+        raise SystemExit('v325 evolved-source workspace restore package guard missing')
 
     repair("""                      _TopBar(
                         packages: _availablePackagesV318,
