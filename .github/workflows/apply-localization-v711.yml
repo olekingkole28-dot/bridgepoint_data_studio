@@ -49,3 +49,4 @@ jobs:
             git commit -m 'Apply BridgePoint localization V711 [skip ci]'
             git push origin HEAD:chatgpt/ui-refresh-v691
           fi
+# retrigger: localization-v711
