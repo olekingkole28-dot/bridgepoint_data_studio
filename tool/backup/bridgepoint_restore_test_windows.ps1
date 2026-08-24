@@ -1,8 +1,9 @@
 param(
   [Parameter(Mandatory=$true)][string]$BackupRoot,
-  [Parameter(Mandatory=$true)][string]$TargetDbUrl,
+  [string]$TargetDbUrl = '',
   [switch]$CleanTarget,
-  [switch]$SkipData
+  [switch]$SkipData,
+  [switch]$NonInteractive
 )
 $ErrorActionPreference='Stop'
 $dump=Join-Path $BackupRoot 'database\bridgepoint_full.dump'
@@ -11,7 +12,9 @@ if(-not(Test-Path $dump)){throw 'bridgepoint_full.dump not found. Run the full e
 if(-not(Test-Path $verify)){throw 'verification.json not found. Run bridgepoint_verify_backup_windows.ps1 first.'}
 $v=Get-Content $verify -Raw|ConvertFrom-Json
 if(-not $v.verified){throw 'Backup verification did not pass.'}
-if($TargetDbUrl -notmatch '^postgres(ql)?://'){throw 'TargetDbUrl must be a PostgreSQL connection URL.'}
+if(-not $TargetDbUrl){$TargetDbUrl=[string]$env:BRIDGEPOINT_RESTORE_TEST_DB_URL}
+if(-not $TargetDbUrl -and -not $NonInteractive){$TargetDbUrl=Read-Host 'Restore-test PostgreSQL target URL'}
+if($TargetDbUrl -notmatch '^postgres(ql)?://'){throw 'A restore-test PostgreSQL target URL is required. Configure BRIDGEPOINT_RESTORE_TEST_DB_URL locally for unattended mode.'}
 $pgRestore=(Get-Command pg_restore -ErrorAction Stop).Source
 $psql=(Get-Command psql -ErrorAction Stop).Source
 
@@ -37,7 +40,9 @@ foreach($q in $checks){
   if($LASTEXITCODE -ne 0){throw "Post-restore verification query failed: $q`n$out"}
   $results += @{query=$q;result=($out -join "`n")}
 }
-$report=[ordered]@{restore_test_passed=$true;tested_at=(Get-Date).ToUniversalTime().ToString('o');target_host=([uri]($TargetDbUrl -replace '^postgresql?://','http://')).Host;clean_target=[bool]$CleanTarget;schema_only=[bool]$SkipData;checks=$results}
+$targetHost='redacted'
+try{$targetHost=([uri]($TargetDbUrl -replace '^postgresql?://','http://')).Host}catch{}
+$report=[ordered]@{restore_test_passed=$true;tested_at=(Get-Date).ToUniversalTime().ToString('o');target_host=$targetHost;clean_target=[bool]$CleanTarget;schema_only=[bool]$SkipData;checks=$results}
 $report|ConvertTo-Json -Depth 10|Set-Content (Join-Path $BackupRoot 'restore-test.json') -Encoding UTF8
 Write-Host 'Restore test PASSED.' -ForegroundColor Green
 Write-Host (Join-Path $BackupRoot 'restore-test.json')
