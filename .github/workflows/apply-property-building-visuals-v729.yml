@@ -1,0 +1,48 @@
+name: Apply Property Building Visuals V729
+
+on:
+  push:
+    branches: [chatgpt/v729-property-building-visuals]
+    paths:
+      - tool/apply_property_building_visuals_v729.py
+      - .github/workflows/apply-property-building-visuals-v729.yml
+      - coordination/V729_TRIGGER.txt
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-property-building-visuals-v729
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/v729-property-building-visuals
+      - run: python tool/apply_property_building_visuals_v729.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - name: Analyze without formatting the monolith
+        run: flutter analyze --no-fatal-infos
+      - name: Verify visual truth contract
+        run: |
+          set -euo pipefail
+          grep -q 'bridgepoint-property-building-visuals-v729' lib/main.dart
+          grep -q 'bridgepoint_property_building_visuals_v700' lib/main.dart
+          grep -q 'bridgepoint_property_media_bundle_v169' lib/main.dart
+          grep -q 'class _GeoFootprintPainterV729' lib/main.dart
+          grep -q '3D rendering uses the verified footprint' lib/main.dart
+      - name: Persist verified source
+        run: |
+          git config user.name 'BridgePoint UI Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/main.dart
+          if ! git diff --cached --quiet; then
+            git commit -m 'Apply real property building visuals V729 [skip ci]'
+            git push origin HEAD:chatgpt/v729-property-building-visuals
+          fi
