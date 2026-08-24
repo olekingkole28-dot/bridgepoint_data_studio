@@ -1,24 +1,26 @@
 from pathlib import Path
+import re
 import subprocess
 import sys
 
 subprocess.run([sys.executable,'tool/apply_owner_ai_visibility_v602.py'],check=True)
 subprocess.run([sys.executable,'tool/apply_owner_global_ai_v678.py'],check=True)
 
-path = Path('lib/main.dart')
-body = path.read_text(encoding='utf-8')
-marker = 'bridgepoint-v444-dynamic-account-avatar'
+path=Path('lib/main.dart')
+body=path.read_text(encoding='utf-8')
+marker='bridgepoint-v444-dynamic-account-avatar'
+
 
 def require_release_contract(value: str) -> None:
-    start = value.find('class _TopBar extends StatelessWidget')
-    end = value.find('class _LiveSyncStrip', start)
-    if start < 0 or end < 0:
+    start=value.find('class _TopBar extends StatelessWidget')
+    end=value.find('class _LiveSyncStrip',start)
+    if start<0 or end<0:
         raise SystemExit('v444 avatar: TopBar boundaries missing')
-    top = value[start:end]
-    checks = {
+    top=value[start:end]
+    checks={
         'release marker': marker in top,
         'dynamic profile metadata': "metadata['display_name']" in top,
-        'shared avatar widget': top.count('_accountAvatar(context)') == 2,
+        'shared avatar widget': top.count('_accountAvatar(context)')==2,
         '48px touch target': 'width: 48' in top and 'height: 48' in top,
         'account action': 'onTap: onAvatarTap' in top,
         'settings route': "onAvatarTap:()=>_navigateTrainingLabel('Settings')" in value,
@@ -28,28 +30,35 @@ def require_release_contract(value: str) -> None:
         'supported language RPC': 'bridgepoint_supported_languages_v711' in value,
         'locale persistence RPC': 'bridgepoint_save_locale_v711' in value,
         'local locale persistence': "package:shared_preferences/shared_preferences.dart" in value,
+        'national visible marker': '// bridgepoint-visible-national-v728' in value,
+        'national Properties copy': 'Authorized U.S. property universe' in value,
+        'no CT-only Properties subtitle': 'Connecticut property universe • search, inspect, and open intelligence' not in value,
+        'autocomplete enter selection': re.search(r'onSubmitted\s*:\s*\(_\)\s*\{\s*onFieldSubmitted\(\);\s*\}',value) is not None,
     }
-    missing = [label for label, passed in checks.items() if not passed]
+    missing=[label for label,passed in checks.items() if not passed]
     if missing:
         raise SystemExit(f'v444 final release contract incomplete: {missing}')
 
+
 if marker in body:
     require_release_contract(body)
-    print('BridgePoint v444 dynamic account avatar and V720 localization release contract verified.')
+    print('BridgePoint v444 dynamic avatar + localization + V728 national release contract verified.')
     raise SystemExit(0)
 
-start = body.find('class _TopBar extends StatelessWidget')
-end = body.find('class _LiveSyncStrip', start)
-if start < 0 or end < 0:
+start=body.find('class _TopBar extends StatelessWidget')
+end=body.find('class _LiveSyncStrip',start)
+if start<0 or end<0:
     raise SystemExit('v444 avatar: TopBar boundaries missing')
-top = body[start:end]
+top=body[start:end]
 
-def replace_top_once(old: str, new: str, label: str) -> None:
+
+def replace_top_once(old: str,new: str,label: str) -> None:
     global top
-    count = top.count(old)
-    if count != 1:
+    count=top.count(old)
+    if count!=1:
         raise SystemExit(f'v444 avatar {label}: expected exactly 1 match, found {count}')
-    top = top.replace(old, new, 1)
+    top=top.replace(old,new,1)
+
 
 replace_top_once(
     '    required this.onTraining,\n  });',
@@ -62,12 +71,13 @@ replace_top_once(
     'callback field',
 )
 
-helpers = r'''  // bridgepoint-v444-dynamic-account-avatar
+helpers=r'''  // bridgepoint-v444-dynamic-account-avatar
   String get _profileLabel {
     final user = Supabase.instance.client.auth.currentUser;
     final metadata = user?.userMetadata;
-    final displayName =
-        metadata == null ? '' : (metadata['display_name']?.toString().trim() ?? '');
+    final displayName = metadata == null
+        ? ''
+        : (metadata['display_name']?.toString().trim() ?? '');
     if (displayName.isNotEmpty) return displayName;
     final email = user?.email?.trim() ?? '';
     return email.isNotEmpty ? email : 'BridgePoint account';
@@ -124,72 +134,88 @@ helpers = r'''  // bridgepoint-v444-dynamic-account-avatar
 '''
 replace_top_once(
     '  @override\n  Widget build(BuildContext context) {',
-    helpers + '  @override\n  Widget build(BuildContext context) {',
+    helpers+'  @override\n  Widget build(BuildContext context) {',
     'helper insertion',
 )
 
-if top.count("'KJ'") != 2:
-    raise SystemExit(f"v444 avatar: expected 2 hard-coded KJ avatars, found {top.count(chr(39) + 'KJ' + chr(39))}")
 
-def replace_kj_avatar(value: str) -> str:
-    target = "'KJ'"
-    kj = value.find(target)
-    if kj < 0:
-        raise SystemExit('v444 avatar: KJ marker disappeared during replacement')
-    avatar = value.rfind('const CircleAvatar(', 0, kj)
-    if avatar < 0:
+def replace_kj_avatar(value: str) -> tuple[str,bool]:
+    target="'KJ'"
+    kj=value.find(target)
+    if kj<0:
+        return value,False
+    avatar=value.rfind('const CircleAvatar(',0,kj)
+    if avatar<0:
         raise SystemExit('v444 avatar: CircleAvatar start missing')
-    open_paren = value.find('(', avatar)
-    depth = 0
-    quote = None
-    escaped = False
-    close = None
-    for index in range(open_paren, len(value)):
-        char = value[index]
+    open_paren=value.find('(',avatar)
+    depth=0
+    quote=None
+    escaped=False
+    close=None
+    for index in range(open_paren,len(value)):
+        char=value[index]
         if quote is not None:
             if escaped:
-                escaped = False
-            elif char == '\\':
-                escaped = True
-            elif char == quote:
-                quote = None
+                escaped=False
+            elif char=='\\':
+                escaped=True
+            elif char==quote:
+                quote=None
             continue
-        if char in ("'", '"'):
-            quote = char
+        if char in ("'",'"'):
+            quote=char
             continue
-        if char == '(':
-            depth += 1
-        elif char == ')':
-            depth -= 1
-            if depth == 0:
-                close = index + 1
+        if char=='(':
+            depth+=1
+        elif char==')':
+            depth-=1
+            if depth==0:
+                close=index+1
                 break
     if close is None:
         raise SystemExit('v444 avatar: CircleAvatar did not balance')
-    cursor = close
-    while cursor < len(value) and value[cursor] in ' \t':
-        cursor += 1
-    if cursor < len(value) and value[cursor] == ',':
-        cursor += 1
-    line_start = value.rfind('\n', 0, avatar) + 1
-    indent = value[line_start:avatar]
-    return value[:avatar] + '_accountAvatar(context),' + value[cursor:]
+    cursor=close
+    while cursor<len(value) and value[cursor] in ' \t':
+        cursor+=1
+    if cursor<len(value) and value[cursor]==',':
+        cursor+=1
+    return value[:avatar]+'_accountAvatar(context),'+value[cursor:],True
 
-top = replace_kj_avatar(top)
-top = replace_kj_avatar(top)
+replaced=0
+while "'KJ'" in top and replaced<2:
+    top,did=replace_kj_avatar(top)
+    if not did:
+        break
+    replaced+=1
+
+# V728 source deliberately removed founder initials before the final release layer.
+# Convert those neutral placeholders into the dynamic account avatar here.
+for placeholder in (
+    'const Icon(Icons.account_circle_outlined, color: AppTheme.textMuted, size: 38)',
+    'const Icon(Icons.account_circle_outlined, color: AppTheme.textMuted, size: 36)',
+):
+    if placeholder in top:
+        top=top.replace(placeholder,'_accountAvatar(context)',1)
+        replaced+=1
+
 if "'KJ'" in top:
     raise SystemExit('v444 avatar: hard-coded initials remain')
+if top.count('_accountAvatar(context)')!=2:
+    raise SystemExit(
+        f'v444 avatar: expected two dynamic account avatar placements, found {top.count("_accountAvatar(context)")}; replacements={replaced}'
+    )
 
-body = body[:start] + top + body[end:]
-call_anchor = '                        onTraining:()=>_openWalkthrough(),\n'
-if body.count(call_anchor) != 1:
-    raise SystemExit(f'v444 avatar callback: expected exactly 1 match, found {body.count(call_anchor)}')
-body = body.replace(
-    call_anchor,
-    call_anchor + "                        onAvatarTap:()=>_navigateTrainingLabel('Settings'),\n",
-    1,
-)
+body=body[:start]+top+body[end:]
+call_anchor='                        onTraining:()=>_openWalkthrough(),\n'
+if "onAvatarTap:()=>_navigateTrainingLabel('Settings')" not in body:
+    if body.count(call_anchor)!=1:
+        raise SystemExit(f'v444 avatar callback: expected exactly 1 match, found {body.count(call_anchor)}')
+    body=body.replace(
+        call_anchor,
+        call_anchor+"                        onAvatarTap:()=>_navigateTrainingLabel('Settings'),\n",
+        1,
+    )
 
 require_release_contract(body)
-path.write_text(body, encoding='utf-8')
-print('Applied BridgePoint v444 dynamic, accessible account avatar with V720 localization release guard.')
+path.write_text(body,encoding='utf-8')
+print('Applied BridgePoint v444 dynamic account avatar with V728 national/localization release guard.')
