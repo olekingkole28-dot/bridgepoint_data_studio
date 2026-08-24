@@ -16,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
 const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';
 // bridgepoint-v690-national-live-demo
+// bridgepoint-visible-national-v728
 const _bridgePointShareSubject = 'Try BridgePoint Intelligence';
 const _bridgePointShareMessage =
     'See property opportunities, live weather context, explainable evidence, maps, timelines, and field tools in one place. Try BridgePoint Intelligence free for 7 days: $_bridgePointLiveUrl';
@@ -1554,18 +1555,7 @@ class _TopBar extends StatelessWidget {
                   onTap: onNotifications,
                 ),
                 const SizedBox(width: 7),
-                const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppTheme.blue,
-                  child: Text(
-                    'KJ',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
+                const Icon(Icons.account_circle_outlined, color: AppTheme.textMuted, size: 36),
               ],
             ),
             const SizedBox(height: 9),
@@ -1613,18 +1603,7 @@ class _TopBar extends StatelessWidget {
             onTap: onNotifications,
           ),
           const SizedBox(width: 10),
-          const CircleAvatar(
-            radius: 19,
-            backgroundColor: AppTheme.blue,
-            child: Text(
-              'KJ',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
-              ),
-            ),
-          ),
+          const Icon(Icons.account_circle_outlined, color: AppTheme.textMuted, size: 38),
         ],
       ),
     );
@@ -1688,7 +1667,7 @@ class _SearchBox extends StatelessWidget {
           controller:controller,
           focusNode:focusNode,
           textInputAction: TextInputAction.search,
-          onSubmitted:(value){onSubmitted(value);onFieldSubmitted();},
+          onSubmitted:(_){onFieldSubmitted();},
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textMuted),
             hintText: 'Start typing an address or parcel',
@@ -5914,7 +5893,7 @@ class _PropertiesPageState extends State<_PropertiesPage> {
             _PageHeading(
               title: 'Properties',
               subtitle:
-                  'Connecticut property universe • search, inspect, and open intelligence',
+                  'Authorized U.S. property universe • search, inspect, and open intelligence',
               onRefresh: _reload,
               loading: loading,
             ),
