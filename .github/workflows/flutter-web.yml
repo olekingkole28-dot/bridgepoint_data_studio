@@ -206,7 +206,8 @@ jobs:
           retention-days: 14
 
   deploy:
-    if: github.event_name != 'pull_request'
+    # V689: this private repository is source/build authority only. bridgepoint-live V683 is the sole Pages publisher.
+    if: ${{ false }}
     needs: build
     runs-on: ubuntu-latest
     permissions:
