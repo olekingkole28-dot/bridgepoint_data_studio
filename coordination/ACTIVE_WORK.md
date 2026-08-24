@@ -9,6 +9,8 @@ The previous standalone UI-refresh chat was stopped by the user on 2026-08-24. T
 - Branch: `chatgpt/ui-refresh-v691`
 - Scope: visual design system and Flutter presentation shell only — theme tokens, navigation chrome, cards, spacing, typography, responsive layout, dashboard presentation, property-detail presentation, and map/panel styling inspired by the approved cleaner dark BridgePoint mockups.
 - Preserve every newer functional capability from `main`, especially V690 national search/map/property-detail navigation, auth/onboarding behavior, owner controls, entitlements, field tools, media/photo contribution, save/workspace actions, CRM handoff, and release/audit hooks.
+- Explicit UI intent carried forward from the stopped "write CT examples email" chat: keep the existing API-driven Properties/Map workflow and its evidence/timeline/signals/notes/why-explanations, but make it presentation-ready and easier to scan live; responsive cards/navigation must work on desktop and mobile; generic shared property UI must be national rather than Connecticut-branded; do not remove saved opportunities, packages, onboarding, notifications, or team workflows.
+- Remove founder/customer identity leakage from the shared shell (for example the hardcoded `KJ` avatar); customer chrome must be neutral or data-driven.
 - Do **not** change Supabase schema/RPCs, ingestion, scoring, source activation, national data, entitlements, auth contracts, acquisition logic, release provenance, or backend/service contracts from this branch.
 - Do **not** publish directly from this branch.
 - Before integration: refresh/compare against current `main`, preserve newer functional changes, review every overlap, run analyze/tests/build, and merge only conflict-reviewed UI changes.
