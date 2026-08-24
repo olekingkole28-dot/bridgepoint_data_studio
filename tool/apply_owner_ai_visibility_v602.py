@@ -90,10 +90,64 @@ class _OwnerAiVisibilityV602State extends State<_OwnerAiVisibilityV602>{
 '''
 body=body.replace(owner_anchor,widget+owner_anchor,1)
 
-heading="_PageHeading(title:'Owner Center',subtitle:'Your private daily view of revenue • customers • automation • intelligence',onRefresh:refresh,loading:snapshot.connectionState==ConnectionState.waiting),"
-if heading not in body:
-    raise SystemExit('v602 owner center heading anchor missing')
-body=body.replace(heading,heading+"\n        const SizedBox(height:10),const _OwnerAiVisibilityV602(),",1)
+# Prefer known headings, but do not couple production to one exact subtitle.
+inserted=False
+heading_candidates=[
+    "_PageHeading(title:'Owner Center',subtitle:'Your private daily view of revenue • customers • automation • intelligence',onRefresh:refresh,loading:snapshot.connectionState==ConnectionState.waiting),",
+    "_PageHeading(title:'Owner Center'",
+    "Text('Owner Center'",
+]
+for heading in heading_candidates:
+    pos=body.find(heading,body.find(owner_anchor))
+    if pos<0:
+        continue
+    if heading.startswith("_PageHeading(title:'Owner Center'") and heading!=heading_candidates[0]:
+        # Find the end of the current PageHeading call by balancing parentheses.
+        open_pos=body.find('(',pos)
+        depth=0; quote=None; escaped=False; end=None
+        for i in range(open_pos,len(body)):
+            ch=body[i]
+            if quote is not None:
+                if escaped: escaped=False
+                elif ch=='\\': escaped=True
+                elif ch==quote: quote=None
+                continue
+            if ch in ("'",'"'): quote=ch; continue
+            if ch=='(': depth+=1
+            elif ch==')':
+                depth-=1
+                if depth==0:
+                    end=i+1
+                    while end<len(body) and body[end] in ' \t': end+=1
+                    if end<len(body) and body[end]==',': end+=1
+                    break
+        if end is None:
+            continue
+        body=body[:end]+"\n        const SizedBox(height:10),const _OwnerAiVisibilityV602(),"+body[end:]
+        inserted=True
+        break
+    elif heading==heading_candidates[0]:
+        body=body.replace(heading,heading+"\n        const SizedBox(height:10),const _OwnerAiVisibilityV602(),",1)
+        inserted=True
+        break
+
+if not inserted:
+    # Structural fallback: insert into the first children list inside Owner Center build.
+    owner_start=body.find(owner_anchor)
+    build_pos=body.find('Widget build(BuildContext context)',owner_start)
+    if build_pos<0:
+        raise SystemExit('v602 owner build anchor missing')
+    children_pos=body.find('children:[',build_pos)
+    if children_pos<0:
+        children_pos=body.find('children: [',build_pos)
+    if children_pos<0:
+        raise SystemExit('v602 owner children anchor missing')
+    insert_at=children_pos+len('children:[' if body.startswith('children:[',children_pos) else 'children: [')
+    body=body[:insert_at]+"\n        const _OwnerAiVisibilityV602(),"+body[insert_at:]
+    inserted=True
+
+if body.count('const _OwnerAiVisibilityV602()')<1:
+    raise SystemExit('v602 owner AI panel insertion verification failed')
 
 path.write_text(body,encoding='utf-8')
-print('Applied BridgePoint v602 owner AI workforce + forgotten-work visibility.')
+print('Applied BridgePoint v602 owner AI workforce + forgotten-work visibility with resilient Owner Center insertion.')
