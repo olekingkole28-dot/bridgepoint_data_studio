@@ -150,29 +150,29 @@ class _BridgePointOperationsHubState extends State<BridgePointOperationsHub> {
           ],
           const SizedBox(height: 10),
           _quickAction(
-            icon: Icons.route_rounded,
-            title: 'Optimize Route',
+            icon: Icons.monitor_heart_rounded,
+            title: 'Property Health',
             subtitle: propertyId == null
-                ? 'Open from a property to create an evidence-aware field route.'
-                : 'Build a route around this property and nearby priorities.',
+                ? 'Open from a property to read its current BridgePoint health assessment.'
+                : 'Read the current evidence-backed health assessment for this property.',
             onTap: propertyId == null
                 ? null
                 : () => _run(
-                      'Route Optimization',
-                      () => _operations.optimizeRoute(propertyId!),
+                      'Property Health',
+                      () => _operations.propertyHealth(propertyId!),
                     ),
           ),
           _quickAction(
-            icon: Icons.picture_as_pdf_rounded,
-            title: 'Build Evidence Packet',
+            icon: Icons.fact_check_outlined,
+            title: 'Evidence Capture Plan',
             subtitle: propertyId == null
-                ? 'Open from a property to build a shareable evidence packet.'
-                : 'Assemble source-linked evidence for this property.',
+                ? 'Open from a property to see what evidence would improve confidence.'
+                : 'Generate the next-best evidence capture plan for this property.',
             onTap: propertyId == null
                 ? null
                 : () => _run(
-                      'Evidence Packet',
-                      () => _operations.buildEvidencePacket(propertyId!),
+                      'Evidence Capture Plan',
+                      () => _operations.propertyHealthCapturePlan(propertyId!),
                     ),
           ),
           _quickAction(
