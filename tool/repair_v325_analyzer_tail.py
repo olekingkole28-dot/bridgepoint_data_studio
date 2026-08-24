@@ -22,7 +22,7 @@ if actual not in (PRE,V325):
         'bridgepoint_customer_access_contract_v318',
         '_RadarIntensityLegendV318',
         'final prefs=SharedPreferencesAsync();',
-        'final fallbackPackage=allowedPackages.contains(selectedPackage)',
+        '_availablePackagesV318',
         'desktop: desktop,',
         'DateTime? get _cloudFrame=>',
     ]
