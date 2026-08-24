@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
 const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';
+// bridgepoint-v690-national-live-demo
 const _bridgePointShareSubject = 'Try BridgePoint Intelligence';
 const _bridgePointShareMessage =
     'See property opportunities, live weather context, explainable evidence, maps, timelines, and field tools in one place. Try BridgePoint Intelligence free for 7 days: $_bridgePointLiveUrl';
@@ -1393,8 +1394,8 @@ class _SearchBox extends StatelessWidget {
           final query=value.text.trim();
           if(query.length<2)return const <Map<String,dynamic>>[];
           try{
-            final result=await _callRpc('bridgepoint_flutter_property_suggestions_v77',{
-              'p_query':query,'p_state_code':'CT','p_limit':8,
+            final result=await _callRpc('bridgepoint_property_suggestions_v192',{
+              'p_query':query,'p_limit':8,
             });
             return _detailList(result['suggestions']);
           }catch(_){return const <Map<String,dynamic>>[];}
@@ -1439,7 +1440,7 @@ class _SearchBox extends StatelessWidget {
                         Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
                           Text('${option['full_address']??'Property'}',maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontSize:11,fontWeight:FontWeight.w800)),
                           const SizedBox(height:3),
-                          Text('${option['municipality']??'Connecticut'} • Parcel ${option['parcel_number']??'not listed'}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),
+                          Text('${option['municipality']??'Property'} • ${option['state_code']??''} • Parcel ${option['parcel_number']??'not listed'}',style:const TextStyle(color:AppTheme.textMuted,fontSize:9)),
                         ])),
                         if(option['top_score']!=null)_OpportunityChip(label:'${option['top_score']}',color:AppTheme.green),
                       ]),
@@ -4279,7 +4280,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
             _PageHeading(
               title: 'Intelligence Map',
               subtitle:
-                  '${widget.packageName} • live Connecticut intelligence with visible expansion markets',
+                  '${widget.packageName} • live U.S. property intelligence • property-linked signals and expansion coverage',
               onRefresh: _reload,
               loading: loading,
             ),
@@ -4487,7 +4488,7 @@ class _IntelligenceMapPageState extends State<_IntelligenceMapPage> {
                               ),
                             ),
                             const SizedBox(height:7),
-                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show Northeast expansion',onTap:()=>_mapController.move(const LatLng(42.15,-72.90),6.3)),
+                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show U.S. intelligence',onTap:()=>_mapController.move(const LatLng(39.50,-98.35),4.0)),
                             const SizedBox(height:7),
                             _MapControlButton(icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,tooltip:_showRadar?'Hide live NOAA radar':'Show live NOAA radar',onTap:()=>setState(()=>_showRadar=!_showRadar)),
                             const SizedBox(height:7),
@@ -5476,6 +5477,20 @@ void _showSignalDetail(
                   ),
                 ),
                 const SizedBox(height: 18),
+                if(signal['property_id']!=null)...[
+                  SizedBox(
+                    width:double.infinity,
+                    child:FilledButton.icon(
+                      onPressed:(){
+                        Navigator.of(context).pop();
+                        _showPropertyInventoryDetail(context,signal);
+                      },
+                      icon:const Icon(Icons.home_work_outlined),
+                      label:const Text('Open full property intelligence'),
+                    ),
+                  ),
+                  const SizedBox(height:12),
+                ],
                 Text(
                   'Signal ID: ${signal['signal_id'] ?? '—'}',
                   style: TextStyle(
@@ -6161,7 +6176,7 @@ class _PropertyIntelligenceDialogState
                 _detailList(data['modern_opportunities']);
 
             final address =
-                '${property['full_address'] ?? '${property['municipality'] ?? 'Connecticut'} property'}';
+                '${property['full_address'] ?? '${property['municipality'] ?? property['state_code'] ?? 'Property'} property'}';
             final assessed = property['assessed_total_value'] as num?;
             final market = property['market_total_value'] as num?;
 
@@ -6193,7 +6208,7 @@ class _PropertyIntelligenceDialogState
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'PROPERTY INTELLIGENCE RECORD • ${property['municipality'] ?? 'CT'} • ${property['parcel_number'] ?? 'No parcel'}',
+                              'PROPERTY INTELLIGENCE RECORD • ${property['municipality'] ?? property['state_code'] ?? 'US'} • ${property['state_code']??''} • ${property['parcel_number'] ?? 'No parcel'}',
                               style: const TextStyle(
                                 color: AppTheme.textMuted,
                                 fontSize: 8,
@@ -6295,7 +6310,7 @@ class _PropertyIntelligenceDialogState
                         const SizedBox(height: 22),
                         _DetailSection(
                           title: 'Property',
-                          subtitle: 'Canonical Connecticut property record',
+                          subtitle: 'Canonical property record linked to BridgePoint intelligence',
                           child: Wrap(
                             spacing: 22,
                             runSpacing: 10,
@@ -6345,7 +6360,7 @@ class _PropertyIntelligenceDialogState
                         _DetailSection(
                           title: 'Physical & Building Intelligence',
                           subtitle:
-                              'Connecticut 2023 2D and 3D building baselines linked to this property',
+                              'Matched 2D and 3D building baselines when available for this property',
                           child: _JsonIntelligenceList(
                             emptyMessage:
                                 'No matched building baseline currently attached.',
