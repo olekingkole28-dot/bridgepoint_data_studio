@@ -1,0 +1,2 @@
+BridgePoint V690 audited release trigger
+Purpose: compile and publish national property autocomplete, U.S. map framing, and signal-to-property navigation for the Thursday live demo.
