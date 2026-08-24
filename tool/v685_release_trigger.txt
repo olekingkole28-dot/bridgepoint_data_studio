@@ -1,0 +1,2 @@
+BridgePoint V685 audited release trigger
+Purpose: compile and publish the canonical signup deep-link fix.
