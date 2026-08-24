@@ -5,7 +5,7 @@ on:
     branches:
       - chatgpt/localization-v711-clean
     paths:
-      - tool/apply_localization_v711_clean.py
+      - tool/trigger_localization_v711_clean.txt
       - .github/workflows/apply-localization-v711-clean.yml
   workflow_dispatch:
 
@@ -24,10 +24,12 @@ jobs:
         with:
           ref: chatgpt/localization-v711-clean
           fetch-depth: 0
-      - name: Apply isolated localization bootstrap
+      - name: Fetch proven patcher and apply only localization
         run: |
           set -euo pipefail
-          python tool/apply_localization_v711_clean.py
+          git fetch origin chatgpt/ui-refresh-v691
+          git show origin/chatgpt/ui-refresh-v691:tool/apply_localization_v711.py > /tmp/apply_localization_v711.py
+          python /tmp/apply_localization_v711.py
           grep -q 'bridgepoint-localization-v711' lib/main.dart
           grep -q 'home: const _LanguageBootstrap(),' lib/main.dart
           grep -q 'bridgepoint_supported_languages_v711' lib/main.dart
@@ -43,12 +45,8 @@ jobs:
           set -euo pipefail
           git config user.name 'BridgePoint Localization Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git rm -f tool/apply_localization_v711_clean.py .github/workflows/apply-localization-v711-clean.yml
+          git rm -f tool/trigger_localization_v711_clean.txt .github/workflows/apply-localization-v711-clean.yml
           git add lib/main.dart
           git checkout -- pubspec.lock 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo 'No isolated localization changes to persist.'
-          else
-            git commit -m 'Add first-run 27-language selector V711 [skip ci]'
-            git push origin HEAD:chatgpt/localization-v711-clean
-          fi
+          git commit -m 'Add first-run 27-language selector V711 [skip ci]'
+          git push origin HEAD:chatgpt/localization-v711-clean
