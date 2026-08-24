@@ -1,0 +1,51 @@
+name: Apply UI Refresh V691
+
+on:
+  push:
+    branches:
+      - chatgpt/ui-refresh-v691
+    paths:
+      - tool/apply_ui_refresh_v691.py
+      - .github/workflows/apply-ui-refresh-v691.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-ui-refresh-v691
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/ui-refresh-v691
+      - name: Apply isolated UI refresh
+        run: |
+          set -euo pipefail
+          python tool/apply_ui_refresh_v691.py
+          grep -q 'bridgepoint-ui-refresh-v691' lib/main.dart
+          grep -q 'Search any property address or parcel' lib/main.dart
+          grep -q 'Icons.account_circle_outlined' lib/main.dart
+      - name: Format and analyze
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: dart format lib/main.dart
+      - run: flutter analyze --no-fatal-infos
+      - name: Persist UI branch source
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint UI Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo 'V691 UI source already current.'
+          else
+            git commit -m 'Apply isolated BridgePoint UI refresh V691 [skip ci]'
+            git push origin HEAD:chatgpt/ui-refresh-v691
+          fi
