@@ -3,6 +3,7 @@ import subprocess
 import sys
 
 subprocess.run([sys.executable,'tool/apply_owner_ai_visibility_v602.py'],check=True)
+subprocess.run([sys.executable,'tool/apply_owner_global_ai_v678.py'],check=True)
 
 path = Path('lib/main.dart')
 body = path.read_text(encoding='utf-8')
