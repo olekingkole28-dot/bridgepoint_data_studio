@@ -1,0 +1,42 @@
+name: Apply Signup Deep Link V685
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tool/apply_signup_deeplink_v685.py
+      - .github/workflows/apply-signup-deeplink-v685.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-apply-signup-deeplink-v685
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply V685 to canonical Flutter source
+        run: |
+          set -euo pipefail
+          python tool/apply_signup_deeplink_v685.py
+          grep -q 'bridgepoint-v685-signup-deeplink' lib/main.dart
+          grep -q "Uri.base.queryParameters\['mode'\]" lib/main.dart
+      - name: Persist canonical source fix
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo 'V685 source already current.'
+          else
+            git commit -m 'Honor signup deep links in Flutter auth V685 [skip ci]'
+            git push origin HEAD:main
+          fi
