@@ -1,0 +1,36 @@
+name: Apply V321 Validator V688
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tool/repair_v321_validator_marker_v688.py
+      - .github/workflows/apply-v321-validator-v688.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Repair evolved V321 validator
+        run: |
+          set -euo pipefail
+          python tool/repair_v321_validator_marker_v688.py
+      - name: Persist validator repair and trigger audited build
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add tool/apply_resilience_expansion_radar_v321.py
+          if git diff --cached --quiet; then
+            echo 'V321 validator already current.'
+          else
+            git commit -m 'Validate evolved NOAA radar contract V688'
+            git push origin HEAD:main
+          fi
