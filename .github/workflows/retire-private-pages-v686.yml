@@ -1,0 +1,50 @@
+name: Retire Private Pages V686
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/retire-private-pages-v686.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  retire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Disable only the obsolete private Pages deploy job
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/flutter-web.yml')
+          s=p.read_text(encoding='utf-8')
+          old="  deploy:\n    if: github.event_name != 'pull_request'\n    needs: build\n"
+          new="  deploy:\n    # V686: source repo builds audited artifacts only. bridgepoint-live V683 is the sole Pages publisher.\n    if: ${{ false }}\n    needs: build\n"
+          if new in s:
+              print('Private Pages deploy already retired.')
+          elif old in s:
+              s=s.replace(old,new,1)
+              p.write_text(s,encoding='utf-8')
+              print('Retired private Pages deploy job; build job unchanged.')
+          else:
+              raise SystemExit('Expected Flutter deploy job signature not found; refusing blind edit.')
+          PY
+          grep -q 'source repo builds audited artifacts only' .github/workflows/flutter-web.yml
+      - name: Persist publisher separation
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .github/workflows/flutter-web.yml
+          if git diff --cached --quiet; then
+            echo 'Publisher separation already current.'
+          else
+            git commit -m 'Make private Flutter workflow build-only V686 [skip ci]'
+            git push origin HEAD:main
+          fi
