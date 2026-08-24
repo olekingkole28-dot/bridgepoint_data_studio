@@ -1,0 +1,56 @@
+name: Apply Visible National Fixes V726
+
+on:
+  push:
+    branches:
+      - chatgpt/v726-fix
+    paths:
+      - tool/apply_visible_national_v726.py
+      - .github/workflows/apply-visible-national-v726.yml
+      - coordination/V726_TRIGGER.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-visible-national-v726
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/v726-fix
+      - name: Apply targeted visible fixes
+        run: |
+          set -euo pipefail
+          python tool/apply_visible_national_v726.py
+          grep -q 'bridgepoint-visible-national-v726' lib/main.dart
+          grep -q 'Authorized U.S. property universe' lib/main.dart
+          grep -q 'onSubmitted:(_){onFieldSubmitted();}' lib/main.dart
+          if grep -q "'KJ'" lib/main.dart; then
+            echo 'Hard-coded KJ remains' >&2
+            exit 1
+          fi
+      - name: Format and analyze
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: dart format lib/main.dart
+      - run: flutter analyze --no-fatal-infos
+      - name: Persist verified source
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint UI Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo 'V726 already current.'
+          else
+            git commit -m 'Apply visible national fixes V726 [skip ci]'
+            git push origin HEAD:chatgpt/v726-fix
+          fi
