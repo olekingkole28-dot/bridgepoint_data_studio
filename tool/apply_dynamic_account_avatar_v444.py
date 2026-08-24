@@ -23,14 +23,19 @@ def require_release_contract(value: str) -> None:
         'account action': 'onTap: onAvatarTap' in top,
         'settings route': "onAvatarTap:()=>_navigateTrainingLabel('Settings')" in value,
         'no hard-coded KJ': "'KJ'" not in top,
+        'localization marker': '// bridgepoint-localization-v711' in value,
+        'first-entry language bootstrap': 'home: const _LanguageBootstrap(),' in value,
+        'supported language RPC': 'bridgepoint_supported_languages_v711' in value,
+        'locale persistence RPC': 'bridgepoint_save_locale_v711' in value,
+        'local locale persistence': "package:shared_preferences/shared_preferences.dart" in value,
     }
     missing = [label for label, passed in checks.items() if not passed]
     if missing:
-        raise SystemExit(f'v444 avatar contract incomplete: {missing}')
+        raise SystemExit(f'v444 final release contract incomplete: {missing}')
 
 if marker in body:
     require_release_contract(body)
-    print('BridgePoint v444 dynamic account avatar already applied and verified.')
+    print('BridgePoint v444 dynamic account avatar and V720 localization release contract verified.')
     raise SystemExit(0)
 
 start = body.find('class _TopBar extends StatelessWidget')
@@ -187,4 +192,4 @@ body = body.replace(
 
 require_release_contract(body)
 path.write_text(body, encoding='utf-8')
-print('Applied BridgePoint v444 dynamic, accessible account avatar.')
+print('Applied BridgePoint v444 dynamic, accessible account avatar with V720 localization release guard.')
