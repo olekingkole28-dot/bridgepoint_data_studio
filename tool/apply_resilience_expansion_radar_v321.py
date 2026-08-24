@@ -39,7 +39,7 @@ for needle in [
     "bridgepoint_public_expansion_status_v321",
     "Calculating from live throughput",
     "Queued • position",
-    "U.S. precipitation radar on • expansion badges hidden so the radar stays clear.",
+    "_loadNoaaRadarFramesV271",
     "LIVE SOURCE OUTAGES",
     "AUTO-DISCOVERY PENDING",
 ]:
