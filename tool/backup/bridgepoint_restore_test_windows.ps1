@@ -6,6 +6,7 @@ param(
   [switch]$NonInteractive
 )
 $ErrorActionPreference='Stop'
+$ProductionProjectRef='xdfsjztwgsbmabshzsjw'
 $dump=Join-Path $BackupRoot 'database\bridgepoint_full.dump'
 $verify=Join-Path $BackupRoot 'verification.json'
 if(-not(Test-Path $dump)){throw 'bridgepoint_full.dump not found. Run the full export first.'}
@@ -15,6 +16,7 @@ if(-not $v.verified){throw 'Backup verification did not pass.'}
 if(-not $TargetDbUrl){$TargetDbUrl=[string]$env:BRIDGEPOINT_RESTORE_TEST_DB_URL}
 if(-not $TargetDbUrl -and -not $NonInteractive){$TargetDbUrl=Read-Host 'Restore-test PostgreSQL target URL'}
 if($TargetDbUrl -notmatch '^postgres(ql)?://'){throw 'A restore-test PostgreSQL target URL is required. Configure BRIDGEPOINT_RESTORE_TEST_DB_URL locally for unattended mode.'}
+if($TargetDbUrl -match [regex]::Escape($ProductionProjectRef)){throw 'REFUSING_RESTORE_TO_PRODUCTION: restore tests may never target the live BridgePoint Supabase project.'}
 $pgRestore=(Get-Command pg_restore -ErrorAction Stop).Source
 $psql=(Get-Command psql -ErrorAction Stop).Source
 
