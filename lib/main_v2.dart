@@ -17,7 +17,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
     url: _supabaseUrl,
-    anonKey: _supabasePublishableKey,
+    publishableKey: _supabasePublishableKey,
   );
   runApp(const BridgePointV2App());
 }
@@ -378,7 +378,10 @@ class _WorkspaceState extends State<_Workspace> {
             ),
           ],
         ),
-        body: _PageFrame(child: _page()),
+        body: _PageFrame(
+          scroll: selected != _Area.owner,
+          child: _page(),
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: current,
           onDestinationSelected: (index) {
@@ -466,7 +469,12 @@ class _WorkspaceState extends State<_Workspace> {
                     ],
                   ),
                 ),
-                Expanded(child: _PageFrame(child: _page())),
+                Expanded(
+                  child: _PageFrame(
+                    scroll: selected != _Area.owner,
+                    child: _page(),
+                  ),
+                ),
               ],
             ),
           ),
@@ -487,11 +495,22 @@ String _titleFor(_Area area) => switch (area) {
     };
 
 class _PageFrame extends StatelessWidget {
-  const _PageFrame({required this.child});
+  const _PageFrame({required this.child, this.scroll = true});
+
   final Widget child;
+  final bool scroll;
 
   @override
   Widget build(BuildContext context) {
+    final content = scroll
+        ? SingleChildScrollView(
+            padding: const EdgeInsets.all(18),
+            child: child,
+          )
+        : Padding(
+            padding: const EdgeInsets.all(10),
+            child: SizedBox.expand(child: child),
+          );
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: RadialGradient(
@@ -500,10 +519,7 @@ class _PageFrame extends StatelessWidget {
           colors: [Color(0x1435D2E8), Color(0xFF06111E)],
         ),
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(18),
-        child: child,
-      ),
+      child: content,
     );
   }
 }
