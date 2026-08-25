@@ -21,9 +21,9 @@ jobs:
         env:
           SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
           SUPABASE_PUBLISHABLE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
-          EXPECTED_SOURCE: 92c1f489f188c5f45af597a18ca192f1660231a7
-          EXPECTED_SHA: 4a41f04c91715a835481eaf8802ad8b0d740254810a80ceaaf3608e4644b804b
-          RELEASE_OBJECT: clean-v2-92c1f489f188c5f45af597a18ca192f1660231a7.tar.gz
+          EXPECTED_SOURCE: f0931d0363ecc72fd471c9065ec7c9eb9e41c1f3
+          EXPECTED_SHA: 29ee7b7cdc652915ec6d08ec668c77cb78c680938ea7b3b5f418f9efc3412b13
+          RELEASE_OBJECT: clean-v2-f0931d0363ecc72fd471c9065ec7c9eb9e41c1f3.tar.gz
         shell: bash
         run: |
           set -euo pipefail
@@ -47,6 +47,10 @@ jobs:
               raise SystemExit(f"Archive SHA mismatch: manifest={manifest.get('archive_sha256')} actual={actual} expected={expected_sha}")
           if manifest.get('archive_bytes') != len(archive):
               raise SystemExit(f"Archive byte mismatch: {len(archive)} != {manifest.get('archive_bytes')}")
+          if manifest.get('saved_alerts_restored') is not True:
+              raise SystemExit('Saved & Alerts release marker missing')
+          if manifest.get('brand_asset_included') is not True:
+              raise SystemExit('Brand asset release marker missing')
           print(f"Verified restored Clean V2: source={expected_source}, bytes={len(archive)}, sha256={actual}")
           PY
           curl --fail-with-body --show-error --silent \
