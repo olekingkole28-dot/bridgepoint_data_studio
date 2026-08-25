@@ -11,11 +11,10 @@ if old in s:
 elif new not in s:
     raise SystemExit('v94 banner matcher repair target not found in either historical or repaired form')
 
-# v780: v94 predates both the canonical national NOAA map stack and the
-# server-driven package purchase/delivery truth introduced by v778. Historical
-# replacements remain strict unless the newer source proves the capability that
-# superseded them. This keeps release corruption visible while preventing old
-# generators from regressing modern source.
+# v781: v94 predates the canonical national NOAA map stack, the server-driven
+# package purchase/delivery truth, and the current Owner Global Control plane.
+# Historical replacements remain strict unless newer checked-in source proves
+# the capability that superseded them.
 old_replace='''def replace_once(old: str, new: str, label: str):
     global text
     count = text.count(old)
@@ -85,7 +84,7 @@ def replace_once(old: str, new: str, label: str):
         return
     raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
 '''
-new_v780='''_SUPERSEDED_V94_MAP_LABELS = {
+old_v780='''_SUPERSEDED_V94_MAP_LABELS = {
     'map-radar-state',
     'map-radar-timer',
     'map-opportunity-limit',
@@ -142,18 +141,101 @@ def replace_once(old: str, new: str, label: str):
         return
     raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
 '''
-if new_v780 not in s:
-    if old_v776 in s:
-        s=s.replace(old_v776,new_v780,1)
+new_v781='''_SUPERSEDED_V94_MAP_LABELS = {
+    'map-radar-state',
+    'map-radar-timer',
+    'map-opportunity-limit',
+    'map-signal-limit',
+    'map-min-zoom',
+    'map-live-radar-cache-bust',
+    'map-remove-scan-overlay',
+}
+_SUPERSEDED_V94_PACKAGE_LABELS = {
+    'technology-card-flag',
+    'technology-card-chip',
+    'technology-empty-model-copy',
+    'technology-price-label',
+    'technology-detail-flag',
+    'technology-detail-banner',
+    'technology-contact-sales',
+}
+_SUPERSEDED_V94_OWNER_LABELS = {
+    'owner-expansion-insert',
+}
+
+def _canonical_map_truth_present() -> bool:
+    radar_state = ('bool _showRadar = true;' in text or 'bool _showRadar=true;' in text)
+    noaa_wms = (
+        'opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows?' in text
+        and "layers: const ['conus_bref_qcd']" in text
+    )
+    us_control = (
+        "tooltip: 'Show U.S. intelligence'" in text
+        or "tooltip:'Show United States live weather'" in text
+        or "LatLng(39.50, -98.35)" in text
+        or "LatLng(39.50,-98.35)" in text
+    )
+    return radar_state and noaa_wms and us_control
+
+def _canonical_package_truth_present() -> bool:
+    return (
+        'bridgepoint-package-purchase-truth-v778' in text
+        and "'bridgepoint_request_owner_approved_package_v323'" in text
+        and "'bridgepoint_request_technology_package_v93'" in text
+        and "return 'BUY';" in text
+        and "return 'REQUEST';" in text
+        and "return 'BUILDING';" in text
+    )
+
+def _canonical_owner_global_truth_present() -> bool:
+    owner_path = Path('lib/screens/bridgepoint_owner_global_control.dart')
+    if not owner_path.exists():
+        return False
+    owner = owner_path.read_text(encoding='utf-8')
+    main_wired = (
+        "import 'screens/bridgepoint_owner_command_center.dart';" in text
+        and 'BridgePointOwnerCommandCenter' in text
+    )
+    control_truth = all(marker in owner for marker in (
+        'bridgepoint_owner_global_command_v675',
+        "'START_US_ALL'",
+        "'START_WORLD_DISCOVERY'",
+        "'START_JURISDICTION'",
+        'bridgepoint_owner_state_export_manifest_v675',
+        'These actions queue discovery/build work. They never bypass validation or customer-readiness gates.',
+    ))
+    return main_wired and control_truth
+
+def replace_once(old: str, new: str, label: str):
+    global text
+    count = text.count(old)
+    if count == 1:
+        text = text.replace(old, new, 1)
+        return
+    if count == 0 and label in _SUPERSEDED_V94_MAP_LABELS and _canonical_map_truth_present():
+        print(f'{label}: superseded by canonical NOAA WMS + U.S. map controls; continuing')
+        return
+    if count == 0 and label in _SUPERSEDED_V94_PACKAGE_LABELS and _canonical_package_truth_present():
+        print(f'{label}: superseded by server-driven package purchase/delivery truth v778; continuing')
+        return
+    if count == 0 and label in _SUPERSEDED_V94_OWNER_LABELS and _canonical_owner_global_truth_present():
+        print(f'{label}: superseded by Owner Global Control v675; continuing')
+        return
+    raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+'''
+if new_v781 not in s:
+    if old_v780 in s:
+        s=s.replace(old_v780,new_v781,1)
+    elif old_v776 in s:
+        s=s.replace(old_v776,new_v781,1)
     elif old_v775 in s:
-        s=s.replace(old_v775,new_v780,1)
+        s=s.replace(old_v775,new_v781,1)
     elif old_replace in s:
-        s=s.replace(old_replace,new_v780,1)
+        s=s.replace(old_replace,new_v781,1)
     else:
         raise SystemExit('v94 replace_once compatibility target not found')
 
 # The U.S.-weather control was historically patched outside replace_once.
-# Bring that special case under the same structural supersession truth rule.
 old_us='''if text.count(_old_us_weather) == 1:
     text = text.replace(_old_us_weather, _new_us_weather, 1)
 elif text.count(_new_us_weather) >= 1:
@@ -175,5 +257,32 @@ if new_us not in s:
         raise SystemExit('v94 special U.S. map-control compatibility target not found')
     s=s.replace(old_us,new_us,1)
 
+# The old owner expansion class was injected outside replace_once as well.
+old_owner_preamble='''marker = "class _EmergencyAdminPanel extends StatefulWidget{"
+if text.count(marker) != 1:
+    raise SystemExit('owner-expansion-class-marker not found exactly once')
+owner_class = r'''\'''
+new_owner_preamble='''marker = "class _EmergencyAdminPanel extends StatefulWidget{"
+_owner_global_superseded = _canonical_owner_global_truth_present()
+if not _owner_global_superseded and text.count(marker) != 1:
+    raise SystemExit('owner-expansion-class-marker not found exactly once')
+owner_class = r'''\'''
+if new_owner_preamble not in s:
+    if old_owner_preamble not in s:
+        raise SystemExit('v94 owner-expansion class preamble target not found')
+    s=s.replace(old_owner_preamble,new_owner_preamble,1)
+
+old_owner_insert="text = text.replace(marker, owner_class + marker, 1)"
+new_owner_insert='''if _owner_global_superseded:
+    print('owner-expansion-class: superseded by wired Owner Global Control v675; continuing')
+elif 'class _OwnerExpansionPanel extends StatefulWidget' in text:
+    print('owner-expansion-class: already present; continuing')
+else:
+    text = text.replace(marker, owner_class + marker, 1)'''
+if new_owner_insert not in s:
+    if old_owner_insert not in s:
+        raise SystemExit('v94 owner-expansion class insertion target not found')
+    s=s.replace(old_owner_insert,new_owner_insert,1)
+
 p.write_text(s,encoding='utf-8')
-print('Repaired v94 supersession for canonical map + package truth v780')
+print('Repaired v94 supersession for canonical map + package + owner global truth v781')
