@@ -15,6 +15,7 @@ import 'bridgepoint_investment_valuation_v2.dart';
 import 'bridgepoint_investor_v2.dart';
 import 'bridgepoint_map_weather_v2.dart';
 import 'bridgepoint_operations_workspace_v2.dart';
+import 'bridgepoint_opportunities_v2.dart';
 import 'bridgepoint_portfolio_risk_v2.dart';
 import 'bridgepoint_products_settings_v2.dart';
 import 'bridgepoint_properties_v2.dart';
@@ -261,6 +262,7 @@ enum _AreaV2 {
   home,
   map,
   properties,
+  opportunities,
   investment,
   investor,
   property,
@@ -292,6 +294,7 @@ const _baseAreasV2 = <_AreaSpecV2>[
   _AreaSpecV2(_AreaV2.home, 'Home', Icons.space_dashboard_rounded),
   _AreaSpecV2(_AreaV2.map, 'Map & Weather', Icons.public_rounded),
   _AreaSpecV2(_AreaV2.properties, 'Properties', Icons.holiday_village_rounded),
+  _AreaSpecV2(_AreaV2.opportunities, 'Opportunities', Icons.bolt_rounded),
   _AreaSpecV2(_AreaV2.investor, 'Property Investor', Icons.real_estate_agent_rounded),
   _AreaSpecV2(_AreaV2.property, 'Property 360', Icons.home_work_rounded),
   _AreaSpecV2(_AreaV2.signals, 'Signals', Icons.radar_rounded),
@@ -394,6 +397,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
         _AreaV2.home => const BridgePointHomeV2(),
         _AreaV2.map => const BridgePointMapWeatherV2(),
         _AreaV2.properties => const BridgePointPropertiesV2(),
+        _AreaV2.opportunities => const BridgePointOpportunitiesV2(),
         _AreaV2.investment => const BridgePointInvestmentValuationV2(),
         _AreaV2.investor => const BridgePointInvestorV2(),
         _AreaV2.property => const BridgePointProperty360V2(),
@@ -677,6 +681,7 @@ String _title(_AreaV2 area) => switch (area) {
       _AreaV2.home => 'BridgePoint Intelligence',
       _AreaV2.map => 'Geospatial Intelligence',
       _AreaV2.properties => 'Properties',
+      _AreaV2.opportunities => 'Opportunities',
       _AreaV2.investment => 'Investment / BridgePoint Worth',
       _AreaV2.investor => 'Property Investor',
       _AreaV2.property => 'Property 360',
