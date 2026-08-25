@@ -165,7 +165,8 @@ class _BridgePointIntelligenceStudioState
 
   @override
   Widget build(BuildContext context) {
-    final lanes = <String>{'ALL', ..._stages.map((stage) => stage.lane)}.toList()
+    final lanes = <String>{'ALL', ..._stages.map((stage) => stage.lane)}
+        .toList()
       ..sort((a, b) => a == 'ALL' ? -1 : a.compareTo(b));
     final needle = _query.trim().toLowerCase();
     final visible = _stages.where((stage) {
@@ -232,7 +233,8 @@ class _BridgePointIntelligenceStudioState
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search_rounded),
                   labelText: 'Find a capability',
-                  hintText: 'Try “roof,” “claims,” “ownership,” “AI,” “radar,” or “Palantir”',
+                  hintText:
+                      'Try “roof,” “claims,” “ownership,” “AI,” “radar,” or “Palantir”',
                   border: OutlineInputBorder(),
                 ),
               ),

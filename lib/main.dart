@@ -14,6 +14,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'screens/bridgepoint_owner_command_center.dart';
+import 'bridgepoint_intelligence_studio_v790.dart';
+import 'bridgepoint_integrations_hub_v790.dart';
 
 const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
 const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';
@@ -1642,6 +1644,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _NavigationItem('Packages', Icons.inventory_2_outlined),
     _NavigationItem('Models', Icons.psychology_alt_rounded),
     _NavigationItem('Settings', Icons.settings_rounded),
+    _NavigationItem('Intelligence Studio', Icons.schema_rounded),
+    _NavigationItem('Integrations', Icons.cable_rounded),
   ];
 
   List<_NavigationItem> get visibleNavigationItems => [
@@ -1999,6 +2003,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         );
       case 13:
+        return BridgePointIntelligenceStudio(
+          onNavigate: _navigateTo,
+          ownerMode: widget.ownerMode,
+        );
+      case 14:
+        return const BridgePointIntegrationsHub();
+      case 15:
         if (widget.ownerMode) return const BridgePointOwnerCommandCenter();
         return const _ComingSoonPage(
           title: 'Owner Center',
@@ -2111,7 +2122,7 @@ class _WorkspaceAtmosphere extends StatelessWidget {
         pageIndex == 9 ||
         pageIndex == 10 ||
         pageIndex == 12 ||
-        pageIndex == 13;
+        pageIndex == 15;
     final map = pageIndex == 2 || pageIndex == 3 || pageIndex == 8;
     final asset = daily
         ? 'assets/images/bridgepoint-daily-brief-background-v2.webp'

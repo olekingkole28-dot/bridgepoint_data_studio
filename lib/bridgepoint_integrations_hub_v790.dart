@@ -228,7 +228,8 @@ class _BridgePointIntegrationsHubState
                   Expanded(
                     child: Text(
                       'Truth rule: “Connected” is reserved for verified credentials plus a successful governed exchange. Sandbox, partner-required, blocked and interest-only states stay visibly different.',
-                      style: TextStyle(color: _muted, fontSize: 11, height: 1.45),
+                      style:
+                          TextStyle(color: _muted, fontSize: 11, height: 1.45),
                     ),
                   ),
                 ],
@@ -328,8 +329,8 @@ class _BridgePointIntegrationsHubState
         .toList();
     final latest = row['latest_request'];
     final busy = _busyConnector == '${row['connector_key']}';
-    final canRequest = status != 'LIVE_VERIFIED' &&
-        status != 'READY_CANONICAL_EXPORT';
+    final canRequest =
+        status != 'LIVE_VERIFIED' && status != 'READY_CANONICAL_EXPORT';
 
     return Card(
       color: _panel,
@@ -399,7 +400,8 @@ class _BridgePointIntegrationsHubState
                     .take(8)
                     .map((value) => Chip(
                           visualDensity: VisualDensity.compact,
-                          label: Text(value, style: const TextStyle(fontSize: 8)),
+                          label:
+                              Text(value, style: const TextStyle(fontSize: 8)),
                         ))
                     .toList(),
               ),
@@ -418,7 +420,8 @@ class _BridgePointIntegrationsHubState
                   Icon(Icons.verified_rounded, color: _green, size: 18),
                   SizedBox(width: 7),
                   Text('Verified live connection',
-                      style: TextStyle(color: _green, fontWeight: FontWeight.w800)),
+                      style: TextStyle(
+                          color: _green, fontWeight: FontWeight.w800)),
                 ],
               )
             else if (status == 'READY_CANONICAL_EXPORT')
@@ -429,7 +432,8 @@ class _BridgePointIntegrationsHubState
                   SizedBox(width: 7),
                   Expanded(
                     child: Text('Portable BridgePoint export is ready',
-                        style: TextStyle(color: _green, fontWeight: FontWeight.w800)),
+                        style: TextStyle(
+                            color: _green, fontWeight: FontWeight.w800)),
                   ),
                 ],
               )
