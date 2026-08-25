@@ -155,7 +155,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
   Future<void> _saveToWatchlist() async {
     final propertyId = _propertyId;
     if (propertyId == null) return;
-    var rows = _list(_watchlists);
+    final rows = _list(_watchlists);
     String? selectedId;
     final newName = TextEditingController();
     final choice = await showDialog<String>(
@@ -211,6 +211,44 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
     }
   }
 
+  Future<void> _askPropertyAi() async {
+    final propertyId = _propertyId;
+    if (propertyId == null) return;
+    final prompt = TextEditingController(text: 'Summarize the Why Now, strongest evidence, uncertainty, risk context, and best next action for this property.');
+    final ask = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Ask BridgePoint AI about this property'),
+        content: SizedBox(width: 520, child: TextField(controller: prompt, minLines: 3, maxLines: 8, decoration: const InputDecoration(labelText: 'Question'))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton.icon(onPressed: () => Navigator.pop(context, true), icon: const Icon(Icons.auto_awesome_rounded), label: const Text('Ask AI')),
+        ],
+      ),
+    );
+    if (ask != true) { prompt.dispose(); return; }
+    setState(() { _busy = true; _message = null; });
+    try {
+      final query = 'BridgePoint property ID $propertyId at ${_label(_detail)}. ${prompt.text.trim()} Keep the answer evidence-backed and distinguish model output from confirmed condition.';
+      final raw = await Supabase.instance.client.rpc('bridgepoint_ai_answer_ui_v322', params: {'p_query': query});
+      final answer = _map(raw);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(children: [Icon(Icons.auto_awesome_rounded, color: _cyan), SizedBox(width: 8), Text('BridgePoint AI')]),
+          content: SizedBox(width: 620, child: SingleChildScrollView(child: _KeyValues(answer))),
+          actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Done'))],
+        ),
+      );
+    } catch (e) {
+      if (mounted) setState(() => _message = 'BridgePoint AI unavailable: $e');
+    } finally {
+      prompt.dispose();
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   String _label(Map<String, dynamic> row) {
     final address = '${row['address'] ?? row['full_address'] ?? row['property_address'] ?? ''}'.trim();
     if (address.isNotEmpty) return address;
@@ -232,6 +270,32 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
     );
   }
 
+  Widget _searchBar() => LayoutBuilder(builder: (context, c) {
+    final compact = c.maxWidth < 520;
+    final field = TextField(controller: _query, onSubmitted: (_) => _search(), decoration: const InputDecoration(labelText: 'Address, parcel, owner, city or property', prefixIcon: Icon(Icons.search_rounded)));
+    final button = FilledButton.icon(onPressed: _busy ? null : _search, icon: const Icon(Icons.search_rounded), label: const Text('Search'));
+    if (compact) return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [field, const SizedBox(height: 8), button]);
+    return Row(children: [Expanded(child: field), const SizedBox(width: 10), button]);
+  });
+
+  Widget _propertyHeader() => LayoutBuilder(builder: (context, c) {
+    final title = Row(children: [
+      IconButton.filledTonal(onPressed: () => setState(() => _propertyId = null), icon: const Icon(Icons.arrow_back_rounded)),
+      const SizedBox(width: 10),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(_label(_detail), style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+        Text('Property ID $_propertyId${_municipality == null ? '' : ' • $_municipality'}', style: const TextStyle(color: _muted, fontSize: 10)),
+      ])),
+    ]);
+    final actions = Wrap(spacing: 8, runSpacing: 8, children: [
+      FilledButton.tonalIcon(onPressed: _busy ? null : _askPropertyAi, icon: const Icon(Icons.auto_awesome_rounded), label: const Text('Ask AI')),
+      FilledButton.tonalIcon(onPressed: _busy ? null : _saveToWatchlist, icon: const Icon(Icons.bookmark_add_outlined), label: const Text('Watchlist')),
+      const Chip(avatar: Icon(Icons.verified_user_outlined, size: 16), label: Text('SOURCE-BACKED')),
+    ]);
+    if (c.maxWidth < 720) return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [title, const SizedBox(height: 10), actions]);
+    return Row(children: [Expanded(child: title), const SizedBox(width: 10), actions]);
+  });
+
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -239,11 +303,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       const SizedBox(height: 5),
       const Text('One canonical property object: identity, owner/provenance, Property DNA, Why Now, climate risk, Digital Twin fidelity, permits, imagery, notes and actions.', style: TextStyle(color: _muted, height: 1.45)),
       const SizedBox(height: 14),
-      Row(children: [
-        Expanded(child: TextField(controller: _query, onSubmitted: (_) => _search(), decoration: const InputDecoration(labelText: 'Address, parcel, owner, city or property', prefixIcon: Icon(Icons.search_rounded)))),
-        const SizedBox(width: 10),
-        FilledButton.icon(onPressed: _busy ? null : _search, icon: const Icon(Icons.search_rounded), label: const Text('Search')),
-      ]),
+      _searchBar(),
       if (_busy) ...[const SizedBox(height: 8), const LinearProgressIndicator()],
       if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: Color(0xFFFF7E7E)))],
       if (_message != null) ...[const SizedBox(height: 8), Text(_message!, style: const TextStyle(color: _cyan))],
@@ -263,17 +323,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
                 )),
               ))
       else ...[
-        Row(children: [
-          IconButton.filledTonal(onPressed: () => setState(() => _propertyId = null), icon: const Icon(Icons.arrow_back_rounded)),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(_label(_detail), style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
-            Text('Property ID $_propertyId${_municipality == null ? '' : ' • $_municipality'}', style: const TextStyle(color: _muted, fontSize: 10)),
-          ])),
-          FilledButton.tonalIcon(onPressed: _busy ? null : _saveToWatchlist, icon: const Icon(Icons.bookmark_add_outlined), label: const Text('Watchlist')),
-          const SizedBox(width: 8),
-          const Chip(avatar: Icon(Icons.verified_user_outlined, size: 16), label: Text('SOURCE-BACKED')),
-        ]),
+        _propertyHeader(),
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -293,20 +343,29 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
         if (_tab == 0) _section('Canonical property + Why Now', _detail, Icons.home_work_rounded),
         if (_tab == 1) _section('Property DNA / evidence timeline', _timeline, Icons.timeline_rounded),
         if (_tab == 2) ...[
-          Wrap(spacing: 12, runSpacing: 12, children: [
-            SizedBox(width: 520, child: _section('Climate / peril profile', _climate, Icons.thermostat_rounded)),
-            SizedBox(width: 520, child: _section('Digital Twin fidelity', _twin, Icons.view_in_ar_rounded)),
-          ]),
+          LayoutBuilder(builder: (context, c) {
+            final wide = c.maxWidth > 1080;
+            final width = wide ? (c.maxWidth - 12) / 2 : c.maxWidth;
+            return Wrap(spacing: 12, runSpacing: 12, children: [
+              SizedBox(width: width, child: _section('Climate / peril profile', _climate, Icons.thermostat_rounded)),
+              SizedBox(width: width, child: _section('Digital Twin fidelity', _twin, Icons.view_in_ar_rounded)),
+            ]);
+          }),
           const SizedBox(height: 8),
           const Text('Risk scores are prioritization/model output, not proof of damage or future loss. Twin levels are shown at their actual fidelity; low-fidelity massing is never labeled an exact replica.', style: TextStyle(color: _amber, fontSize: 10)),
         ],
         if (_tab == 3)
-          Wrap(spacing: 12, runSpacing: 12, children: [
-            SizedBox(width: 520, child: _section('Permit / municipal context', _permits, Icons.description_outlined)),
-            SizedBox(width: 520, child: _section('Imagery / media history', _media, Icons.photo_library_outlined)),
-          ]),
+          LayoutBuilder(builder: (context, c) {
+            final wide = c.maxWidth > 1080;
+            final width = wide ? (c.maxWidth - 12) / 2 : c.maxWidth;
+            return Wrap(spacing: 12, runSpacing: 12, children: [
+              SizedBox(width: width, child: _section('Permit / municipal context', _permits, Icons.description_outlined)),
+              SizedBox(width: width, child: _section('Imagery / media history', _media, Icons.photo_library_outlined)),
+            ]);
+          }),
         if (_tab == 4) ...[
           Wrap(spacing: 8, runSpacing: 8, children: [
+            FilledButton.tonalIcon(onPressed: _busy ? null : _askPropertyAi, icon: const Icon(Icons.auto_awesome_rounded), label: const Text('Ask AI about property')),
             FilledButton.tonalIcon(onPressed: _busy ? null : _saveToWatchlist, icon: const Icon(Icons.bookmark_add_outlined), label: const Text('Save to watchlist')),
           ]),
           const SizedBox(height: 10),
@@ -336,13 +395,13 @@ class _KeyValues extends StatelessWidget {
     if (value.isEmpty) return const Text('No records returned.', style: TextStyle(color: Color(0xFF8FA5BF)));
     return Wrap(spacing: 10, runSpacing: 7, children: value.entries.take(30).map((entry) {
       final raw = '${entry.value}';
-      final text = raw.length > 300 ? '${raw.substring(0, 300)}…' : raw;
+      final text = raw.length > 900 ? '${raw.substring(0, 900)}…' : raw;
       return ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 430),
+        constraints: const BoxConstraints(maxWidth: 560),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
           decoration: BoxDecoration(color: const Color(0xFF081625), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0x2235D2E8))),
-          child: Text('${entry.key.replaceAll('_', ' ')}: $text', style: const TextStyle(fontSize: 9, height: 1.35)),
+          child: SelectableText('${entry.key.replaceAll('_', ' ')}: $text', style: const TextStyle(fontSize: 9, height: 1.35)),
         ),
       );
     }).toList());
