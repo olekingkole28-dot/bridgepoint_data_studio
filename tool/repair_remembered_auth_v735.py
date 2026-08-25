@@ -8,9 +8,6 @@ if start<0 or end<0:
     raise SystemExit('v735 remembered auth: AuthScreenState boundaries missing')
 block=text[start:end]
 
-# v181b adds these constants before v735 normalizes the auth class. They are harmless
-# client-side preference keys and must remain present; recreate only if a future source
-# baseline no longer carries the earlier generated constants.
 api_marker="const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';\n"
 if '_bpRememberInfoKey' not in text:
     if api_marker not in text:
@@ -19,6 +16,28 @@ if '_bpRememberInfoKey' not in text:
     start=text.find('class _AuthScreenState extends State<_AuthScreen> {')
     end=text.find('class _PublicLegalSummaryDialog',start)
     block=text[start:end]
+
+# Use the same v735 marker as the later restore validator so this repair remains
+# idempotent even when the final avatar layer re-checks remembered-auth compatibility.
+if 'bridgepoint-v735-secure-remembered-auth' not in block:
+    fields_old="""  // bridgepoint-v685-signup-deeplink
+  final displayName=TextEditingController(); final email=TextEditingController(); final password=TextEditingController();
+  bool create=false,loading=false,showPassword=false,acceptTerms=false; String? error;
+"""
+    fields_new="""  // bridgepoint-v685-signup-deeplink
+  // bridgepoint-v735-secure-remembered-auth
+  final displayName=TextEditingController(); final email=TextEditingController(); final password=TextEditingController();
+  bool create=false,loading=false,showPassword=false,acceptTerms=false,rememberInfo=false; String? error;
+"""
+    if fields_old in block:
+        block=block.replace(fields_old,fields_new,1)
+    elif 'rememberInfo=false' in block:
+        anchor='  // bridgepoint-v685-signup-deeplink\n'
+        if anchor not in block:
+            raise SystemExit('v735 remembered auth: signup marker missing while rememberInfo already exists')
+        block=block.replace(anchor,anchor+'  // bridgepoint-v735-secure-remembered-auth\n',1)
+    else:
+        raise SystemExit('v735 remembered auth: auth boolean field anchor missing')
 
 if 'rememberInfo=false' not in block:
     old="  bool create=false,loading=false,showPassword=false,acceptTerms=false; String? error;\n"
@@ -75,7 +94,6 @@ if 'Future<void> _loadRememberedInfo()' not in block:
         raise SystemExit('v735 remembered auth: deeplink initState anchor missing')
     block=block.replace(init_anchor,init_new,1)
 
-# Persist only email/nickname, never password. Keep the current signup deeplink and legal flow.
 if 'await _persistRememberedInfo();' not in block:
     signup_old="""        final response=await Supabase.instance.client.auth.signUp(email:email.text.trim(),password:password.text,
           data:{'display_name':displayName.text.trim(),'legal_accepted':true,'legal_version':'2026-08-15'});
@@ -123,6 +141,7 @@ if 'Save my info for next time' not in block:
 
 text=text[:start]+block+text[end:]
 for needle in (
+    '// bridgepoint-v735-secure-remembered-auth',
     'Save my info for next time',
     'BridgePoint never stores your password here.',
     '_bpRememberInfoKey',
@@ -133,7 +152,10 @@ for needle in (
     if needle not in text:
         raise SystemExit(f'v735 remembered auth contract missing: {needle}')
 
-# Structural safety: v735 is specifically responsible for preventing duplicate lifecycle methods.
+for forbidden in ("prefs.setString('password'",'prefs.setString(_bpRememberPassword','bridgepoint_remember_password'):
+    if forbidden in text:
+        raise SystemExit(f'v735 remembered auth: forbidden password persistence detected: {forbidden}')
+
 auth=text[text.find('class _AuthScreenState extends State<_AuthScreen> {'):text.find('class _PublicLegalSummaryDialog',text.find('class _AuthScreenState extends State<_AuthScreen> {'))]
 if auth.count('void initState()')!=1:
     raise SystemExit(f'v735 remembered auth: expected one initState, found {auth.count("void initState()")}; refusing release')
