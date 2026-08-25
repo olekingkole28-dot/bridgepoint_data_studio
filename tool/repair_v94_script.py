@@ -58,3 +58,17 @@ elif current_sub not in u:
     raise SystemExit('v189 map heading compatibility target not found')
 v189.write_text(u,encoding='utf-8')
 print('Repaired v189 national map heading compatibility')
+
+# v192 itself introduced the all-state suggestion RPC in an older release. Canonical
+# source already uses that RPC, so only its first matcher needs to be idempotent; the
+# location/recenter changes later in the script should still execute.
+v192=Path('tool/apply_global_search_location_v192.py')
+v=v192.read_text(encoding='utf-8')
+old_guard="""if old not in text: raise SystemExit('global CT search anchor missing')\ntext=text.replace(old,new,1)\n"""
+new_guard="""if old in text:\n    text=text.replace(old,new,1)\nelif new in text:\n    print('v192: global property suggestions RPC already present; continuing with location repairs')\nelse:\n    raise SystemExit('global property search anchor missing or ambiguous')\n"""
+if old_guard in v:
+    v=v.replace(old_guard,new_guard,1)
+elif new_guard not in v:
+    raise SystemExit('v192 global-search compatibility repair target not found')
+v192.write_text(v,encoding='utf-8')
+print('Repaired v192 global-search idempotency')
