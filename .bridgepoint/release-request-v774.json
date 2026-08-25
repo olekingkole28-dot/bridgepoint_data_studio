@@ -1,0 +1,6 @@
+{
+  "requested_at": "2026-08-25T14:25:00Z",
+  "reason": "Promote Flutter-validated mobile navigation and Owner Command Center wiring through the authoritative audited release pipeline.",
+  "validated_source_sha": "e9c36c493c053077e520bdaf313c71831042b46d",
+  "release_truth": "A request is not a deployment. Production remains unverified until the audited build, Pages deploy, and public postdeploy checks pass."
+}
