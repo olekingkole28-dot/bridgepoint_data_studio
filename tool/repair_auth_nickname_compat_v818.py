@@ -12,7 +12,7 @@ original = text
 auth_start = text.find('class _AuthScreenState extends State<_AuthScreen> {')
 auth_end = text.find('class _PublicLegalSummaryDialog', auth_start)
 if auth_start < 0 or auth_end < 0:
-    raise SystemExit('v818 auth screen state block missing')
+    raise SystemExit('v819 auth screen state block missing')
 auth = text[auth_start:auth_end]
 
 expected_fields = """  final displayName=TextEditingController(); final email=TextEditingController(); final password=TextEditingController();
@@ -29,7 +29,7 @@ if expected_fields not in auth:
         re.S,
     )
     if len(fields_pattern.findall(auth)) != 1:
-        raise SystemExit(f'v818 auth fields expected 1 match, found {len(fields_pattern.findall(auth))}')
+        raise SystemExit(f'v819 auth fields expected 1 match, found {len(fields_pattern.findall(auth))}')
     auth = fields_pattern.sub(expected_fields.rstrip('\n'), auth, count=1)
 
 expected_submit = """        final response=await Supabase.instance.client.auth.signUp(email:email.text.trim(),password:password.text,
@@ -51,13 +51,10 @@ if expected_submit not in auth:
         r"email:\s*email\.text\.trim\(\)\s*,\s*password:\s*password\.text\s*\)\s*;\s*\}",
         re.S,
     )
-    m = submit_pattern.search(auth)
-    if m is None:
-        raise SystemExit('v818 auth signup/signin block not found')
+    if submit_pattern.search(auth) is None:
+        raise SystemExit('v819 auth signup/signin block not found')
     auth = submit_pattern.sub(expected_submit.rstrip('\n'), auth, count=1)
 
-# Normalize the password -> create-account legal checkbox boundary exactly as
-# v181b expects. Keep the actual legal checkbox content after its opening paren.
 expected_checkbox = """      ),
       if(create)...[const SizedBox(height:10),CheckboxListTile(
 """
@@ -68,12 +65,10 @@ if expected_checkbox not in auth:
         re.S,
     )
     candidates = list(checkbox_pattern.finditer(auth))
-    # Restrict to the match following the password visibility icon so another
-    # create-only block can never be normalized accidentally.
     visibility = auth.find('Icons.visibility_rounded')
     match = next((m for m in candidates if m.start() > visibility >= 0), None)
     if match is None:
-        raise SystemExit('v818 remember-info placement boundary not found')
+        raise SystemExit('v819 remember-info placement boundary not found')
     auth = auth[:match.start()] + expected_checkbox.rstrip('\n') + auth[match.end():]
 
 text = text[:auth_start] + auth + text[auth_end:]
@@ -81,21 +76,26 @@ text = text[:auth_start] + auth + text[auth_end:]
 settings_start = text.find('class _SettingsPageState extends State<_SettingsPage> {')
 settings_end = text.find('class _SettingsSection extends StatelessWidget', settings_start)
 if settings_start < 0 or settings_end < 0:
-    raise SystemExit('v818 settings state block missing')
+    raise SystemExit('v819 settings state block missing')
 settings = text[settings_start:settings_end]
 
-# Compact settings state boundary.
 if '  bool _savingAccessibility=false;\n' not in settings:
     pattern = re.compile(r"[ \t]*bool _savingAccessibility\s*=\s*false\s*;\s*\n")
     if len(pattern.findall(settings)) != 1:
-        raise SystemExit(f'v818 settings accessibility field expected 1 match, found {len(pattern.findall(settings))}')
+        raise SystemExit(f'v819 settings accessibility field expected 1 match, found {len(pattern.findall(settings))}')
     settings = pattern.sub('  bool _savingAccessibility=false;\n', settings, count=1)
 
+# `_accessibility = _displayPreferences.value` also legitimately appears in the
+# update path. Normalize only the initState occurrence immediately following
+# `_refreshSeconds = widget.refreshSeconds`.
 if '    _accessibility=_displayPreferences.value;\n' not in settings:
-    pattern = re.compile(r"[ \t]*_accessibility\s*=\s*_displayPreferences\.value\s*;\s*\n")
-    if len(pattern.findall(settings)) != 1:
-        raise SystemExit(f'v818 settings accessibility init expected 1 match, found {len(pattern.findall(settings))}')
-    settings = pattern.sub('    _accessibility=_displayPreferences.value;\n', settings, count=1)
+    init_pattern = re.compile(
+        r"(?P<refresh>[ \t]*_refreshSeconds\s*=\s*widget\.refreshSeconds\s*;\s*\n)"
+        r"[ \t]*_accessibility\s*=\s*_displayPreferences\.value\s*;\s*\n"
+    )
+    if len(init_pattern.findall(settings)) != 1:
+        raise SystemExit(f'v819 settings init accessibility anchor expected 1 match, found {len(init_pattern.findall(settings))}')
+    settings = init_pattern.sub(lambda m: m.group('refresh') + '    _accessibility=_displayPreferences.value;\n', settings, count=1)
 
 expected_dispose = '  @override void dispose(){_feedback.dispose();super.dispose();}\n'
 if expected_dispose not in settings:
@@ -104,17 +104,16 @@ if expected_dispose not in settings:
         re.S,
     )
     if len(dispose_pattern.findall(settings)) != 1:
-        raise SystemExit(f'v818 settings dispose expected 1 match, found {len(dispose_pattern.findall(settings))}')
+        raise SystemExit(f'v819 settings dispose expected 1 match, found {len(dispose_pattern.findall(settings))}')
     settings = dispose_pattern.sub(expected_dispose, settings, count=1)
 
 expected_feedback = '  Future<void> _sendFeedback() async{\n'
 if expected_feedback not in settings:
     feedback_pattern = re.compile(r"[ \t]*Future<void> _sendFeedback\(\)\s*async\s*\{\s*\n")
     if len(feedback_pattern.findall(settings)) != 1:
-        raise SystemExit(f'v818 feedback method expected 1 match, found {len(feedback_pattern.findall(settings))}')
+        raise SystemExit(f'v819 feedback method expected 1 match, found {len(feedback_pattern.findall(settings))}')
     settings = feedback_pattern.sub(expected_feedback, settings, count=1)
 
-# Normalize the account section header only; all current account/trial rows stay.
 expected_account = """                        title: 'Account & trial',
                         subtitle: 'New accounts start in a scoped BridgePoint trial workspace.',
                         children: [
@@ -132,7 +131,7 @@ if expected_account not in settings and expected_account_alt not in settings:
     )
     m = account_pattern.search(settings)
     if m is None:
-        raise SystemExit('v818 account settings header not found')
+        raise SystemExit('v819 account settings header not found')
     subtitle = m.group('subtitle')
     normalized = ("                        title: 'Account & trial',\n"
                   f"                        subtitle: '{subtitle}',\n"
@@ -152,10 +151,10 @@ for required in [
     "title: 'Account & trial'",
 ]:
     if required not in text:
-        raise SystemExit(f'v818 compatibility marker missing: {required[:90]}')
+        raise SystemExit(f'v819 compatibility marker missing: {required[:90]}')
 
 if text == original:
-    print('Auth/nickname v181b compatibility already normalized v818')
+    print('Auth/nickname v181b compatibility already normalized v819')
 else:
     path.write_text(text, encoding='utf-8')
-    print('Normalized auth + Settings boundaries for remembered sign-in/nickname v181b/v818')
+    print('Normalized auth + Settings init boundaries for remembered sign-in/nickname v181b/v819')
