@@ -16,27 +16,32 @@ class BridgePointMapWeatherV2 extends StatefulWidget {
 class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
   final MapController _mapController = MapController();
 
+  static const _cyan = Color(0xFF35D2E8);
+  static const _blue = Color(0xFF4F7CFF);
+  static const _green = Color(0xFF38D49A);
+  static const _amber = Color(0xFFFFC857);
+  static const _red = Color(0xFFFF6B6B);
+  static const _muted = Color(0xFF8FA5BF);
+  static const _panel = Color(0xFF071321);
+  static const _radarMaxHonestZoom = 10.5;
+
   bool radar = true;
   bool satellite = true;
   bool opportunities = true;
   bool signals = true;
+  bool properties = true;
   bool playing = true;
-  bool intelligenceBusy = false;
+  bool busy = false;
   bool locating = false;
   int frame = 48;
-  double _zoom = 4;
-  Timer? timer;
+  double _zoom = 8.2;
+  Timer? _timer;
   LatLng? _userLocation;
   List<Map<String, dynamic>> _opportunities = const [];
   List<Map<String, dynamic>> _signals = const [];
-  String? _intelligenceMessage;
+  List<Map<String, dynamic>> _properties = const [];
+  String? _message;
   String? _locationMessage;
-
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
-  static const _amber = Color(0xFFFFC857);
-  static const _green = Color(0xFF38D49A);
-  static const _radarMaxHonestZoom = 10.5;
 
   List<DateTime> get frames {
     final now = DateTime.now().toUtc();
@@ -59,8 +64,8 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
   @override
   void initState() {
     super.initState();
-    _loadNationalIntelligence();
-    timer = Timer.periodic(const Duration(milliseconds: 750), (_) {
+    _loadIntelligence();
+    _timer = Timer.periodic(const Duration(milliseconds: 800), (_) {
       if (mounted && radar && playing) {
         setState(() => frame = frame >= 48 ? 0 : frame + 1);
       }
@@ -69,7 +74,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
 
   @override
   void dispose() {
-    timer?.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -77,19 +82,50 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
     if (value is List) {
       return value.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
     }
+    if (value is Map) {
+      for (final key in const [
+        'opportunities',
+        'signals',
+        'points',
+        'properties',
+        'items',
+        'rows',
+      ]) {
+        if (value[key] is List) return _rows(value[key]);
+      }
+    }
     return const [];
   }
 
-  Future<void> _loadNationalIntelligence() async {
-    if (intelligenceBusy) return;
-    setState(() {
-      intelligenceBusy = true;
-      _intelligenceMessage = null;
-    });
+  double? _double(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('${value ?? ''}');
+  }
+
+  Future<dynamic> _safe(String rpc, [Map<String, dynamic>? params]) async {
     try {
-      final raw = await Supabase.instance.client.rpc(
+      return await Supabase.instance.client.rpc(rpc, params: params);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadIntelligence() async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      _message = null;
+    });
+
+    try {
+      var nextOpportunities = <Map<String, dynamic>>[];
+      var nextSignals = <Map<String, dynamic>>[];
+      var nextProperties = <Map<String, dynamic>>[];
+      var usedLegacyCt = false;
+
+      final national = await _safe(
         'bridgepoint_flutter_intelligence_map_national_v346',
-        params: {
+        {
           'p_model_key': 'all',
           'p_min_lat': null,
           'p_max_lat': null,
@@ -97,27 +133,91 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
           'p_max_lng': null,
           'p_min_score': 45,
           'p_opportunity_limit': 240,
-          'p_signal_limit': 80,
+          'p_signal_limit': 120,
         },
       );
-      final map = raw is Map
-          ? Map<String, dynamic>.from(raw)
-          : <String, dynamic>{};
+      if (national is Map) {
+        nextOpportunities = _rows(national['opportunities']);
+        nextSignals = _rows(national['signals']);
+      }
+
+      // Proven Connecticut feed used by the working pre-V2 map. If national
+      // balancing returns no points, V2 must not degrade into an empty map.
+      if (nextOpportunities.isEmpty) {
+        final legacy = await _safe(
+          'bridgepoint_flutter_intelligence_map',
+          {
+            'p_model_key': 'all',
+            'p_min_lat': null,
+            'p_max_lat': null,
+            'p_min_lng': null,
+            'p_max_lng': null,
+            'p_min_score': null,
+            'p_limit': 500,
+          },
+        );
+        if (legacy is Map) {
+          nextOpportunities = _rows(legacy['points']);
+          usedLegacyCt = nextOpportunities.isNotEmpty;
+        }
+      }
+
+      // Always give the map a real property layer when this account has
+      // Property Profiles. This is separate from ranked opportunities.
+      final propertyPayload = await _safe(
+        'bridgepoint_flutter_properties_v725',
+        {
+          'p_search': null,
+          'p_municipality': null,
+          'p_property_type': null,
+          'p_state_code': 'CT',
+          'p_limit': 50,
+          'p_offset': 0,
+        },
+      );
+      if (propertyPayload is Map) {
+        nextProperties = _rows(propertyPayload['properties']);
+      }
+
       if (!mounted) return;
       setState(() {
-        _opportunities = _rows(map['opportunities']);
-        _signals = _rows(map['signals']);
-        if (map['map_intelligence_available'] == false) {
-          _intelligenceMessage =
-              'Map intelligence is not included in this account package.';
-        }
+        _opportunities = nextOpportunities;
+        _signals = nextSignals;
+        _properties = nextProperties;
+        _message = usedLegacyCt
+            ? 'Loaded the proven Connecticut opportunity feed plus live property and weather layers.'
+            : 'Live property, opportunity, signal and weather layers refreshed.';
       });
-    } catch (e) {
-      if (mounted) {
-        setState(() => _intelligenceMessage = 'Map intelligence unavailable: $e');
+
+      Map<String, dynamic>? focus;
+      for (final row in nextOpportunities) {
+        if (_double(row['latitude']) != null &&
+            _double(row['longitude']) != null &&
+            '${row['state_code'] ?? 'CT'}'.toUpperCase() == 'CT') {
+          focus = row;
+          break;
+        }
       }
+      focus ??= nextProperties.cast<Map<String, dynamic>?>().firstWhere(
+            (row) =>
+                row != null &&
+                _double(row['latitude']) != null &&
+                _double(row['longitude']) != null,
+            orElse: () => null,
+          );
+      if (focus != null) {
+        final lat = _double(focus['latitude']);
+        final lng = _double(focus['longitude']);
+        if (lat != null && lng != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _mapController.move(LatLng(lat, lng), 8.2);
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _message = 'Map refresh error: $e');
     } finally {
-      if (mounted) setState(() => intelligenceBusy = false);
+      if (mounted) setState(() => busy = false);
     }
   }
 
@@ -129,9 +229,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
     });
     try {
       final enabled = await Geolocator.isLocationServiceEnabled();
-      if (!enabled) {
-        throw StateError('Location services are disabled on this device.');
-      }
+      if (!enabled) throw StateError('Location services are disabled.');
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -146,7 +244,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
       setState(() {
         _userLocation = point;
         _locationMessage =
-            'Map recentered locally. Your precise device location was not sent to the BridgePoint backend.';
+            'Recentered locally. Precise device location was not sent to BridgePoint.';
       });
       _mapController.move(point, 14);
     } catch (e) {
@@ -156,134 +254,120 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
     }
   }
 
-  double? _double(dynamic value) =>
-      value is num ? value.toDouble() : double.tryParse('$value');
-
   String _clock(DateTime value) {
     final local = value.toLocal();
     final minute = local.minute.toString().padLeft(2, '0');
     return '${local.hour}:$minute';
   }
 
+  dynamic _score(Map<String, dynamic> row) =>
+      row['score'] ?? row['opportunity_score'] ?? row['final_score'];
+
   Color _opportunityColor(Map<String, dynamic> row) {
-    final priority = '${row['priority'] ?? ''}'.toLowerCase();
-    final score = _double(row['score']) ?? 0;
-    if (priority.contains('critical') || score >= 85) {
-      return const Color(0xFFFF6B6B);
-    }
+    final priority = '${row['priority'] ?? row['opportunity_priority'] ?? ''}'.toLowerCase();
+    final score = _double(_score(row)) ?? 0;
+    if (priority.contains('critical') || score >= 85) return _red;
     if (priority.contains('high') || score >= 70) return _amber;
     if (score >= 55) return _cyan;
     return _green;
   }
 
-  void _showOpportunity(Map<String, dynamic> row) {
+  IconData _opportunityIcon(Map<String, dynamic> row) {
+    final text =
+        '${row['opportunity_type'] ?? ''} ${row['top_signal_type'] ?? ''} ${row['title'] ?? ''}'
+            .toLowerCase();
+    if (text.contains('storm') ||
+        text.contains('wind') ||
+        text.contains('hail') ||
+        text.contains('weather')) {
+      return Icons.thunderstorm_rounded;
+    }
+    if (text.contains('fire')) return Icons.local_fire_department_rounded;
+    if (text.contains('flood') || text.contains('water')) {
+      return Icons.water_rounded;
+    }
+    if (text.contains('solar')) return Icons.solar_power_rounded;
+    if (text.contains('roof')) return Icons.roofing_rounded;
+    if (text.contains('invest') ||
+        text.contains('transfer') ||
+        text.contains('sale')) {
+      return Icons.real_estate_agent_rounded;
+    }
+    if (text.contains('develop') || text.contains('redevelop')) {
+      return Icons.apartment_rounded;
+    }
+    if (text.contains('permit')) return Icons.description_outlined;
+    return Icons.location_on_rounded;
+  }
+
+  void _showPayload(String title, Map<String, dynamic> row) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (context) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'WHY THIS RANKED',
-                style: TextStyle(
-                  color: _cyan,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.3,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                '${row['title'] ?? row['full_address'] ?? 'Opportunity'}',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-              ),
-              if ('${row['full_address'] ?? ''}'.trim().isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text('${row['full_address']}',
-                    style: const TextStyle(color: _muted)),
-              ],
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Chip(label: Text('Score ${row['score'] ?? '—'}')),
-                  Chip(label: Text('${row['priority'] ?? 'priority unavailable'}')),
-                  Chip(label: Text('${row['direct_source_count'] ?? 0} direct sources')),
-                  Chip(label: Text('${row['confidence_score'] ?? '—'}% confidence')),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                '${row['explanation'] ?? row['reason'] ?? 'No explanation returned.'}',
-                style: const TextStyle(height: 1.45),
-              ),
-              if ('${row['recommended_action'] ?? ''}'.trim().isNotEmpty) ...[
-                const SizedBox(height: 10),
+        child: FractionallySizedBox(
+          heightFactor: .78,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 22),
+            child: ListView(
+              children: [
                 Text(
-                  'Next best action: ${row['recommended_action']}',
-                  style: const TextStyle(
-                    color: _cyan,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  title,
+                  style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                 ),
+                const SizedBox(height: 12),
+                for (final entry in row.entries)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      '${entry.key.replaceAll('_', ' ')}: ${entry.value}',
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 10,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
               ],
-              const SizedBox(height: 10),
-              Text(
-                'Evidence families: ${row['independent_evidence_families'] ?? row['evidence_families'] ?? 'unavailable'}',
-                style: const TextStyle(color: _muted, fontSize: 10),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Opportunity ranking is decision support, not confirmed damage or a guaranteed customer event.',
-                style: TextStyle(color: _amber, fontSize: 10),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _showSignal(Map<String, dynamic> row) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '${row['signal_name'] ?? row['title'] ?? 'Signal'}',
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+  List<Marker> _propertyMarkers() => _properties.map((row) {
+        final lat = _double(row['latitude']);
+        final lng = _double(row['longitude']);
+        if (lat == null || lng == null) return null;
+        return Marker(
+          point: LatLng(lat, lng),
+          width: 22,
+          height: 22,
+          child: Tooltip(
+            message: '${row['full_address'] ?? row['municipality'] ?? 'Property'}',
+            child: GestureDetector(
+              onTap: () => _showPayload(
+                '${row['full_address'] ?? row['municipality'] ?? 'Property'}',
+                row,
               ),
-              const SizedBox(height: 5),
-              Text(
-                '${row['full_address'] ?? [row['municipality'], row['state_code']].where((x) => x != null).join(', ')}',
-                style: const TextStyle(color: _muted),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xDD071321),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: .55)),
+                ),
+                child: const Icon(
+                  Icons.home_outlined,
+                  size: 12,
+                  color: Colors.white,
+                ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                '${row['evidence_summary'] ?? row['title'] ?? 'No evidence summary returned.'}',
-                style: const TextStyle(height: 1.45),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Family: ${row['signal_family'] ?? 'unknown'} • detected ${row['detected_at'] ?? 'unknown'}',
-                style: const TextStyle(color: _muted, fontSize: 10),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
+        );
+      }).whereType<Marker>().toList();
 
   List<Marker> _opportunityMarkers() => _opportunities.map((row) {
         final lat = _double(row['latitude']);
@@ -292,20 +376,26 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
         final color = _opportunityColor(row);
         return Marker(
           point: LatLng(lat, lng),
-          width: 32,
-          height: 32,
+          width: 36,
+          height: 36,
           child: Tooltip(
             message:
-                '${row['title'] ?? row['full_address'] ?? 'Opportunity'} • score ${row['score'] ?? '—'}',
+                '${row['full_address'] ?? row['title'] ?? 'Opportunity'} • score ${_score(row) ?? '—'}',
             child: GestureDetector(
-              onTap: () => _showOpportunity(row),
+              onTap: () => _showPayload(
+                '${row['full_address'] ?? row['title'] ?? 'Opportunity'}',
+                row,
+              ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xE6071321),
+                  color: const Color(0xF2071321),
                   shape: BoxShape.circle,
-                  border: Border.all(color: color, width: 2),
+                  border: Border.all(color: color, width: 2.2),
+                  boxShadow: [
+                    BoxShadow(color: color.withValues(alpha: .30), blurRadius: 10),
+                  ],
                 ),
-                child: Icon(Icons.home_work_rounded, size: 17, color: color),
+                child: Icon(_opportunityIcon(row), size: 18, color: color),
               ),
             ),
           ),
@@ -318,19 +408,22 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
         if (lat == null || lng == null) return null;
         return Marker(
           point: LatLng(lat, lng),
-          width: 22,
-          height: 22,
+          width: 24,
+          height: 24,
           child: Tooltip(
             message: '${row['signal_name'] ?? row['title'] ?? 'Signal'}',
             child: GestureDetector(
-              onTap: () => _showSignal(row),
+              onTap: () => _showPayload(
+                '${row['signal_name'] ?? row['title'] ?? 'Signal'}',
+                row,
+              ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xD9071321),
+                  color: const Color(0xE6071321),
                   shape: BoxShape.circle,
                   border: Border.all(color: _cyan),
                 ),
-                child: const Icon(Icons.bolt_rounded, size: 12, color: _cyan),
+                child: const Icon(Icons.bolt_rounded, size: 13, color: _cyan),
               ),
             ),
           ),
@@ -338,18 +431,21 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
       }).whereType<Marker>().toList();
 
   Widget _legend() => Card(
-        color: const Color(0xE6071321),
+        color: const Color(0xEE071321),
         child: const Padding(
           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('MAP KEY',
-                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900)),
+              Text(
+                'BRIDGEPOINT MAP',
+                style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900),
+              ),
               SizedBox(height: 5),
-              _LegendLine(Icons.home_work_rounded, 'Ranked opportunity', _amber),
-              _LegendLine(Icons.bolt_rounded, 'Active signal', _cyan),
+              _LegendLine(Icons.home_outlined, 'Property', Colors.white),
+              _LegendLine(Icons.location_on_rounded, 'Opportunity', _amber),
+              _LegendLine(Icons.bolt_rounded, 'Signal', _cyan),
               _LegendLine(Icons.my_location_rounded, 'Your device', _green),
             ],
           ),
@@ -358,9 +454,9 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
 
   @override
   Widget build(BuildContext context) {
-    final mapHeight = MediaQuery.sizeOf(context).height.clamp(520.0, 820.0);
+    final mapHeight = MediaQuery.sizeOf(context).height.clamp(560.0, 860.0);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,34 +465,39 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Geospatial Intelligence',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+                  Text(
+                    'Geospatial Intelligence',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                  ),
                   SizedBox(height: 5),
                   Text(
-                    'Weather, imagery, verified opportunities and active signals in one source-aware property intelligence map.',
+                    'Real properties, BridgePoint opportunities, active signals, satellite imagery and animated NOAA radar on the same Connecticut-first map.',
                     style: TextStyle(color: _muted, height: 1.45),
                   ),
                 ],
               ),
             ),
             IconButton.filledTonal(
-              onPressed: intelligenceBusy ? null : _loadNationalIntelligence,
-              tooltip: 'Refresh intelligence',
+              onPressed: busy ? null : _loadIntelligence,
+              tooltip: 'Refresh map intelligence',
               icon: const Icon(Icons.refresh_rounded),
             ),
           ],
         ),
-        if (intelligenceBusy) ...[
+        if (busy) ...[
           const SizedBox(height: 8),
           const LinearProgressIndicator(),
         ],
-        if (_intelligenceMessage != null) ...[
+        if (_message != null) ...[
           const SizedBox(height: 8),
-          Text(_intelligenceMessage!, style: const TextStyle(color: _amber)),
+          Text(_message!, style: const TextStyle(color: _green, fontSize: 10)),
         ],
         if (_locationMessage != null) ...[
-          const SizedBox(height: 8),
-          Text(_locationMessage!, style: const TextStyle(color: _muted, fontSize: 10)),
+          const SizedBox(height: 5),
+          Text(
+            _locationMessage!,
+            style: const TextStyle(color: _muted, fontSize: 10),
+          ),
         ],
         const SizedBox(height: 12),
         Wrap(
@@ -407,28 +508,36 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
               selected: satellite,
               label: const Text('Satellite'),
               avatar: const Icon(Icons.satellite_alt_outlined, size: 18),
-              onSelected: (v) => setState(() => satellite = v),
+              onSelected: (value) => setState(() => satellite = value),
             ),
             FilterChip(
               selected: radar,
               label: const Text('NOAA radar'),
               avatar: const Icon(Icons.radar_rounded, size: 18),
-              onSelected: (v) => setState(() => radar = v),
+              onSelected: (value) => setState(() => radar = value),
+            ),
+            FilterChip(
+              selected: properties,
+              label: Text('Properties (${_properties.length})'),
+              avatar: const Icon(Icons.home_outlined, size: 18),
+              onSelected: (value) => setState(() => properties = value),
             ),
             FilterChip(
               selected: opportunities,
               label: Text('Opportunities (${_opportunities.length})'),
-              avatar: const Icon(Icons.home_work_outlined, size: 18),
-              onSelected: (v) => setState(() => opportunities = v),
+              avatar: const Icon(Icons.location_on_outlined, size: 18),
+              onSelected: (value) => setState(() => opportunities = value),
             ),
             FilterChip(
               selected: signals,
               label: Text('Signals (${_signals.length})'),
               avatar: const Icon(Icons.bolt_outlined, size: 18),
-              onSelected: (v) => setState(() => signals = v),
+              onSelected: (value) => setState(() => signals = value),
             ),
             ActionChip(
-              avatar: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+              avatar: Icon(
+                playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              ),
               label: Text(playing ? 'Pause weather' : 'Play weather'),
               onPressed: () => setState(() => playing = !playing),
             ),
@@ -443,9 +552,13 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
               label: const Text('My location'),
               onPressed: locating ? null : _recenterToUser,
             ),
-            const Chip(
-              avatar: Icon(Icons.layers_outlined, size: 18),
-              label: Text('Premium aerial / 3D via licensed connectors'),
+            ActionChip(
+              avatar: const Icon(Icons.center_focus_strong_rounded, size: 18),
+              label: const Text('Connecticut'),
+              onPressed: () => _mapController.move(
+                const LatLng(41.60, -72.70),
+                8.2,
+              ),
             ),
           ],
         ),
@@ -453,18 +566,18 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
         SizedBox(
           height: mapHeight,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(17),
             child: Stack(
               children: [
                 FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
-                    initialCenter: const LatLng(39.5, -98.35),
-                    initialZoom: 4,
+                    initialCenter: const LatLng(41.60, -72.70),
+                    initialZoom: 8.2,
                     minZoom: 3,
                     maxZoom: 18,
                     onPositionChanged: (camera, hasGesture) {
-                      if ((camera.zoom - _zoom).abs() > 0.02 && mounted) {
+                      if ((camera.zoom - _zoom).abs() > .02 && mounted) {
                         setState(() => _zoom = camera.zoom);
                       }
                     },
@@ -485,7 +598,9 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                       ),
                     if (_showRawRadar)
                       TileLayer(
-                        key: ValueKey('bp-radar-${radarTime.millisecondsSinceEpoch}'),
+                        key: ValueKey(
+                          'bp-radar-${radarTime.millisecondsSinceEpoch}',
+                        ),
                         wmsOptions: WMSTileLayerOptions(
                           baseUrl:
                               'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',
@@ -500,6 +615,8 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                         maxNativeZoom: 10,
                         userAgentPackageName: 'com.bridgepoint.data_studio',
                       ),
+                    if (properties && _properties.isNotEmpty)
+                      MarkerLayer(markers: _propertyMarkers()),
                     if (signals && _signals.isNotEmpty)
                       MarkerLayer(markers: _signalMarkers()),
                     if (opportunities && _opportunities.isNotEmpty)
@@ -539,12 +656,18 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                   right: 10,
                   top: 10,
                   child: Card(
-                    color: const Color(0xE6071321),
+                    color: const Color(0xEE071321),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
                       child: Text(
                         'ZOOM ${_zoom.toStringAsFixed(1)}',
-                        style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900),
+                        style: const TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
@@ -553,7 +676,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                   Positioned(
                     left: 12,
                     right: 12,
-                    top: 74,
+                    top: 78,
                     child: Card(
                       color: const Color(0xF2071321),
                       child: const Padding(
@@ -564,8 +687,12 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                             SizedBox(width: 9),
                             Expanded(
                               child: Text(
-                                'Raw NOAA reflectivity is hidden at property-level zoom because the source is roughly 1 km resolution. BridgePoint keeps matched storm/event evidence available without stretching radar pixels into fake roof-level detail.',
-                                style: TextStyle(color: _muted, fontSize: 9, height: 1.35),
+                                'Raw NOAA reflectivity is hidden at property-level zoom because the source is regional. BridgePoint keeps property-matched weather evidence without stretching radar pixels into fake roof-level detail.',
+                                style: TextStyle(
+                                  color: _muted,
+                                  fontSize: 9,
+                                  height: 1.35,
+                                ),
                               ),
                             ),
                           ],
@@ -588,7 +715,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                             Row(
                               children: [
                                 const Text(
-                                  'NOAA MRMS • ~1 KM SOURCE',
+                                  'NOAA RADAR • 4 HOURS',
                                   style: TextStyle(
                                     fontSize: 8.5,
                                     fontWeight: FontWeight.w900,
@@ -618,7 +745,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                               ],
                             ),
                             const Text(
-                              'Four-hour time-enabled radar • about 5-minute frames • raw reflectivity is regional weather context, not roof-level proof.',
+                              'Animated regional reflectivity is weather context. Property markers and BridgePoint signals remain separate evidence layers.',
                               style: TextStyle(
                                 color: _muted,
                                 fontSize: 8.5,
@@ -639,7 +766,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
           child: Padding(
             padding: EdgeInsets.all(12),
             child: Text(
-              'Map truth contract: marker intelligence is sourced from BridgePoint verified ranked opportunities and active property signals with state/package access controls. Nearmap, EagleView, LiDAR/DSM, historical aerial and other premium layers remain gated by provider rights, coverage, resolution and readiness.',
+              'Map truth contract: properties, ranked opportunities, active signals and weather remain distinct layers. Premium aerial/LiDAR/DSM and other licensed imagery are shown only where provider rights, coverage and readiness allow.',
               style: TextStyle(color: _muted, fontSize: 10, height: 1.45),
             ),
           ),
