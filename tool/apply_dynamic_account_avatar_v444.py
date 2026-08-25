@@ -7,7 +7,7 @@ import sys
 # historically generated structural regions before validating/adding the avatar.
 subprocess.run([sys.executable,'tool/apply_owner_ai_visibility_v602.py'],check=True)
 subprocess.run([sys.executable,'tool/apply_owner_global_ai_v678.py'],check=True)
-subprocess.run([sys.executable,'tool/repair_generated_release_v735.py'],check=True)
+subprocess.run([sys.executable,'tool/repair_dashboard_anchor_v736.py'],check=True)
 # v735 deliberately restores canonical auth structure. Re-apply only the approved
 # secure remembered-email/nickname behavior afterward while retaining signup deeplinks.
 subprocess.run([sys.executable,'tool/restore_remembered_auth_v735.py'],check=True)
@@ -55,7 +55,7 @@ def require_release_contract(value: str) -> None:
 
 if marker in body:
     require_release_contract(body)
-    print('BridgePoint v444 dynamic avatar + localization + national + owner-control + remembered-auth release contract verified after v735 normalization.')
+    print('BridgePoint v444 dynamic avatar + localization + national + owner-control + remembered-auth release contract verified after v736 normalization.')
     raise SystemExit(0)
 
 start=body.find('class _TopBar extends StatelessWidget')
@@ -230,8 +230,8 @@ if "onAvatarTap:()=>_navigateTrainingLabel('Settings')" not in body:
 path.write_text(body,encoding='utf-8')
 # Re-run the authoritative structural contract after avatar mutation, then restore the
 # narrowly approved remembered-email/nickname behavior that canonical auth intentionally omits.
-subprocess.run([sys.executable,'tool/repair_generated_release_v735.py'],check=True)
+subprocess.run([sys.executable,'tool/repair_dashboard_anchor_v736.py'],check=True)
 subprocess.run([sys.executable,'tool/restore_remembered_auth_v735.py'],check=True)
 body=path.read_text(encoding='utf-8')
 require_release_contract(body)
-print('Applied BridgePoint v444 dynamic account avatar after v735 normalization; final national/localization/owner/resilience/remembered-auth contract passed.')
+print('Applied BridgePoint v444 dynamic account avatar after v736 normalization; final national/localization/owner/resilience/remembered-auth contract passed.')
