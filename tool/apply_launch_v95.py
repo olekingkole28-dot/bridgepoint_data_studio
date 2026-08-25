@@ -13,9 +13,14 @@ def replace_once(old: str, new: str, label: str):
     text = text.replace(old, new, 1)
 
 # Never expose formula / SQL-like internals as a customer-facing property description.
-marker = "Future<void> _saveOpportunity(BuildContext context,Map<String,dynamic> opportunity) async {"
-if text.count(marker) != 1:
-    raise SystemExit('crm-helper-marker not found exactly once')
+_compact_marker = "Future<void> _saveOpportunity(BuildContext context,Map<String,dynamic> opportunity) async {"
+_formatted_marker = "Future<void> _saveOpportunity(\n    BuildContext context, Map<String, dynamic> opportunity) async {"
+if text.count(_compact_marker) == 1:
+    marker = _compact_marker
+elif text.count(_formatted_marker) == 1:
+    marker = _formatted_marker
+else:
+    raise SystemExit('crm-helper-marker not found exactly once in compact or formatted source')
 
 helpers = r'''
 String _customerSafeScalar(Object? value,{String fallback='BridgePoint internal calculation hidden — use the reasoning and evidence sections for the customer-safe explanation.'}){
