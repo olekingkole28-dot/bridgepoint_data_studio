@@ -1,4 +1,4 @@
-name: Rechunk Clean V2 Handoff
+name: Publish Restored Clean V2 Release Bridge
 
 on:
   push:
@@ -8,72 +8,53 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  rechunk:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Verify compiled handoff and publish temporary release bridge
+      - name: Reconstruct verify and upload exact restored release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
           SUPABASE_PUBLISHABLE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
+          EXPECTED_SOURCE: 92c1f489f188c5f45af597a18ca192f1660231a7
+          EXPECTED_SHA: 4a41f04c91715a835481eaf8802ad8b0d740254810a80ceaaf3608e4644b804b
+          RELEASE_OBJECT: clean-v2-92c1f489f188c5f45af597a18ca192f1660231a7.tar.gz
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf /tmp/old-handoff /tmp/new-handoff
-          mkdir -p /tmp/old-handoff /tmp/new-handoff
+          rm -rf /tmp/v2-handoff
+          mkdir -p /tmp/v2-handoff
           git fetch origin clean-v2-handoff:refs/remotes/origin/clean-v2-handoff
-          git archive --format=tar origin/clean-v2-handoff | tar -xf - -C /tmp/old-handoff
-          test -s /tmp/old-handoff/manifest.json
-          cat /tmp/old-handoff/chunk-* | base64 -d > /tmp/v2-delta.tar.gz
+          git archive --format=tar origin/clean-v2-handoff | tar -xf - -C /tmp/v2-handoff
+          test -s /tmp/v2-handoff/manifest.json
+          cat /tmp/v2-handoff/chunk-* | base64 -d > /tmp/v2-delta.tar.gz
           python - <<'PY'
-          import hashlib,json
+          import hashlib, json, os
           from pathlib import Path
-          m=json.loads(Path('/tmp/old-handoff/manifest.json').read_text())
-          a=Path('/tmp/v2-delta.tar.gz').read_bytes()
-          actual=hashlib.sha256(a).hexdigest()
-          if actual!=m['archive_sha256']:
-              raise SystemExit(f'Existing handoff SHA mismatch: {actual} != {m["archive_sha256"]}')
-          if m['source_sha']!='a014ccde6df596764907aa2d3daf237049e75e90':
-              raise SystemExit('Unexpected Clean V2 source SHA')
-          print(f'Verified compiled Clean V2 handoff: {len(a)} bytes, sha256={actual}')
+          manifest=json.loads(Path('/tmp/v2-handoff/manifest.json').read_text())
+          archive=Path('/tmp/v2-delta.tar.gz').read_bytes()
+          actual=hashlib.sha256(archive).hexdigest()
+          expected_source=os.environ['EXPECTED_SOURCE']
+          expected_sha=os.environ['EXPECTED_SHA']
+          if manifest.get('source_sha') != expected_source:
+              raise SystemExit(f"Source mismatch: {manifest.get('source_sha')} != {expected_source}")
+          if manifest.get('archive_sha256') != expected_sha or actual != expected_sha:
+              raise SystemExit(f"Archive SHA mismatch: manifest={manifest.get('archive_sha256')} actual={actual} expected={expected_sha}")
+          if manifest.get('archive_bytes') != len(archive):
+              raise SystemExit(f"Archive byte mismatch: {len(archive)} != {manifest.get('archive_bytes')}")
+          print(f"Verified restored Clean V2: source={expected_source}, bytes={len(archive)}, sha256={actual}")
           PY
-
           curl --fail-with-body --show-error --silent \
             -X POST \
             -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
             -H 'Content-Type: application/gzip' \
             -H 'cache-control: no-cache' \
             --data-binary @/tmp/v2-delta.tar.gz \
-            "${SUPABASE_URL}/storage/v1/object/bridgepoint-release-handoff/clean-v2-a014ccde6df596764907aa2d3daf237049e75e90.tar.gz"
+            "${SUPABASE_URL}/storage/v1/object/bridgepoint-release-handoff/${RELEASE_OBJECT}"
           echo
-          echo 'Temporary verified Clean V2 release bridge uploaded.'
-
-          base64 -w0 /tmp/v2-delta.tar.gz > /tmp/v2-delta.tar.gz.b64
-          split -b 12000 -d -a 3 /tmp/v2-delta.tar.gz.b64 /tmp/new-handoff/chunk-
-          cp /tmp/old-handoff/manifest.json /tmp/new-handoff/manifest.json
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          p=Path('/tmp/new-handoff/manifest.json')
-          m=json.loads(p.read_text())
-          m['chunk_count']=len(list(Path('/tmp/new-handoff').glob('chunk-*')))
-          m['chunk_size']=12000
-          m['rechunked_for']='connector-safe-cross-repo-transfer'
-          p.write_text(json.dumps(m,separators=(',',':'))+'\n')
-          print(p.read_text())
-          PY
-          cd /tmp/new-handoff
-          git init -q
-          git config user.name 'BridgePoint Release Bot'
-          git config user.email 'actions@users.noreply.github.com'
-          git checkout -b clean-v2-handoff
-          git add -A
-          git commit -m 'Rechunk Clean V2 handoff for verified public transfer'
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin clean-v2-handoff
+          echo "Uploaded ${RELEASE_OBJECT}"
