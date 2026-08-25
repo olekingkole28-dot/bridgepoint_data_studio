@@ -39,7 +39,7 @@ jobs:
           print('Existing compiled handoff verified before rechunk.')
           PY
           base64 -w0 /tmp/v2-delta.tar.gz > /tmp/v2-delta.tar.gz.b64
-          split -b 45000 -d -a 3 /tmp/v2-delta.tar.gz.b64 /tmp/new-handoff/chunk-
+          split -b 12000 -d -a 3 /tmp/v2-delta.tar.gz.b64 /tmp/new-handoff/chunk-
           cp /tmp/old-handoff/manifest.json /tmp/new-handoff/manifest.json
           python - <<'PY'
           import json
@@ -47,7 +47,7 @@ jobs:
           p=Path('/tmp/new-handoff/manifest.json')
           m=json.loads(p.read_text())
           m['chunk_count']=len(list(Path('/tmp/new-handoff').glob('chunk-*')))
-          m['chunk_size']=45000
+          m['chunk_size']=12000
           m['rechunked_for']='connector-safe-cross-repo-transfer'
           p.write_text(json.dumps(m,separators=(',',':'))+'\n')
           print(p.read_text())
