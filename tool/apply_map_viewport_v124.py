@@ -19,8 +19,7 @@ def seg_replace_once(old: str, new: str, label: str):
     segment = segment.replace(old, new, 1)
 
 
-# v788: current map architecture no longer has the old v94 radar timer/revision
-# fields. Add only the state this feature actually owns.
+# v789: add only the state this progressive viewport feature owns.
 seg_replace_once(
     "  bool _showExpansion = !_displayPreferences.value.simplifiedViews;\n",
     "  bool _showExpansion = !_displayPreferences.value.simplifiedViews;\n"
@@ -31,20 +30,24 @@ seg_replace_once(
     'viewport-state',
 )
 
-init_block = """  @override
-  void initState() {
-    super.initState();
-    _request = _load();
-  }
+# Earlier release layers may alter initState. Cleanup belongs to this feature,
+# so anchor it to the stable didUpdateWidget lifecycle hook instead.
+if '_viewportRefreshTimer?.cancel();' not in segment:
+    did_update = """
+  @override
+  void didUpdateWidget(covariant _IntelligenceMapPage oldWidget) {
 """
-dispose_block = init_block + """
+    if segment.count(did_update) != 1:
+        raise SystemExit(
+            f'viewport-dispose-anchor: expected exactly 1 didUpdateWidget hook, found {segment.count(did_update)}')
+    dispose = """
   @override
   void dispose() {
     _viewportRefreshTimer?.cancel();
     super.dispose();
   }
 """
-seg_replace_once(init_block, dispose_block, 'viewport-dispose')
+    segment = segment.replace(did_update, dispose + did_update, 1)
 
 load_start = segment.find('  Future<Map<String, dynamic>> _load() async {')
 load_end = segment.find('\n  void _reload()', load_start)
@@ -192,9 +195,6 @@ new_options = """                        options: MapOptions(
 """
 seg_replace_once(old_options, new_options, 'viewport-map-options')
 
-# The current canonical U.S. control uses newer wording than v124 did. Keep a
-# strict structural check so progressive national mode is not installed into a
-# map that lacks a deliberate U.S. overview destination.
 us_control = "tooltip: 'Show U.S. intelligence'"
 if segment.count(us_control) != 1:
     raise SystemExit(
@@ -204,4 +204,4 @@ text = text[:class_start] + segment + text[class_end:]
 if text == original:
     raise SystemExit('No viewport map changes applied')
 path.write_text(text, encoding='utf-8')
-print('Applied viewport-aware progressive intelligence map v124/v788')
+print('Applied viewport-aware progressive intelligence map v124/v789')
