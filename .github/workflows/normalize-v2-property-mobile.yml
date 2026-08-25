@@ -9,7 +9,6 @@ permissions:
 
 jobs:
   normalize:
-    if: ${{ !contains(github.event.head_commit.message, '[property-mobile-normalized]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +22,10 @@ jobs:
 
           source_path = Path('lib/v2/bridgepoint_property_presentation_v2.dart')
           source = source_path.read_text(encoding='utf-8')
+          marker = 'final compactWhyNow = constraints.maxWidth < 400;'
+          if marker in source:
+            print('Property 360 mobile source is already normalized.')
+            raise SystemExit(0)
 
           old_why = '''        Row(
           children: [
@@ -34,22 +37,25 @@ jobs:
         ),'''
           new_why = '''        LayoutBuilder(
           builder: (context, constraints) {
-            final title = const Text(
-              'Why Now / verified opportunities',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-            );
+            final compactWhyNow = constraints.maxWidth < 400;
             final count = Chip(label: Text('${opportunities.length} verified'));
-            if (constraints.maxWidth < 360) {
+            if (compactWhyNow) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  title,
+                  const Text('Why Now / verified opportunities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
                   Align(alignment: Alignment.centerLeft, child: count),
                 ],
               );
             }
-            return Row(children: [Expanded(child: title), const SizedBox(width: 8), count]);
+            return Row(
+              children: [
+                const Expanded(child: Text('Why Now / verified opportunities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900))),
+                const SizedBox(width: 8),
+                count,
+              ],
+            );
           },
         ),'''
           if old_why not in source:
@@ -66,26 +72,32 @@ jobs:
             ),'''
           new_media = '''            LayoutBuilder(
               builder: (context, constraints) {
-                final heading = const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.photo_library_outlined, color: _bpCyan),
-                    SizedBox(width: 8),
-                    Flexible(child: Text('Imagery / media history', style: TextStyle(fontWeight: FontWeight.w900))),
-                  ],
-                );
                 final count = Chip(label: Text('${items.length} current • ${history.length} history'));
-                if (constraints.maxWidth < 360) {
+                if (constraints.maxWidth < 400) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      heading,
+                      const Row(
+                        children: [
+                          Icon(Icons.photo_library_outlined, color: _bpCyan),
+                          SizedBox(width: 8),
+                          Expanded(child: Text('Imagery / media history', style: TextStyle(fontWeight: FontWeight.w900))),
+                        ],
+                      ),
                       const SizedBox(height: 6),
                       Align(alignment: Alignment.centerLeft, child: count),
                     ],
                   );
                 }
-                return Row(children: [Expanded(child: heading), const SizedBox(width: 8), count]);
+                return Row(
+                  children: [
+                    const Icon(Icons.photo_library_outlined, color: _bpCyan),
+                    const SizedBox(width: 8),
+                    const Expanded(child: Text('Imagery / media history', style: TextStyle(fontWeight: FontWeight.w900))),
+                    const SizedBox(width: 8),
+                    count,
+                  ],
+                );
               },
             ),'''
           if old_media not in source:
@@ -105,8 +117,7 @@ jobs:
       expect(find.textContaining('never labeled an exact replica'), findsNothing);'''
           if old_test not in test:
             raise SystemExit('Timeline test block not found; refusing blind rewrite')
-          test = test.replace(old_test, new_test, 1)
-          test_path.write_text(test, encoding='utf-8')
+          test_path.write_text(test.replace(old_test, new_test, 1), encoding='utf-8')
           PY
       - name: Commit normalized source
         run: |
