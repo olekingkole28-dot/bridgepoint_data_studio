@@ -17,9 +17,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Rechunk existing compiled handoff without rebuilding
+      - name: Verify compiled handoff and publish temporary release bridge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
         shell: bash
         run: |
           set -euo pipefail
@@ -34,10 +36,24 @@ jobs:
           from pathlib import Path
           m=json.loads(Path('/tmp/old-handoff/manifest.json').read_text())
           a=Path('/tmp/v2-delta.tar.gz').read_bytes()
-          if hashlib.sha256(a).hexdigest()!=m['archive_sha256']:
-              raise SystemExit('Existing handoff SHA mismatch')
-          print('Existing compiled handoff verified before rechunk.')
+          actual=hashlib.sha256(a).hexdigest()
+          if actual!=m['archive_sha256']:
+              raise SystemExit(f'Existing handoff SHA mismatch: {actual} != {m["archive_sha256"]}')
+          if m['source_sha']!='a014ccde6df596764907aa2d3daf237049e75e90':
+              raise SystemExit('Unexpected Clean V2 source SHA')
+          print(f'Verified compiled Clean V2 handoff: {len(a)} bytes, sha256={actual}')
           PY
+
+          curl --fail-with-body --show-error --silent \
+            -X POST \
+            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            -H 'Content-Type: application/gzip' \
+            -H 'cache-control: no-cache' \
+            --data-binary @/tmp/v2-delta.tar.gz \
+            "${SUPABASE_URL}/storage/v1/object/bridgepoint-release-handoff/clean-v2-a014ccde6df596764907aa2d3daf237049e75e90.tar.gz"
+          echo
+          echo 'Temporary verified Clean V2 release bridge uploaded.'
+
           base64 -w0 /tmp/v2-delta.tar.gz > /tmp/v2-delta.tar.gz.b64
           split -b 12000 -d -a 3 /tmp/v2-delta.tar.gz.b64 /tmp/new-handoff/chunk-
           cp /tmp/old-handoff/manifest.json /tmp/new-handoff/manifest.json
