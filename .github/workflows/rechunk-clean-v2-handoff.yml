@@ -21,10 +21,10 @@ jobs:
         env:
           SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
           SUPABASE_PUBLISHABLE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
-          EXPECTED_SOURCE: 8c6abbf9e12a9a51155f4b109c4ca4493decad91
-          EXPECTED_SHA: 7f09128d2055bbcca60a4f4dd4d2cc66ff6cc984281a6c3d850488c852dcfc71
-          EXPECTED_FONT_SHA: 4b23192bf49e3c48098dcd2b26a47b815a6076ad571149d2d9c3b5a010346cd7
-          RELEASE_OBJECT: clean-v2-8c6abbf9e12a9a51155f4b109c4ca4493decad91.tar.gz
+          EXPECTED_SOURCE: b9f6aa060641a132de9ef884c11d515d897d330f
+          EXPECTED_SHA: e0d74227f7904723cc6ca51f3bd275a1b870b2473e18716d7c59227286555158
+          EXPECTED_FONT_SHA: 0df8f065d89ba11840a32e4783e7fde12eebff11a594d9b76190e5ceded95a81
+          RELEASE_OBJECT: clean-v2-b9f6aa060641a132de9ef884c11d515d897d330f.tar.gz
         shell: bash
         run: |
           set -euo pipefail
@@ -63,7 +63,7 @@ jobs:
           if not font.is_file(): raise SystemExit('Current Material icon font missing from archive')
           font_sha=hashlib.sha256(font.read_bytes()).hexdigest()
           if font_sha != expected_font: raise SystemExit(f'Font SHA mismatch: {font_sha} != {expected_font}')
-          print(f"Verified icon-complete Clean V2: source={expected_source}, bytes={len(archive)}, archive_sha256={actual}, font_sha256={font_sha}")
+          print(f"Verified map-polished Clean V2: source={expected_source}, bytes={len(archive)}, archive_sha256={actual}, font_sha256={font_sha}")
           PY
           curl --fail-with-body --show-error --silent \
             -X POST \
