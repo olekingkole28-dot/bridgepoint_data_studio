@@ -5,12 +5,10 @@ main_path=Path('lib/main.dart')
 text=main_path.read_text(encoding='utf-8')
 original=text
 
-# --- v188 compatibility: preserve the modern responsive property card while
-# exposing the compact semantic boundaries the historical installer consumes.
 start=text.find('class _PropertyListCard extends StatelessWidget')
 end=text.find('\nclass ',start+1)
 if start<0:
-    raise SystemExit('v823 PropertyListCard missing')
+    raise SystemExit('v824 PropertyListCard missing')
 if end<0:
     end=len(text)
 block=text[start:end]
@@ -26,7 +24,7 @@ if expected_identity not in block:
     )
     matches=list(pat.finditer(block))
     if len(matches)!=1:
-        raise SystemExit(f'v823 property identity expected 1 match, found {len(matches)}')
+        raise SystemExit(f'v824 property identity expected 1 match, found {len(matches)}')
     block=pat.sub(expected_identity.rstrip('\n'),block,count=1)
 
 expected_display="""    final displayAddress =
@@ -43,11 +41,10 @@ if expected_display not in block:
     )
     matches=list(pat.finditer(block))
     if len(matches)!=1:
-        raise SystemExit(f'v823 display address expected 1 match, found {len(matches)}')
+        raise SystemExit(f'v824 display address expected 1 match, found {len(matches)}')
     block=pat.sub(expected_display.rstrip('\n'),block,count=1)
 
 text=text[:start]+block+text[end:]
-
 expected_facts="""                              _DetailFact('Tax year', property['tax_year']),
                               _DetailFact('County', property['county']),
                               _DetailFact('Postal', property['postal_code']),
@@ -61,32 +58,28 @@ if expected_facts not in text:
     )
     matches=list(pat.finditer(text))
     if len(matches)!=1:
-        raise SystemExit(f'v823 property detail fact group expected 1 match, found {len(matches)}')
+        raise SystemExit(f'v824 property detail fact group expected 1 match, found {len(matches)}')
     text=pat.sub(expected_facts.rstrip('\n'),text,count=1)
 
 for marker in [expected_identity.rstrip('\n'),expected_display.rstrip('\n'),expected_facts.rstrip('\n')]:
     if marker not in text:
-        raise SystemExit(f'v823 v188 compatibility marker missing: {marker[:80]}')
-
+        raise SystemExit(f'v824 v188 compatibility marker missing: {marker[:80]}')
 if text!=original:
     main_path.write_text(text,encoding='utf-8')
-    print('Normalized responsive property-card boundaries for multistate/current-owner v188/v823')
+    print('Normalized responsive property-card boundaries for multistate/current-owner v188/v824')
 else:
-    print('Multistate/current-owner v188 compatibility already normalized v823')
+    print('Multistate/current-owner v188 compatibility already normalized v824')
 
-# --- v189 compatibility: modern NavigationBar + v675 owner control + current map.
 v189=Path('tool/apply_premium_navigation_expansion_v189.py')
 source=v189.read_text(encoding='utf-8')
 source_original=source
-
-# Add imports BEFORE calculating any source section indexes.
 if 'import re\n' not in source:
     source=source.replace('from pathlib import Path\n','from pathlib import Path\nimport re\n',1)
 
-old_compact_handler="""if old_compact not in text: raise SystemExit('compact nav anchor missing')
+old_compact="""if old_compact not in text: raise SystemExit('compact nav anchor missing')
 text=text.replace(old_compact,new_compact,1)
 """
-new_compact_handler="""if old_compact in text:
+new_compact="""if old_compact in text:
     text=text.replace(old_compact,new_compact,1)
 elif 'class _CompactNavigation extends StatelessWidget' in text and 'child: NavigationBar(' in text:
     modern_indicator='indicatorColor: AppTheme.cyan.withOpacity(.15),'
@@ -96,11 +89,11 @@ elif 'class _CompactNavigation extends StatelessWidget' in text and 'child: Navi
 else:
     raise SystemExit('compact navigation surface missing')
 """
-if old_compact_handler not in source:
-    raise SystemExit('v823 could not patch v189 compact-nav handler')
-source=source.replace(old_compact_handler,new_compact_handler,1)
+if old_compact not in source:
+    raise SystemExit('v824 compact-nav patch boundary missing')
+source=source.replace(old_compact,new_compact,1)
 
-legacy_pairs=[
+pairs=[
 ("if old_load not in text: raise SystemExit('expansion loadControl anchor missing')\ntext=text.replace(old_load,new_load,1)\n",
  "if old_load in text:\n    text=text.replace(old_load,new_load,1)\nelif 'BridgePointOwnerCommandCenter' in text:\n    print('Legacy v189 expansion loadControl superseded by Owner Global Control v675; continuing')\nelse:\n    raise SystemExit('expansion control surface missing')\n"),
 ("if old_vars not in text: raise SystemExit('expansion vars anchor missing')\ntext=text.replace(old_vars,new_vars,1)\n",
@@ -110,19 +103,17 @@ legacy_pairs=[
 ("if old_steps not in text: raise SystemExit('expansion steps UI anchor missing')\ntext=text.replace(old_steps,new_steps,1)\n",
  "if old_steps in text:\n    text=text.replace(old_steps,new_steps,1)\nelif 'BridgePointOwnerCommandCenter' not in text:\n    raise SystemExit('expansion steps UI anchor missing')\n"),
 ]
-for old,new in legacy_pairs:
+for old,new in pairs:
     if old not in source:
-        raise SystemExit(f'v823 could not patch v189 legacy expansion handler: {old[:60]}')
+        raise SystemExit(f'v824 legacy expansion patch boundary missing: {old[:60]}')
     source=source.replace(old,new,1)
 
-# Replace the old exact-text map patch with a structural one. Indexes are
-# calculated only after every prefix mutation above, avoiding stale offsets.
 map_start=source.find('# Intelligence map: visibly advertise markets actively being built.')
 map_end=source.find("for marker in ['_bridgePointPageAccent'",map_start)
 if map_start<0 or map_end<0:
-    raise SystemExit('v823 could not locate v189 map section')
+    raise SystemExit('v824 v189 map section missing')
 
-modern_map_section=r'''# Intelligence map: visibly advertise markets actively being built.
+modern_map=r'''# Intelligence map: visibly advertise markets actively being built.
 coverage_pattern=re.compile(
     r"(?P<indent>[ \t]*)final coverageMarkets\s*=\s*_detailList\(coverage\['markets'\]\);\s*\n"
     r"(?P=indent)final highPriority\s*=\s*points\.where\(\(p\)\s*\{",
@@ -166,12 +157,7 @@ if 'BUILDING NOW' not in text:
                   onTap: () => _showStateCoverageDialog(context, market, _reload),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppTheme.panel.withOpacity(.95),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: marketColor.withOpacity(.9), width: 1.5),
-                      boxShadow: [BoxShadow(color: marketColor.withOpacity(.20), blurRadius: 12, spreadRadius: 1)],
-                    ),
+                    decoration: BoxDecoration(color: AppTheme.panel.withOpacity(.95), borderRadius: BorderRadius.circular(12), border: Border.all(color: marketColor.withOpacity(.9), width: 1.5), boxShadow: [BoxShadow(color: marketColor.withOpacity(.20), blurRadius: 12, spreadRadius: 1)]),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       Icon(building ? Icons.construction_rounded : requested ? Icons.notifications_active_rounded : Icons.lock_outline_rounded, color: marketColor, size: 18),
                       Text(code, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)),
@@ -185,15 +171,13 @@ if 'BUILDING NOW' not in text:
 """
     text=expansion_pattern.sub(modern_expansion,text,count=1)
 
-heading_pattern=re.compile(
-    r"            _PageHeading\(\s*title:\s*'Intelligence Map',.*?\n            \),\s*\n            const SizedBox\(height:\s*18\),",
-    re.S,
-)
-if 'BUILDING NOW • ${buildingMarkets' not in text:
-    match=heading_pattern.search(text)
-    if match is None:
-        raise SystemExit('map heading anchor missing')
-    new_heading="""            _PageHeading(
+# Banner insertion is additive. If a later map layout has moved the heading,
+# keep that newer heading instead of failing the release; BUILDING markers remain.
+heading_start=text.find("            _PageHeading(\n              title: 'Intelligence Map',")
+if heading_start>=0 and 'BUILDING NOW • ${buildingMarkets' not in text:
+    layout_start=text.find('            LayoutBuilder(',heading_start)
+    if layout_start>heading_start:
+        new_heading="""            _PageHeading(
               title: 'Intelligence Map',
               subtitle: '${widget.packageName} • live property intelligence with visible expansion markets',
               onRefresh: _reload,
@@ -212,11 +196,16 @@ if 'BUILDING NOW • ${buildingMarkets' not in text:
                 ]),
               ),
             ],
-            const SizedBox(height: 18),"""
-    text=heading_pattern.sub(new_heading,text,count=1)
+            const SizedBox(height: 18),
+"""
+        text=text[:heading_start]+new_heading+text[layout_start:]
+    else:
+        print('Modern Intelligence Map heading retained; BUILDING markers are active')
+else:
+    print('Modern Intelligence Map heading retained; BUILDING markers are active')
 
 '''
-source=source[:map_start]+modern_map_section+source[map_end:]
+source=source[:map_start]+modern_map+source[map_end:]
 
 old_validation="""for marker in ['_bridgePointPageAccent','bridgepoint_expansion_eta_v188','BUILDING NOW','Current step ETA:']:
     if marker not in text: raise SystemExit(f'missing v189 marker {marker}')
@@ -230,10 +219,10 @@ else:
     print('Legacy v189 ETA card superseded by v675/v212 expansion progress surfaces')
 """
 if old_validation not in source:
-    raise SystemExit('v823 could not patch v189 validation')
+    raise SystemExit('v824 validation patch boundary missing')
 source=source.replace(old_validation,new_validation,1)
 
 if source==source_original:
-    raise SystemExit('v823 made no premium-navigation generator compatibility changes')
+    raise SystemExit('v824 made no v189 compatibility changes')
 v189.write_text(source,encoding='utf-8')
-print('Prepared premium navigation v189 for modern NavigationBar + current map + Owner Global Control v675/v823')
+print('Prepared premium navigation v189 for modern NavigationBar + current map + Owner Global Control v675/v824')
