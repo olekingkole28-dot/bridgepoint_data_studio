@@ -13,6 +13,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
   final _note = TextEditingController();
   bool _busy = false;
   String? _error;
+  String? _message;
   List<Map<String, dynamic>> _results = const [];
   String? _propertyId;
   String? _municipality;
@@ -23,6 +24,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
   Map<String, dynamic> _permits = const {};
   Map<String, dynamic> _media = const {};
   Map<String, dynamic> _notes = const {};
+  Map<String, dynamic> _watchlists = const {};
   int _tab = 0;
 
   static const _muted = Color(0xFF8FA5BF);
@@ -48,7 +50,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       return value.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
     }
     if (value is Map) {
-      for (final key in const ['items','results','properties','suggestions','rows','events','notes','media']) {
+      for (final key in const ['items','results','properties','suggestions','rows','events','notes','media','watchlists']) {
         if (value[key] is List) return _list(value[key]);
       }
     }
@@ -69,6 +71,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
     setState(() {
       _busy = true;
       _error = null;
+      _message = null;
       _propertyId = null;
       _results = const [];
     });
@@ -92,6 +95,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
     setState(() {
       _busy = true;
       _error = null;
+      _message = null;
       _propertyId = id;
       _municipality = municipality.isEmpty ? null : municipality;
     });
@@ -105,6 +109,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
           : _safe('bridgepoint_flutter_permit_context_v68', {'p_municipality': municipality}),
       _safe('bridgepoint_property_media_bundle_v169', {'p_property_id': id}),
       _safe('bridgepoint_customer_notes_v70', {'p_property_id': id, 'p_limit': 100}),
+      _safe('bridgepoint_watchlists_v88'),
     ]);
     if (!mounted) return;
     setState(() {
@@ -115,6 +120,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       _permits = _map(values[4]);
       _media = _map(values[5]);
       _notes = _map(values[6]);
+      _watchlists = _map(values[7]);
       _tab = 0;
       _busy = false;
     });
@@ -124,7 +130,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
     final id = _propertyId;
     final text = _note.text.trim();
     if (id == null || text.isEmpty) return;
-    setState(() => _busy = true);
+    setState(() { _busy = true; _message = null; });
     try {
       await Supabase.instance.client.rpc(
         'bridgepoint_save_customer_note_v70',
@@ -138,10 +144,69 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       );
       _note.clear();
       final raw = await _safe('bridgepoint_customer_notes_v70', {'p_property_id': id, 'p_limit': 100});
-      if (mounted) setState(() => _notes = _map(raw));
+      if (mounted) setState(() { _notes = _map(raw); _message = 'Property note saved.'; });
     } catch (e) {
       if (mounted) setState(() => _error = '$e');
     } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _saveToWatchlist() async {
+    final propertyId = _propertyId;
+    if (propertyId == null) return;
+    var rows = _list(_watchlists);
+    String? selectedId;
+    final newName = TextEditingController();
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => StatefulBuilder(builder: (context, setLocal) => AlertDialog(
+        title: const Text('Save property to watchlist'),
+        content: SizedBox(
+          width: 480,
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            if (rows.isNotEmpty)
+              DropdownButtonFormField<String>(
+                initialValue: selectedId,
+                items: rows.map((w) {
+                  final id = '${w['watchlist_id'] ?? w['id'] ?? ''}';
+                  return DropdownMenuItem(value: id, child: Text('${w['watchlist_name'] ?? w['name'] ?? 'Watchlist'}'));
+                }).where((item) => item.value?.isNotEmpty == true).toList(),
+                onChanged: (v) => setLocal(() => selectedId = v),
+                decoration: const InputDecoration(labelText: 'Existing watchlist'),
+              ),
+            if (rows.isNotEmpty) const SizedBox(height: 12),
+            TextField(controller: newName, decoration: const InputDecoration(labelText: 'Or create new watchlist')),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, 'save'), child: const Text('Save property')),
+        ],
+      )),
+    );
+    if (choice != 'save') { newName.dispose(); return; }
+    setState(() { _busy = true; _message = null; });
+    try {
+      var watchlistId = selectedId;
+      if (newName.text.trim().isNotEmpty) {
+        final created = _map(await Supabase.instance.client.rpc('bridgepoint_create_watchlist_v88', params: {'p_name': newName.text.trim(), 'p_type': 'PROPERTY'}));
+        watchlistId = '${created['watchlist_id'] ?? ''}';
+      }
+      if (watchlistId == null || watchlistId.isEmpty) throw StateError('Choose a watchlist or enter a new watchlist name.');
+      await Supabase.instance.client.rpc('bridgepoint_add_watchlist_item_v88', params: {
+        'p_watchlist_id': watchlistId,
+        'p_property_id': propertyId,
+        'p_item_key': propertyId,
+        'p_item_label': _label(_detail),
+        'p_metadata': {'source': 'clean_v2_property_360'},
+      });
+      final refreshed = await _safe('bridgepoint_watchlists_v88');
+      if (mounted) setState(() { _watchlists = _map(refreshed); _message = 'Property saved to watchlist.'; });
+    } catch (e) {
+      if (mounted) setState(() => _message = 'Watchlist action unavailable: $e');
+    } finally {
+      newName.dispose();
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -181,6 +246,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       ]),
       if (_busy) ...[const SizedBox(height: 8), const LinearProgressIndicator()],
       if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: Color(0xFFFF7E7E)))],
+      if (_message != null) ...[const SizedBox(height: 8), Text(_message!, style: const TextStyle(color: _cyan))],
       const SizedBox(height: 14),
       if (_propertyId == null)
         if (_results.isEmpty)
@@ -204,6 +270,8 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
             Text(_label(_detail), style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
             Text('Property ID $_propertyId${_municipality == null ? '' : ' • $_municipality'}', style: const TextStyle(color: _muted, fontSize: 10)),
           ])),
+          FilledButton.tonalIcon(onPressed: _busy ? null : _saveToWatchlist, icon: const Icon(Icons.bookmark_add_outlined), label: const Text('Watchlist')),
+          const SizedBox(width: 8),
           const Chip(avatar: Icon(Icons.verified_user_outlined, size: 16), label: Text('SOURCE-BACKED')),
         ]),
         const SizedBox(height: 12),
@@ -238,6 +306,10 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
             SizedBox(width: 520, child: _section('Imagery / media history', _media, Icons.photo_library_outlined)),
           ]),
         if (_tab == 4) ...[
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            FilledButton.tonalIcon(onPressed: _busy ? null : _saveToWatchlist, icon: const Icon(Icons.bookmark_add_outlined), label: const Text('Save to watchlist')),
+          ]),
+          const SizedBox(height: 10),
           Card(child: Padding(padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             const Text('Add property note', style: TextStyle(fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
@@ -247,6 +319,8 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
           ]))),
           const SizedBox(height: 10),
           _section('Notes / follow-up history', _notes, Icons.sticky_note_2_outlined),
+          const SizedBox(height: 10),
+          _section('Watchlists / saved property sets', _watchlists, Icons.bookmarks_outlined),
         ],
       ],
     ]);
