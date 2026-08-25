@@ -28,6 +28,7 @@ jobs:
           test -s lib/v2/bridgepoint_property_360_v2.dart
           test -s lib/v2/bridgepoint_map_weather_v2.dart
           test -s lib/v2/bridgepoint_operations_workspace_v2.dart
+          test -s lib/v2/bridgepoint_claims_v2.dart
           test -s lib/v2/bridgepoint_portfolio_risk_v2.dart
           test -s lib/v2/bridgepoint_ai_v2.dart
           test -s lib/v2/bridgepoint_products_settings_v2.dart
@@ -51,15 +52,25 @@ jobs:
             'bridgepoint_digital_twin_summary_v509',
             'bridgepoint_property_media_bundle_v169',
             'bridgepoint_flutter_opportunities_v235',
+            'bridgepoint_save_opportunity_v70',
+            'bridgepoint_record_opportunity_feedback_v88',
             'bridgepoint_flutter_signals',
             'bridgepoint_flutter_sources',
             'bridgepoint_flutter_models',
             'bridgepoint_watchlists_v88',
             'bridgepoint_route_plans_v87',
             'bridgepoint_team_workspace_v80',
+            'bridgepoint_invite_team_member_v80',
             'bridgepoint_notifications_v74',
+            'bridgepoint_claims_workspace_v833',
+            'bridgepoint_open_claim_v78',
+            'bridgepoint_update_claim_v78',
             'bridgepoint_flutter_packages_core_v429',
             'bridgepoint-checkout-v67',
+            'bridgepoint_package_fit_preview_v315',
+            'bridgepoint_complete_onboarding_v315',
+            'bridgepoint_notification_preferences_v834',
+            'bridgepoint_update_notification_preferences_v74',
             'bridgepoint_update_display_preferences_v98',
             'bridgepoint_ai_answer_ui_v322',
             'bridgepoint_portfolio_intelligence_v460',
