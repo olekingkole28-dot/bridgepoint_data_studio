@@ -208,7 +208,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.textContaining('not verified property damage'), findsOneWidget);
-      expect(find.textContaining('never labeled an exact replica'), findsNothing);
+      expect(find.textContaining('never labeled an exact replica'), findsOneWidget);
     });
   }
 }
