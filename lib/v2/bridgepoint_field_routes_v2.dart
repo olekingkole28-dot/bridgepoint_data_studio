@@ -110,8 +110,6 @@ class _BridgePointFieldRoutesV2State extends State<BridgePointFieldRoutesV2> {
           'p_stop_index': stopIndex,
           'p_status': status,
           'p_note': note,
-          'p_client_event_id': null,
-          'p_occurred_at': DateTime.now().toUtc().toIso8601String(),
           'p_source_mode': 'ONLINE',
         },
       );
