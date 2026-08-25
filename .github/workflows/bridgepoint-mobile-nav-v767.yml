@@ -1,4 +1,4 @@
-name: BridgePoint UI Repair v778
+name: BridgePoint UI Repair v779
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: bridgepoint-ui-repair-v778
+  group: bridgepoint-ui-repair-v779
   cancel-in-progress: false
 
 jobs:
@@ -22,10 +22,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply deterministic BridgePoint UI repairs
+      - name: Apply current deterministic UI repair
         run: |
-          python -m py_compile tool/apply_ui_v769.py tool/apply_package_truth_v778.py tool/apply_launch_v94.py
-          python tool/apply_ui_v769.py
+          python -m py_compile tool/apply_package_truth_v778.py
           python tool/apply_package_truth_v778.py
 
       - name: Detect changes
@@ -48,7 +47,7 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         run: |
           flutter pub get
-          dart format lib/main.dart lib/screens/bridgepoint_owner_command_center.dart
+          dart format lib/main.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Commit verified repairs
@@ -56,6 +55,6 @@ jobs:
         run: |
           git config user.name "bridgepoint-automation"
           git config user.email "actions@users.noreply.github.com"
-          git add lib/main.dart lib/screens/bridgepoint_owner_command_center.dart tool/apply_launch_v94.py
-          git commit -m "Apply verified BridgePoint UI repair v778"
+          git add lib/main.dart
+          git commit -m "Apply verified BridgePoint package truth v778"
           git push origin HEAD:main
