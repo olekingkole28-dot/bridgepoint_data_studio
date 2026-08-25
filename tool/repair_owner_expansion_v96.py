@@ -67,3 +67,41 @@ else:
     lines[i:i+1]=replacement
     p.write_text('\n'.join(lines)+'\n',encoding='utf-8')
     print('Repaired owner expansion approval UI syntax')
+
+# v785: apply_launch_v95 predates dart-format on the opportunity action row.
+# Rewrite only that historical matcher to the current formatted source before
+# v95 executes. The action names and handlers must still match exactly.
+v95_path=Path('tool/apply_launch_v95.py')
+v95=v95_path.read_text(encoding='utf-8')
+compact_old='''"""                  Row(children:[
+                    Expanded(child:FilledButton.icon(onPressed:(){_saveOpportunity(context,opportunity);},icon:const Icon(Icons.bookmark_add_rounded),label:const Text('Save opportunity'))),
+                    const SizedBox(width:10),
+                    Expanded(child:OutlinedButton.icon(onPressed:(){_showAddNoteDialog(context,opportunity);},icon:const Icon(Icons.note_add_rounded),label:const Text('Add note'))),
+                  ]),
+""",'''
+formatted_old='''"""                  Row(children: [
+                    Expanded(
+                        child: FilledButton.icon(
+                            onPressed: () {
+                              _saveOpportunity(context, opportunity);
+                            },
+                            icon: const Icon(Icons.bookmark_add_rounded),
+                            label: const Text('Save opportunity'))),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: OutlinedButton.icon(
+                            onPressed: () {
+                              _showAddNoteDialog(context, opportunity);
+                            },
+                            icon: const Icon(Icons.note_add_rounded),
+                            label: const Text('Add note'))),
+                  ]),
+""",'''
+if compact_old in v95:
+    v95=v95.replace(compact_old,formatted_old,1)
+    v95_path.write_text(v95,encoding='utf-8')
+    print('Modernized v95 opportunity CRM action matcher for formatted Dart v785')
+elif formatted_old in v95:
+    print('v95 opportunity CRM action matcher already modernized; continuing')
+else:
+    raise SystemExit('v95 opportunity CRM action matcher found neither compact nor formatted historical form')
