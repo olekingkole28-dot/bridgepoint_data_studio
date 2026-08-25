@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import subprocess
+import sys
 
 PATH = Path('lib/main.dart')
 
@@ -107,7 +108,7 @@ def count_fallback_languages(text: str) -> int:
     return len(re.findall(r"\{'locale':\s*'", text[start:end]))
 
 
-def validate(text: str) -> None:
+def validate(text: str, require_resilience: bool = False) -> None:
     errors = []
     if text.count('class _AuthScreenState extends State<_AuthScreen>') != 1:
         errors.append('AuthScreenState class must exist exactly once')
@@ -135,13 +136,28 @@ def validate(text: str) -> None:
     if 'Connecticut property universe • search, inspect, and open intelligence' in text:
         errors.append('legacy CT-only Properties copy reintroduced')
 
+    if require_resilience:
+        if text.count('bridgepoint_public_system_status_v320') != 1:
+            errors.append('live v320 public system-status RPC must be referenced exactly once')
+        if text.count('class _SystemStatusGateV320 extends StatefulWidget') != 1:
+            errors.append('v320 system-status gate must exist exactly once')
+        if 'child: const _SystemStatusGateV320(child: _AuthGate()),' not in text:
+            errors.append('language bootstrap must hand off through the v320 system-status gate')
+        for marker in (
+            'bridgepoint-v320-resilience-market-guard-service-credit',
+            'bridgepoint-v320-unsupported-market-preview',
+            'bridgepoint-v320-owner-resilience-metrics',
+            'bridgepoint_user_market_context_v320',
+            'bridgepoint-v319-owner-pattern-intelligence + iso-wms-preloaded-radar + municipal-permit-live',
+        ):
+            if marker not in text:
+                errors.append(f'guarded generated capability missing after repair: {marker}')
+
     # The generated release may include V318 access logic, but it may never be left as
     # a free-standing executable statement at class/file scope. The canonical
     # _configureFromServer method below owns configuration structure.
     for match in re.finditer(r'(?m)^\s*(?:await\s+)?_configureAccessV318\(\);\s*$', text):
         before = text[:match.start()]
-        # A coarse but deterministic guard: at least one unmatched opening brace must
-        # surround the call. A top-level/class-scope orphan has equal brace counts.
         if before.count('{') <= before.count('}'):
             errors.append('orphan _configureAccessV318() call remains outside a method')
             break
@@ -162,7 +178,7 @@ body = replace_block(
     'AuthScreenState',
 )
 
-# 2) Localization/first-entry language selection is also source-owned. Historical
+# 2) Localization/first-entry language selection is source-owned. Historical
 # generators are not allowed to erase or partially preserve this region.
 body = replace_between(
     body,
@@ -206,10 +222,21 @@ except SystemExit:
 except Exception as exc:
     raise SystemExit(f'v735 repair: configure method repair failed: {exc}') from exc
 
+# Validate the canonical structural recovery before layering the live resilience gate
+# back into the localization handoff.
 validate(body)
 PATH.write_text(body, encoding='utf-8')
+
+# The v320/v321 system-status contract is still live in Supabase. Re-apply its actual
+# fail-open gate after canonical localization recovery so the first-entry language
+# selector remains authoritative and system safeguards remain functional.
+subprocess.run([sys.executable, 'tool/repair_v321_release_guard.py'], check=True)
+body = PATH.read_text(encoding='utf-8')
+validate(body, require_resilience=True)
+
 print('BridgePoint v735 authoritative generated-release repair passed.')
 print(' - auth lifecycle: single canonical initState')
 print(' - navigation: single canonical list/getter region')
 print(' - localization: 27-language first-entry selector preserved')
+print(' - resilience: live v320 status gate preserved behind language bootstrap')
 print(' - server configuration: canonical method structure restored')
