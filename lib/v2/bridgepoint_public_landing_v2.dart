@@ -195,8 +195,8 @@ class _Hero extends StatelessWidget {
         SizedBox(height: phone ? 28 : 44),
         Text('See the property\nbefore the visit.', style: TextStyle(fontSize: phone ? 38 : 61, fontWeight: FontWeight.w900, height: .98, letterSpacing: -1.4)),
         const SizedBox(height: 16),
-        const ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 860),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 860),
           child: Text('BridgePoint connects fragmented property records, public data, weather, ownership changes, environmental evidence, physical intelligence, building geometry and model outputs into one explainable property story—then turns that story into ranked action.', style: TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 15, height: 1.65)),
         ),
         const SizedBox(height: 22),

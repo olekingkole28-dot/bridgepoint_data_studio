@@ -173,8 +173,8 @@ class _BridgePointHomeLiveV2State extends State<BridgePointHomeLiveV2> {
               const SizedBox(height: 26),
               const Text('Your property intelligence is here.', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, height: 1.05)),
               const SizedBox(height: 9),
-              const ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 900),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
                 child: Text('Live properties, state expansion, ingestion, weather, ranked opportunities, building geometry, digital twins and investor intelligence—surfaced as working product screens instead of hidden backend tables.', style: TextStyle(color: _muted, fontSize: 14, height: 1.55)),
               ),
               const SizedBox(height: 18),
