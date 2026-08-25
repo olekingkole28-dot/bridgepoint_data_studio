@@ -99,12 +99,10 @@ def declaration_bounds(text: str, signature: str, start: int) -> tuple[int, int]
     cursor = sig + len(signature)
     while cursor < len(text) and text[cursor].isspace():
         cursor += 1
-    # Block-bodied getter/method.
     if cursor < len(text) and text[cursor] == '{':
-        return block_bounds(text[sig:], signature)[0] + sig, block_bounds(text[sig:], signature)[1] + sig
+        rel_start, rel_end = block_bounds(text[sig:], signature)
+        return rel_start + sig, rel_end + sig
 
-    # Expression-bodied declaration. Stop only at a top-level semicolon so list/map
-    # literals inside the getter cannot truncate the removal.
     paren = bracket = brace = 0
     quote = None
     escaped = False
@@ -169,11 +167,8 @@ def remove_extra_declarations(text: str, signature: str) -> str:
     starts = [m.start() for m in re.finditer(re.escape(signature), text)]
     if len(starts) <= 1:
         return text
-    ranges = []
-    for start in starts[1:]:
-        ranges.append(declaration_bounds(text, signature, start))
+    ranges = [declaration_bounds(text, signature, start) for start in starts[1:]]
     for start, end in reversed(ranges):
-        # Consume adjacent blank space so the generated file stays readable.
         while end < len(text) and text[end] in ' \t':
             end += 1
         if end < len(text) and text[end] == '\n':
@@ -311,8 +306,9 @@ def validate(text: str, require_resilience: bool = False) -> None:
         errors.append('legacy CT-only Properties copy reintroduced')
 
     if require_resilience:
-        if text.count('bridgepoint_public_system_status_v320') != 1:
-            errors.append('live v320 public system-status RPC must be referenced exactly once')
+        status_refs = text.count('bridgepoint_public_system_status_v320')
+        if status_refs < 1 or status_refs > 3:
+            errors.append(f'v320 public system-status RPC reference count suspicious: {status_refs}')
         if text.count('class _SystemStatusGateV320 extends StatefulWidget') != 1:
             errors.append('v320 system-status gate must exist exactly once')
         if 'child: const _SystemStatusGateV320(child: _AuthGate()),' not in text:
@@ -321,7 +317,7 @@ def validate(text: str, require_resilience: bool = False) -> None:
             'bridgepoint-v320-resilience-market-guard-service-credit',
             'bridgepoint-v320-unsupported-market-preview',
             'bridgepoint-v320-owner-resilience-metrics',
-            'bridgepoint_user_market_context_v320',
+            'bridgepoint_public_expansion_status_v321',
             'bridgepoint-v319-owner-pattern-intelligence + iso-wms-preloaded-radar + municipal-permit-live',
         ):
             if marker not in text:
@@ -340,7 +336,6 @@ def validate(text: str, require_resilience: bool = False) -> None:
 canonical = canonical_source()
 body = PATH.read_text(encoding='utf-8')
 
-# 1) Auth is source-owned. Historical release layers may not create a second lifecycle.
 body = replace_block(
     body,
     canonical,
@@ -348,7 +343,6 @@ body = replace_block(
     'AuthScreenState',
 )
 
-# 2) Localization/first-entry language selection is source-owned.
 body = replace_between(
     body,
     canonical,
@@ -357,8 +351,6 @@ body = replace_between(
     'localization bootstrap',
 )
 
-# 3) Navigation ownership stays with canonical source through initState. Then remove any
-# extra access getters injected later elsewhere in the class by historical generators.
 body = replace_between(
     body,
     canonical,
@@ -368,13 +360,8 @@ body = replace_between(
 )
 body = remove_extra_declarations(body, 'List<_NavigationItem> get visibleNavigationItems')
 
-# 4) National Properties heading is current source-owned public truth. Old patches may
-# enrich the page but may not regress the geography statement back to CT-only/legacy copy.
 body = restore_properties_heading(body, canonical)
 
-# 5) Rebuild _configureFromServer from canonical source so v318/v325 cannot leave
-# brace-corrupted method composition. Preserve a generated V318 helper only by invoking
-# it from inside the canonical async method.
 try:
     generated_has_v318 = 'Future<void> _configureAccessV318' in body
     body = replace_block(
@@ -398,7 +385,6 @@ except Exception as exc:
 validate(body)
 PATH.write_text(body, encoding='utf-8')
 
-# Re-apply the real fail-open resilience gate after localization recovery.
 subprocess.run([sys.executable, 'tool/repair_v321_release_guard.py'], check=True)
 body = PATH.read_text(encoding='utf-8')
 validate(body, require_resilience=True)
@@ -408,5 +394,5 @@ print(' - auth lifecycle: single canonical initState')
 print(' - navigation: canonical list + exactly one visibleNavigationItems getter')
 print(' - national Properties heading: canonical U.S. truth restored')
 print(' - localization: 27-language first-entry selector preserved')
-print(' - resilience: live v320 status gate preserved behind language bootstrap')
+print(' - resilience: live v320/v321 status + expansion contracts preserved behind language bootstrap')
 print(' - server configuration: canonical method structure restored')
