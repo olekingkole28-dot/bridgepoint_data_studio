@@ -31,7 +31,7 @@ if old_rpc not in text:
     )
     match = rpc_pattern.search(text)
     if match is None:
-        raise SystemExit('v806 could not isolate canonical _callRpc')
+        raise SystemExit('v807 could not isolate canonical _callRpc')
     text = rpc_pattern.sub(old_rpc + "\nMap<String, dynamic> _edgeFunctionPayload", text, count=1)
 
 # Secure sign-out matcher expected by v157.
@@ -39,11 +39,13 @@ if "onPressed:()=>Supabase.instance.client.auth.signOut()," not in text:
     signout_pattern = re.compile(
         r"onPressed:\s*\(\)\s*=>\s*Supabase\.instance\.client\.auth\.signOut\(\),"
     )
-    if len(signout_pattern.findall(text)) != 1:
-        raise SystemExit(f'v806 sign-out boundary expected 1 match, found {len(signout_pattern.findall(text))}')
+    matches = signout_pattern.findall(text)
+    if len(matches) != 1:
+        raise SystemExit(f'v807 sign-out boundary expected 1 match, found {len(matches)}')
     text = signout_pattern.sub("onPressed:()=>Supabase.instance.client.auth.signOut(),", text, count=1)
 
-# Live sync strip boundary expected by v157.
+# Live sync strip boundary expected by v157. Use the historical generator's
+# exact indentation because its matcher compares the complete literal block.
 sync_expected = """                      _LiveSyncStrip(
                         secondsRemaining:_secondsToRefresh,
                         refreshSeconds:_refreshSeconds,
@@ -51,20 +53,13 @@ sync_expected = """                      _LiveSyncStrip(
 """
 if sync_expected not in text:
     sync_pattern = re.compile(
-        r"(?P<indent>[ \t]*)_LiveSyncStrip\(\s*secondsRemaining:\s*_secondsToRefresh,\s*refreshSeconds:\s*_refreshSeconds,\s*\),",
+        r"[ \t]*_LiveSyncStrip\(\s*secondsRemaining:\s*_secondsToRefresh,\s*refreshSeconds:\s*_refreshSeconds,\s*\),",
         re.S,
     )
-    m = sync_pattern.search(text)
-    if m is None:
-        raise SystemExit('v806 live sync strip boundary not found')
-    indent = m.group('indent')
-    normalized = (
-        f"{indent}_LiveSyncStrip(\n"
-        f"{indent}  secondsRemaining:_secondsToRefresh,\n"
-        f"{indent}  refreshSeconds:_refreshSeconds,\n"
-        f"{indent}),"
-    )
-    text = sync_pattern.sub(normalized, text, count=1)
+    matches = list(sync_pattern.finditer(text))
+    if len(matches) != 1:
+        raise SystemExit(f'v807 live sync strip boundary expected 1 match, found {len(matches)}')
+    text = sync_pattern.sub(sync_expected.rstrip('\n'), text, count=1)
 
 # My Work insertion boundary expected by v157. Preserve the exact banner copy
 # and layout behavior; only collapse this small boundary to the historical form.
@@ -75,18 +70,16 @@ if mywork_expected not in text:
     start_token = "title: 'From first signal through paid claim'"
     start_idx = text.find(start_token)
     if start_idx < 0:
-        raise SystemExit('v806 My Work banner not found')
-    # Back up to the preceding SizedBox after the page heading.
+        raise SystemExit('v807 My Work banner not found')
     block_start = text.rfind('const SizedBox(height: 10),', 0, start_idx)
     if block_start < 0:
-        raise SystemExit('v806 My Work starting spacer not found')
-    # Find the first LayoutBuilder immediately after the banner.
+        raise SystemExit('v807 My Work starting spacer not found')
     layout_idx = text.find('LayoutBuilder(builder:', start_idx)
     if layout_idx < 0:
-        raise SystemExit('v806 My Work LayoutBuilder not found')
+        raise SystemExit('v807 My Work LayoutBuilder not found')
     children_idx = text.find('children: [', layout_idx)
     if children_idx < 0:
-        raise SystemExit('v806 My Work Wrap children boundary not found')
+        raise SystemExit('v807 My Work Wrap children boundary not found')
     children_end = children_idx + len('children: [')
     text = text[:block_start] + mywork_expected + text[children_end:]
 
@@ -94,18 +87,19 @@ if mywork_expected not in text:
 if 'class _WorkspaceAtmosphere extends StatelessWidget{' not in text:
     formatted = 'class _WorkspaceAtmosphere extends StatelessWidget {'
     if text.count(formatted) != 1:
-        raise SystemExit(f'v806 WorkspaceAtmosphere expected 1 formatted marker, found {text.count(formatted)}')
+        raise SystemExit(f'v807 WorkspaceAtmosphere expected 1 formatted marker, found {text.count(formatted)}')
     text = text.replace(formatted, 'class _WorkspaceAtmosphere extends StatelessWidget{', 1)
 
-for required in [old_rpc, "onPressed:()=>Supabase.instance.client.auth.signOut(),",
-                 'secondsRemaining:_secondsToRefresh',
+for required in [old_rpc,
+                 "onPressed:()=>Supabase.instance.client.auth.signOut(),",
+                 sync_expected.rstrip('\n'),
                  "title:'From first signal through paid claim'",
                  'class _WorkspaceAtmosphere extends StatelessWidget{']:
     if required not in text:
-        raise SystemExit(f'v806 compatibility marker missing: {required[:70]}')
+        raise SystemExit(f'v807 compatibility marker missing: {required[:70]}')
 
 if text == original:
-    print('Routes/offline v806 compatibility already normalized')
+    print('Routes/offline v807 compatibility already normalized')
 else:
     path.write_text(text, encoding='utf-8')
-    print('Normalized release boundaries for Routes & Offline Mode v157/v806')
+    print('Normalized release boundaries for Routes & Offline Mode v157/v807')
