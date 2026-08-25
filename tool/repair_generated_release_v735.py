@@ -92,6 +92,180 @@ def replace_block(current: str, source: str, signature: str, label: str) -> str:
     return current[:cs] + source[ss:se] + current[ce:]
 
 
+def declaration_bounds(text: str, signature: str, start: int) -> tuple[int, int]:
+    sig = text.find(signature, start)
+    if sig < 0:
+        raise ValueError(signature)
+    cursor = sig + len(signature)
+    while cursor < len(text) and text[cursor].isspace():
+        cursor += 1
+    # Block-bodied getter/method.
+    if cursor < len(text) and text[cursor] == '{':
+        return block_bounds(text[sig:], signature)[0] + sig, block_bounds(text[sig:], signature)[1] + sig
+
+    # Expression-bodied declaration. Stop only at a top-level semicolon so list/map
+    # literals inside the getter cannot truncate the removal.
+    paren = bracket = brace = 0
+    quote = None
+    escaped = False
+    line_comment = False
+    block_comment = False
+    i = cursor
+    while i < len(text):
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ''
+        if line_comment:
+            if ch == '\n':
+                line_comment = False
+            i += 1
+            continue
+        if block_comment:
+            if ch == '*' and nxt == '/':
+                block_comment = False
+                i += 2
+                continue
+            i += 1
+            continue
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif ch == '\\':
+                escaped = True
+            elif ch == quote:
+                quote = None
+            i += 1
+            continue
+        if ch == '/' and nxt == '/':
+            line_comment = True
+            i += 2
+            continue
+        if ch == '/' and nxt == '*':
+            block_comment = True
+            i += 2
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+            i += 1
+            continue
+        if ch == '(':
+            paren += 1
+        elif ch == ')':
+            paren -= 1
+        elif ch == '[':
+            bracket += 1
+        elif ch == ']':
+            bracket -= 1
+        elif ch == '{':
+            brace += 1
+        elif ch == '}':
+            brace -= 1
+        elif ch == ';' and paren == 0 and bracket == 0 and brace == 0:
+            return sig, i + 1
+        i += 1
+    raise ValueError(f'{signature}: declaration terminator')
+
+
+def remove_extra_declarations(text: str, signature: str) -> str:
+    starts = [m.start() for m in re.finditer(re.escape(signature), text)]
+    if len(starts) <= 1:
+        return text
+    ranges = []
+    for start in starts[1:]:
+        ranges.append(declaration_bounds(text, signature, start))
+    for start, end in reversed(ranges):
+        # Consume adjacent blank space so the generated file stays readable.
+        while end < len(text) and text[end] in ' \t':
+            end += 1
+        if end < len(text) and text[end] == '\n':
+            end += 1
+        text = text[:start] + text[end:]
+    return text
+
+
+def paren_call_bounds(text: str, call_start: int) -> tuple[int, int]:
+    open_paren = text.find('(', call_start)
+    if open_paren < 0:
+        raise ValueError('call opening paren')
+    depth = 0
+    quote = None
+    escaped = False
+    line_comment = False
+    block_comment = False
+    i = open_paren
+    while i < len(text):
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < len(text) else ''
+        if line_comment:
+            if ch == '\n':
+                line_comment = False
+            i += 1
+            continue
+        if block_comment:
+            if ch == '*' and nxt == '/':
+                block_comment = False
+                i += 2
+                continue
+            i += 1
+            continue
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif ch == '\\':
+                escaped = True
+            elif ch == quote:
+                quote = None
+            i += 1
+            continue
+        if ch == '/' and nxt == '/':
+            line_comment = True
+            i += 2
+            continue
+        if ch == '/' and nxt == '*':
+            block_comment = True
+            i += 2
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+            i += 1
+            continue
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+            if depth == 0:
+                return call_start, i + 1
+        i += 1
+    raise ValueError('unbalanced call')
+
+
+def restore_properties_heading(current: str, source: str) -> str:
+    class_sig = 'class _PropertiesPageState extends State<_PropertiesPage>'
+    title_needles = ("title: 'Properties'", "title:'Properties'")
+
+    def locate(value: str) -> tuple[int, int]:
+        start, end = block_bounds(value, class_sig)
+        segment = value[start:end]
+        title = -1
+        for needle in title_needles:
+            pos = segment.find(needle)
+            if pos >= 0:
+                title = start + pos
+                break
+        if title < 0:
+            raise ValueError('Properties PageHeading title')
+        call = value.rfind('_PageHeading(', start, title)
+        if call < 0:
+            raise ValueError('Properties PageHeading call')
+        return paren_call_bounds(value, call)
+
+    try:
+        cs, ce = locate(current)
+        ss, se = locate(source)
+    except ValueError as exc:
+        raise SystemExit(f'v735 repair: unable to restore national Properties heading: {exc}') from exc
+    return current[:cs] + source[ss:se] + current[ce:]
+
+
 def count_auth_init_states(text: str) -> int:
     try:
         start, end = block_bounds(text, 'class _AuthScreenState extends State<_AuthScreen>')
@@ -153,9 +327,6 @@ def validate(text: str, require_resilience: bool = False) -> None:
             if marker not in text:
                 errors.append(f'guarded generated capability missing after repair: {marker}')
 
-    # The generated release may include V318 access logic, but it may never be left as
-    # a free-standing executable statement at class/file scope. The canonical
-    # _configureFromServer method below owns configuration structure.
     for match in re.finditer(r'(?m)^\s*(?:await\s+)?_configureAccessV318\(\);\s*$', text):
         before = text[:match.start()]
         if before.count('{') <= before.count('}'):
@@ -169,8 +340,7 @@ def validate(text: str, require_resilience: bool = False) -> None:
 canonical = canonical_source()
 body = PATH.read_text(encoding='utf-8')
 
-# 1) Auth is owned by the checked-in source. Older release layers may add behavior,
-# but they may not create a second lifecycle method.
+# 1) Auth is source-owned. Historical release layers may not create a second lifecycle.
 body = replace_block(
     body,
     canonical,
@@ -178,8 +348,7 @@ body = replace_block(
     'AuthScreenState',
 )
 
-# 2) Localization/first-entry language selection is source-owned. Historical
-# generators are not allowed to erase or partially preserve this region.
+# 2) Localization/first-entry language selection is source-owned.
 body = replace_between(
     body,
     canonical,
@@ -188,9 +357,8 @@ body = replace_between(
     'localization bootstrap',
 )
 
-# 3) Navigation ownership stays with canonical source through initState. This removes
-# duplicate visibleNavigationItems declarations and functions accidentally injected
-# into the static navigation list while preserving later generated owner widgets.
+# 3) Navigation ownership stays with canonical source through initState. Then remove any
+# extra access getters injected later elsewhere in the class by historical generators.
 body = replace_between(
     body,
     canonical,
@@ -198,10 +366,15 @@ body = replace_between(
     '  @override\n  void dispose()',
     'navigation + workspace init',
 )
+body = remove_extra_declarations(body, 'List<_NavigationItem> get visibleNavigationItems')
 
-# 4) Rebuild _configureFromServer from canonical source so v318/v325 cannot leave
-# brace-corrupted method composition. If the generated release has a valid V318 access
-# helper, call it from inside the canonical async method exactly once.
+# 4) National Properties heading is current source-owned public truth. Old patches may
+# enrich the page but may not regress the geography statement back to CT-only/legacy copy.
+body = restore_properties_heading(body, canonical)
+
+# 5) Rebuild _configureFromServer from canonical source so v318/v325 cannot leave
+# brace-corrupted method composition. Preserve a generated V318 helper only by invoking
+# it from inside the canonical async method.
 try:
     generated_has_v318 = 'Future<void> _configureAccessV318' in body
     body = replace_block(
@@ -222,21 +395,18 @@ except SystemExit:
 except Exception as exc:
     raise SystemExit(f'v735 repair: configure method repair failed: {exc}') from exc
 
-# Validate the canonical structural recovery before layering the live resilience gate
-# back into the localization handoff.
 validate(body)
 PATH.write_text(body, encoding='utf-8')
 
-# The v320/v321 system-status contract is still live in Supabase. Re-apply its actual
-# fail-open gate after canonical localization recovery so the first-entry language
-# selector remains authoritative and system safeguards remain functional.
+# Re-apply the real fail-open resilience gate after localization recovery.
 subprocess.run([sys.executable, 'tool/repair_v321_release_guard.py'], check=True)
 body = PATH.read_text(encoding='utf-8')
 validate(body, require_resilience=True)
 
 print('BridgePoint v735 authoritative generated-release repair passed.')
 print(' - auth lifecycle: single canonical initState')
-print(' - navigation: single canonical list/getter region')
+print(' - navigation: canonical list + exactly one visibleNavigationItems getter')
+print(' - national Properties heading: canonical U.S. truth restored')
 print(' - localization: 27-language first-entry selector preserved')
 print(' - resilience: live v320 status gate preserved behind language bootstrap')
 print(' - server configuration: canonical method structure restored')
