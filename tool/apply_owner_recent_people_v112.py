@@ -177,3 +177,10 @@ if text == original:
     raise SystemExit('No owner recent-user changes applied')
 path.write_text(text, encoding='utf-8')
 print('Applied BridgePoint owner recent-people patch v112/v802')
+
+# v803 release bridge: install Weather Center / My Home / Community against the
+# modern Studio + Integrations route order, and make the later historical v145
+# invocation a strict no-op verifier in this runner checkout.
+repair_path = Path('tool/repair_weather_home_community_v803.py')
+repair_source = repair_path.read_text(encoding='utf-8')
+exec(compile(repair_source, str(repair_path), 'exec'), {'__name__': '__main__'})
