@@ -25,14 +25,19 @@ owner_init_new="""    if(widget.ownerMode)selectedPackage='Owner Full Platform';
 owner_init_legacy="""    if(widget.ownerMode)selectedPackage='All Intelligence';
     dashboardRequest = _loadDashboard();
 """
+owner_init_formatted="""    if (widget.ownerMode) selectedPackage = 'Owner Full Platform';
+    dashboardRequest = _loadDashboard();
+"""
 if text.count(owner_init_new)==1:
     owner_init=owner_init_new
 elif text.count(owner_init_legacy)==1:
     owner_init=owner_init_legacy
+elif text.count(owner_init_formatted)==1:
+    owner_init=owner_init_formatted
 else:
     raise SystemExit(
         'workspace-restore-init: expected exactly 1 owner workspace initializer '
-        f'(new={text.count(owner_init_new)}, legacy={text.count(owner_init_legacy)})'
+        f'(new={text.count(owner_init_new)}, legacy={text.count(owner_init_legacy)}, formatted={text.count(owner_init_formatted)})'
     )
 text=text.replace(
     owner_init,
@@ -233,4 +238,4 @@ text=text.replace(footer_anchor,footer_replacement,1)
 if text==original:
     raise SystemExit('No package colors/update changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied package colors + workspace persistence + release marker v162')
+print('Applied package colors + workspace persistence + release marker v162/v811')
