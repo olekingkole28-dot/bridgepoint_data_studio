@@ -3,7 +3,7 @@ name: Flutter Web Release
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, chatgpt/completion-release-v735]
   pull_request:
     branches: [main]
 
@@ -231,8 +231,8 @@ jobs:
       # PR proof must not fail because GitHub artifact storage is full. Production/main
       # promotion still requires a durable exact compiled artifact and is therefore kept
       # separate from this non-production PR review upload.
-      - name: Upload PR review artifact when storage is available
-        if: github.event_name == 'pull_request'
+      - name: Upload non-production review artifact when storage is available
+        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -241,7 +241,7 @@ jobs:
           retention-days: 1
 
       - name: Upload production handoff artifact
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: bridgepoint-flutter-web-review
@@ -249,7 +249,7 @@ jobs:
           retention-days: 3
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions:
