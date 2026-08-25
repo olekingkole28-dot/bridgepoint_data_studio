@@ -99,9 +99,24 @@ formatted_old='''"""                  Row(children: [
 """,'''
 if compact_old in v95:
     v95=v95.replace(compact_old,formatted_old,1)
-    v95_path.write_text(v95,encoding='utf-8')
     print('Modernized v95 opportunity CRM action matcher for formatted Dart v785')
 elif formatted_old in v95:
     print('v95 opportunity CRM action matcher already modernized; continuing')
 else:
     raise SystemExit('v95 opportunity CRM action matcher found neither compact nor formatted historical form')
+
+# v786: dart-format also normalized the property-detail subtitle spacing.
+# Both the historical input and the generated replacement use the same handler,
+# so normalize both occurrences in the v95 script before it executes.
+compact_property="subtitle:_opportunityWhyThisProperty(opportunity),"
+formatted_property="subtitle: _opportunityWhyThisProperty(opportunity),"
+property_count=v95.count(compact_property)
+if property_count:
+    v95=v95.replace(compact_property,formatted_property)
+    print(f'Modernized {property_count} v95 property CRM subtitle matcher occurrence(s) v786')
+elif v95.count(formatted_property) >= 2:
+    print('v95 property CRM subtitle matcher already modernized; continuing')
+else:
+    raise SystemExit('v95 property CRM subtitle matcher found neither expected compact nor formatted forms')
+
+v95_path.write_text(v95,encoding='utf-8')
