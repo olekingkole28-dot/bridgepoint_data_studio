@@ -1,4 +1,4 @@
-name: BridgePoint Clean V2 Production
+name: BridgePoint Clean V2 Release Build
 
 on:
   workflow_dispatch:
@@ -18,19 +18,14 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: bridgepoint-pages-production
+  group: bridgepoint-clean-v2-release-build
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build-release-artifact:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -91,38 +86,18 @@ jobs:
 
       - name: Build production web app
         run: |
-          flutter build web --release -t lib/main_v2.dart --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+          flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
           test -s build/web/index.html
           test -s build/web/bridgepoint-v2-release.json
           grep -q "Install BridgePoint" build/web/index.html
           ! grep -q "bp-expansion-launcher" build/web/index.html
-          cp CNAME build/web/CNAME 2>/dev/null || printf 'bridgepointintelligence.online\n' > build/web/CNAME
+          grep -q '<base href="/app/">' build/web/index.html
+          touch build/web/.nojekyll
 
-      - uses: actions/configure-pages@v5
+      - name: Upload portable Clean V2 web artifact
+        uses: actions/upload-artifact@v4
         with:
-          enablement: true
-
-      - uses: actions/upload-pages-artifact@v4
-        with:
+          name: bridgepoint-clean-v2-web
           path: build/web
-
-      - name: Deploy GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: Verify live Clean V2 release
-        env:
-          EXPECTED_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          ORIGIN="https://bridgepointintelligence.online"
-          for attempt in $(seq 1 18); do
-            body="$(curl -fsSL --max-time 12 -H 'Cache-Control: no-cache' "${ORIGIN}/bridgepoint-v2-release.json?verify=${EXPECTED_SHA}" 2>/dev/null || true)"
-            if printf '%s' "$body" | grep -q "$EXPECTED_SHA" && printf '%s' "$body" | grep -q '"architecture":"clean-v2"'; then
-              echo "Live Clean V2 release verified at ${ORIGIN}."
-              exit 0
-            fi
-            sleep 10
-          done
-          echo "Live release marker did not converge to ${EXPECTED_SHA}."
-          exit 1
+          if-no-files-found: error
+          retention-days: 7
