@@ -5,6 +5,7 @@ import '../bridgepoint_integrations_hub_v790.dart';
 import '../bridgepoint_intelligence_studio_v790.dart';
 import '../screens/bridgepoint_owner_command_center.dart';
 import 'bridgepoint_ai_v2.dart';
+import 'bridgepoint_claims_v2.dart';
 import 'bridgepoint_home_v2.dart';
 import 'bridgepoint_map_weather_v2.dart';
 import 'bridgepoint_operations_workspace_v2.dart';
@@ -222,6 +223,7 @@ enum _AreaV2 {
   property,
   map,
   operations,
+  claims,
   portfolio,
   ai,
   studio,
@@ -242,6 +244,7 @@ const _baseAreasV2 = <_AreaSpecV2>[
   _AreaSpecV2(_AreaV2.property, 'Property 360', Icons.home_work_rounded),
   _AreaSpecV2(_AreaV2.map, 'Map & Weather', Icons.public_rounded),
   _AreaSpecV2(_AreaV2.operations, 'Operations', Icons.track_changes_rounded),
+  _AreaSpecV2(_AreaV2.claims, 'Claims', Icons.assignment_outlined),
   _AreaSpecV2(_AreaV2.portfolio, 'Portfolio & Risk', Icons.account_tree_outlined),
   _AreaSpecV2(_AreaV2.ai, 'Ask BridgePoint AI', Icons.auto_awesome_rounded),
   _AreaSpecV2(_AreaV2.studio, 'Intelligence Studio', Icons.schema_rounded),
@@ -306,6 +309,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
         _AreaV2.property => const BridgePointProperty360V2(),
         _AreaV2.map => const BridgePointMapWeatherV2(),
         _AreaV2.operations => const BridgePointOperationsWorkspaceV2(),
+        _AreaV2.claims => const BridgePointClaimsV2(),
         _AreaV2.portfolio => const BridgePointPortfolioRiskV2(),
         _AreaV2.ai => const BridgePointAiV2(),
         _AreaV2.studio => BridgePointIntelligenceStudio(onNavigate: _navigateFromStudio, ownerMode: owner),
@@ -462,6 +466,7 @@ String _title(_AreaV2 area) => switch (area) {
       _AreaV2.property => 'Property 360',
       _AreaV2.map => 'Geospatial Intelligence',
       _AreaV2.operations => 'Operations Workspace',
+      _AreaV2.claims => 'Claims Workspace',
       _AreaV2.portfolio => 'Portfolio & Risk',
       _AreaV2.ai => 'Ask BridgePoint AI',
       _AreaV2.studio => 'Intelligence Studio',
