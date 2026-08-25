@@ -20,9 +20,17 @@ if "import 'bridgepoint_download.dart';" not in text:
         raise SystemExit(f'download-helper-import: expected exactly 1 url_launcher import, found {text.count(import_anchor)}')
     text=text.replace(import_anchor,import_anchor+"import 'bridgepoint_download.dart';\n",1)
 
-marker="Future<void> _saveOpportunity(BuildContext context,Map<String,dynamic> opportunity) async {"
-if text.count(marker)!=1:
-    raise SystemExit('export-helper-marker not found exactly once')
+# v798: accept the canonical formatted function and the historical compact
+# generated function. Both represent the same stable insertion boundary.
+_compact_marker="Future<void> _saveOpportunity(BuildContext context,Map<String,dynamic> opportunity) async {"
+_formatted_marker="Future<void> _saveOpportunity(\n    BuildContext context, Map<String, dynamic> opportunity) async {"
+if text.count(_compact_marker)==1:
+    marker=_compact_marker
+elif text.count(_formatted_marker)==1:
+    marker=_formatted_marker
+else:
+    raise SystemExit('export-helper-marker not found exactly once in compact or formatted source')
+
 helpers=r'''
 String _csvCell(Object? value){
   final s='${value??''}'.replaceAll('"','""').replaceAll('\r',' ').replaceAll('\n',' ');
@@ -126,4 +134,4 @@ replace_once(
 if text==original:
     raise SystemExit('No export changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied BridgePoint export/print patch v101/v797')
+print('Applied BridgePoint export/print patch v101/v798')
