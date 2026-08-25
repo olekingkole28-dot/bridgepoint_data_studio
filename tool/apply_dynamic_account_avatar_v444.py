@@ -3,8 +3,11 @@ import re
 import subprocess
 import sys
 
+# These are the last additive owner overlays. Apply them first, then normalize the
+# historically generated structural regions before validating/adding the avatar.
 subprocess.run([sys.executable,'tool/apply_owner_ai_visibility_v602.py'],check=True)
 subprocess.run([sys.executable,'tool/apply_owner_global_ai_v678.py'],check=True)
+subprocess.run([sys.executable,'tool/repair_generated_release_v735.py'],check=True)
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -34,6 +37,9 @@ def require_release_contract(value: str) -> None:
         'national Properties copy': 'Authorized U.S. property universe' in value,
         'no CT-only Properties subtitle': 'Connecticut property universe • search, inspect, and open intelligence' not in value,
         'autocomplete enter selection': re.search(r'onSubmitted\s*:\s*\(_\)\s*\{\s*onFieldSubmitted\(\);\s*\}',value) is not None,
+        'v602 owner workforce': 'bridgepoint-v602-owner-ai-workers-forgotten-work' in value,
+        'v678 owner global controls': '// bridgepoint-v678-native-owner-global-ai' in value,
+        'v735 resilience gate': 'bridgepoint_public_system_status_v320' in value,
     }
     missing=[label for label,passed in checks.items() if not passed]
     if missing:
@@ -42,9 +48,7 @@ def require_release_contract(value: str) -> None:
 
 if marker in body:
     require_release_contract(body)
-    path.write_text(body,encoding='utf-8')
-    subprocess.run([sys.executable,'tool/repair_generated_release_v735.py'],check=True)
-    print('BridgePoint v444 dynamic avatar + localization + V728 national release contract verified, then v735 authoritative repair applied.')
+    print('BridgePoint v444 dynamic avatar + localization + national + owner-control release contract verified after v735 normalization.')
     raise SystemExit(0)
 
 start=body.find('class _TopBar extends StatelessWidget')
@@ -190,8 +194,6 @@ while "'KJ'" in top and replaced<2:
         break
     replaced+=1
 
-# V728 source deliberately removed founder initials before the final release layer.
-# Convert those neutral placeholders into the dynamic account avatar here.
 for placeholder in (
     'const Icon(Icons.account_circle_outlined, color: AppTheme.textMuted, size: 38)',
     'const Icon(Icons.account_circle_outlined, color: AppTheme.textMuted, size: 36)',
@@ -218,7 +220,9 @@ if "onAvatarTap:()=>_navigateTrainingLabel('Settings')" not in body:
         1,
     )
 
-require_release_contract(body)
 path.write_text(body,encoding='utf-8')
+# Re-run the authoritative contract after avatar mutation as a final structural guard.
 subprocess.run([sys.executable,'tool/repair_generated_release_v735.py'],check=True)
-print('Applied BridgePoint v444 dynamic account avatar with V728 national/localization release guard, followed by v735 authoritative generated-release repair.')
+body=path.read_text(encoding='utf-8')
+require_release_contract(body)
+print('Applied BridgePoint v444 dynamic account avatar after v735 normalization; final national/localization/owner/resilience contract passed.')
