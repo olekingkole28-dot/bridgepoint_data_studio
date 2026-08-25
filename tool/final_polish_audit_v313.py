@@ -34,7 +34,10 @@ require('BridgePoint AI','bridgepoint-v257-ai-search-ux','BridgePoint AI search 
 require('front property contribution','bridgepoint-v267-front-property-photo','Add / update front photo','Submit for BridgePoint review')
 require('keyboard and readable time','bridgepoint-v269-global-keyboard-scroll','arrowDown','arrowUp','pageDown','pageUp','bridgepoint-v270-human-readable-times','Updated 9:03 PM')
 
-require('NOAA and Daily Brief','bridgepoint-v271-noaa-live-weather','Show United States live weather','latest NOAA precipitation radar','bridgepoint-v272-daily-brief-resilience','Daily Brief could not load','staggered retry','bridgepoint-v313-noaa-verified-frame-fallback','newest NOAA radar always renders without TIME','no guessed historical timestamps','animation waits for verified frames')
+# The current national control is deliberately labeled "Show U.S. intelligence"; v271
+# wires that same control to turn on and refresh NOAA radar. Do not regress the public
+# product wording merely to satisfy the historical v313 string literal.
+require('NOAA and Daily Brief','bridgepoint-v271-noaa-live-weather','Show U.S. intelligence','latest NOAA precipitation radar','bridgepoint-v272-daily-brief-resilience','Daily Brief could not load','staggered retry','bridgepoint-v313-noaa-verified-frame-fallback','newest NOAA radar always renders without TIME','no guessed historical timestamps','animation waits for verified frames')
 forbid('NOAA verified-frame fallback','return List.generate(25,(i)=>rounded.subtract(Duration(minutes:(24-i)*10)));')
 
 require('Community 3D behavior','bridgepoint-v273-community-3d-gesture-capture','EagerGestureRecognizer','map drag does not scroll page','bridgepoint-v279-community-3d-live-weather','rain animation','snow animation','two-minute cache','bridgepoint-v287-national-weather-spatial-background','_bridgePointMapTouchLockV287')
