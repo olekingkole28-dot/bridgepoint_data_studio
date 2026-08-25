@@ -9,6 +9,7 @@ import 'bridgepoint_buildings_v2.dart';
 import 'bridgepoint_calendar_v2.dart';
 import 'bridgepoint_chrome_v2.dart';
 import 'bridgepoint_claims_v2.dart';
+import 'bridgepoint_global_search_v2.dart';
 import 'bridgepoint_home_v2.dart';
 import 'bridgepoint_intelligence_surfaces_v2.dart';
 import 'bridgepoint_investment_valuation_v2.dart';
@@ -260,6 +261,7 @@ class _AuthPageV2State extends State<_AuthPageV2> {
 
 enum _AreaV2 {
   home,
+  search,
   map,
   properties,
   opportunities,
@@ -292,19 +294,32 @@ class _AreaSpecV2 {
 
 const _baseAreasV2 = <_AreaSpecV2>[
   _AreaSpecV2(_AreaV2.home, 'Home', Icons.space_dashboard_rounded),
+  _AreaSpecV2(_AreaV2.search, 'Search', Icons.search_rounded),
   _AreaSpecV2(_AreaV2.map, 'Map & Weather', Icons.public_rounded),
   _AreaSpecV2(_AreaV2.properties, 'Properties', Icons.holiday_village_rounded),
   _AreaSpecV2(_AreaV2.opportunities, 'Opportunities', Icons.bolt_rounded),
-  _AreaSpecV2(_AreaV2.investor, 'Property Investor', Icons.real_estate_agent_rounded),
+  _AreaSpecV2(
+    _AreaV2.investor,
+    'Property Investor',
+    Icons.real_estate_agent_rounded,
+  ),
   _AreaSpecV2(_AreaV2.property, 'Property 360', Icons.home_work_rounded),
   _AreaSpecV2(_AreaV2.signals, 'Signals', Icons.radar_rounded),
   _AreaSpecV2(_AreaV2.sources, 'Sources', Icons.hub_rounded),
   _AreaSpecV2(_AreaV2.models, 'Models', Icons.psychology_alt_rounded),
-  _AreaSpecV2(_AreaV2.savedAlerts, 'Saved & Alerts', Icons.bookmark_added_outlined),
+  _AreaSpecV2(
+    _AreaV2.savedAlerts,
+    'Saved & Alerts',
+    Icons.bookmark_added_outlined,
+  ),
   _AreaSpecV2(_AreaV2.operations, 'Operations', Icons.track_changes_rounded),
   _AreaSpecV2(_AreaV2.claims, 'Claims', Icons.assignment_outlined),
   _AreaSpecV2(_AreaV2.calendar, 'Calendar', Icons.calendar_month_rounded),
-  _AreaSpecV2(_AreaV2.portfolio, 'Portfolio & Risk', Icons.account_tree_outlined),
+  _AreaSpecV2(
+    _AreaV2.portfolio,
+    'Portfolio & Risk',
+    Icons.account_tree_outlined,
+  ),
   _AreaSpecV2(_AreaV2.ai, 'Ask BridgePoint AI', Icons.auto_awesome_rounded),
   _AreaSpecV2(_AreaV2.studio, 'Intelligence Studio', Icons.schema_rounded),
   _AreaSpecV2(_AreaV2.integrations, 'Integrations', Icons.cable_rounded),
@@ -331,11 +346,19 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
   _AreaV2 selected = _AreaV2.home;
   bool owner = false;
   bool ownerChecked = false;
+  final TextEditingController _globalSearch = TextEditingController();
+  String? _searchSeed;
 
   @override
   void initState() {
     super.initState();
     _checkOwner();
+  }
+
+  @override
+  void dispose() {
+    _globalSearch.dispose();
+    super.dispose();
   }
 
   Future<void> _checkOwner() async {
@@ -349,6 +372,51 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
       owner = false;
     }
     if (mounted) setState(() => ownerChecked = true);
+  }
+
+  void _openSearch(String raw) {
+    final query = raw.trim();
+    setState(() {
+      _searchSeed = query.length >= 2 ? query : null;
+      selected = _AreaV2.search;
+    });
+  }
+
+  Future<void> _showMobileSearch() async {
+    final controller = TextEditingController(text: _globalSearch.text);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Search BridgePoint'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (text) => Navigator.pop(context, text),
+          decoration: const InputDecoration(
+            labelText: 'Address, parcel, owner or municipality',
+            prefixIcon: Icon(Icons.search_rounded),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, controller.text),
+            icon: const Icon(Icons.search_rounded),
+            label: const Text('Search'),
+          ),
+        ],
+      ),
+    );
+    final clean = value?.trim();
+    controller.dispose();
+    if (clean != null && clean.isNotEmpty) {
+      _globalSearch.text = clean;
+      _openSearch(clean);
+    }
   }
 
   List<_AreaSpecV2> get areas => [
@@ -395,6 +463,10 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
 
   Widget _page() => switch (selected) {
         _AreaV2.home => const BridgePointHomeV2(),
+        _AreaV2.search => BridgePointGlobalSearchV2(
+            key: ValueKey(_searchSeed),
+            initialQuery: _searchSeed,
+          ),
         _AreaV2.map => const BridgePointMapWeatherV2(),
         _AreaV2.properties => const BridgePointPropertiesV2(),
         _AreaV2.opportunities => const BridgePointOpportunitiesV2(),
@@ -475,6 +547,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
         ),
       );
     }
+
     final width = MediaQuery.sizeOf(context).width;
     final compact = width < 820;
 
@@ -498,6 +571,16 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
             ],
           ),
           actions: [
+            IconButton(
+              tooltip: 'Search properties',
+              onPressed: _showMobileSearch,
+              icon: const Icon(Icons.search_rounded),
+            ),
+            IconButton(
+              tooltip: 'Notifications and saved alerts',
+              onPressed: () => setState(() => selected = _AreaV2.savedAlerts),
+              icon: const Icon(Icons.notifications_none_rounded),
+            ),
             if (owner)
               IconButton(
                 tooltip: 'Owner Backend',
@@ -632,6 +715,33 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
                           ],
                         ),
                       ),
+                      if (width >= 1080) ...[
+                        SizedBox(
+                          width: width >= 1400 ? 360 : 270,
+                          child: TextField(
+                            controller: _globalSearch,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: _openSearch,
+                            decoration: InputDecoration(
+                              hintText: 'Search address, parcel, owner…',
+                              prefixIcon: const Icon(Icons.search_rounded),
+                              suffixIcon: IconButton(
+                                tooltip: 'Search',
+                                onPressed: () => _openSearch(_globalSearch.text),
+                                icon: const Icon(Icons.arrow_forward_rounded),
+                              ),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      IconButton(
+                        tooltip: 'Notifications and saved alerts',
+                        onPressed: () =>
+                            setState(() => selected = _AreaV2.savedAlerts),
+                        icon: const Icon(Icons.notifications_none_rounded),
+                      ),
                       if (owner)
                         TextButton.icon(
                           onPressed: () =>
@@ -679,6 +789,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
 
 String _title(_AreaV2 area) => switch (area) {
       _AreaV2.home => 'BridgePoint Intelligence',
+      _AreaV2.search => 'Search BridgePoint',
       _AreaV2.map => 'Geospatial Intelligence',
       _AreaV2.properties => 'Properties',
       _AreaV2.opportunities => 'Opportunities',
