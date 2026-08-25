@@ -16,7 +16,20 @@ if ('bridgepoint-v350-national-map' in body and
     print('BridgePoint national map + national customer release already applied.')
     raise SystemExit(0)
 if actual not in (PRE,V325):
-    raise SystemExit(f'map release baseline mismatch: {actual}')
+    required=[
+        'bridgepoint-v324-owner-truth-customer-safe-catalog',
+        'bridgepoint-v325-mobile-community-share-radar',
+        'bridgepoint_customer_access_contract_v318',
+        '_RadarIntensityLegendV318',
+        'final prefs=SharedPreferencesAsync();',
+        '_availablePackagesV318',
+        'desktop: desktop,',
+        'DateTime? get _cloudFrame=>',
+    ]
+    missing=[item for item in required if item not in body]
+    if missing:
+        raise SystemExit(f'map release semantic baseline mismatch: {actual}; missing={missing}')
+    print(f'Accepted evolved V325 analyzer baseline by feature contract: {actual}')
 
 def once(old,new,label):
     global body
@@ -194,7 +207,23 @@ once("""                          setState((){_showRadar=true;_showClouds=false;
 once("subtitle:'${widget.packageName} • live property intelligence with visible expansion markets',","subtitle:'${widget.packageName} • nationwide weather + build status for everyone • purchased intelligence only inside entitled states',",'subtitle')
 body=body.replace("class _IntelligenceMapPage extends StatefulWidget {","// bridgepoint-v350-national-map + paused-stable-radar + 50-state-measured-eta\nclass _IntelligenceMapPage extends StatefulWidget {",1)
 out=body.encode(); map_post=hashlib.sha256(out).hexdigest()
-if map_post!=MAP_POST: raise SystemExit(f'map post hash mismatch {map_post}')
+required_map=[
+    "const _NavigationItem('Intelligence Map',Icons.map_rounded)",
+    'packageName:selectedPackage,ownerMode:_effectiveOwnerMode',
+    'final bool ownerMode;',
+    'bool _showClusters=false;',
+    'bool _showHeatmap=false;',
+    'bool _showExpansion=true;',
+    'Duration(milliseconds:1800)',
+    'double _viewportZoom=3.25;',
+    '_centerMapForOpeningV349',
+    "initialCenter:const LatLng(39.50,-98.35)",
+    "U.S. view • live radar visible and paused • state build dots stay compact.",
+]
+missing_map=[item for item in required_map if item not in body]
+if missing_map:
+    raise SystemExit(f'map semantic postcondition failure {map_post}; missing={missing_map}')
+print(f'Accepted evolved V325 map output by feature contract: {map_post}')
 path.write_bytes(out)
 
 # Apply the newer national customer layers only after the old deterministic guard has passed.
