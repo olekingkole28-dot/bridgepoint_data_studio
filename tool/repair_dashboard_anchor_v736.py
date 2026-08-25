@@ -8,7 +8,7 @@ DASHBOARD = 'class _DashboardScreenState extends State<DashboardScreen>'
 NAV = 'static const navigationItems = <_NavigationItem>['
 DISPOSE = '  @override\n  void dispose()'
 EXPERIENCE = 'class _ExperienceBackground extends StatelessWidget'
-OPEN_STRIPE = 'Future<void> _openStripeFlow'
+BRAND_MARK = 'class _BridgePointMark extends StatelessWidget'
 LEGAL_STATE = 'class _LegalAcceptanceScreenState extends State<_LegalAcceptanceScreen>'
 BILLING_READY = 'Future<Map<String,dynamic>> _bridgePointBillingReadinessV220() async {'
 BILLING_BANNER = 'class _BillingReadinessBannerV220 extends StatefulWidget'
@@ -30,15 +30,12 @@ def anchored_span(value: str, start_token: str, end_token: str, label: str) -> t
     return start, end
 
 
-def dashboard_anchored_span(value: str, label: str) -> tuple[int, int]:
-    dashboard = value.find(DASHBOARD)
-    if dashboard < 0:
-        raise SystemExit(f'v736: {label} DashboardScreenState anchor missing')
-    start = value.find(NAV, dashboard)
-    end = value.find(DISPOSE, start + len(NAV)) if start >= 0 else -1
-    if start < 0 or end < 0:
-        raise SystemExit(f'v736: {label} dashboard navigation/dispose anchors missing')
-    return start, end
+def dashboard_anchor_health(value: str) -> bool:
+    dashboard=value.find(DASHBOARD)
+    if dashboard<0:return False
+    nav=value.find(NAV,dashboard)
+    dispose=value.find(DISPOSE,nav+len(NAV)) if nav>=0 else -1
+    return nav>=0 and dispose>=0
 
 
 def edit_span(value: str, start_token: str, end_token: str, label: str, editor) -> str:
@@ -51,10 +48,11 @@ def edit_span(value: str, start_token: str, end_token: str, label: str, editor) 
 body = PATH.read_text(encoding='utf-8')
 source = canonical_source()
 
-# V278/V312 and legacy offset patches can leave the ExperienceBackground/brand painter
-# syntactically open. Restore that source-owned shell before any brace-based repair.
-cs, ce = anchored_span(body, EXPERIENCE, OPEN_STRIPE, 'generated experience shell')
-ss, se = anchored_span(source, EXPERIENCE, OPEN_STRIPE, 'canonical experience shell')
+# Repair only ExperienceBackground itself. Earlier v736 versions restored everything
+# through billing, which accidentally deleted evolved top-level helpers and UI types that
+# later generators intentionally inserted between the logo and billing functions.
+cs, ce = anchored_span(body, EXPERIENCE, BRAND_MARK, 'generated ExperienceBackground')
+ss, se = anchored_span(source, EXPERIENCE, BRAND_MARK, 'canonical ExperienceBackground')
 body = body[:cs] + source[ss:se] + body[ce:]
 
 # Remove V318 access fields and package-map debris that old line-offset patches inserted
@@ -72,16 +70,15 @@ def clean_legal(segment: str) -> str:
 
 body = edit_span(body, LEGAL_STATE, EXPERIENCE, 'legal acceptance', clean_legal)
 
-# Remove a package-list entry that was injected as a statement into the billing-readiness
-# function. The package remains represented in its real catalog/navigation structures.
+# Remove a package-list entry that was injected as a statement into billing readiness.
 def clean_billing(segment: str) -> str:
     return segment.replace("    'BridgePoint Company',\n", '')
 
 if BILLING_READY in body and BILLING_BANNER in body:
     body = edit_span(body, BILLING_READY, BILLING_BANNER, 'billing readiness', clean_billing)
 
-# A legacy weather update was injected in the middle of the compact-navigation constructor.
-# Delete it and restore the constructor terminator so Dashboard can close normally.
+# A legacy weather update was injected into the compact-navigation constructor. Delete it
+# and restore the constructor terminator without replacing the evolved Dashboard region.
 compact_weather = re.compile(
     r"(?P<indent>\s*)onMoreTools:_openMoreToolsV248,\s*\n"
     r"\s*if\(mounted\)\{setState\(\(\)\{weatherEntitledV318=true;weatherEffect=kind;"
@@ -93,9 +90,8 @@ body, compact_repairs = compact_weather.subn(
     body,
 )
 
-# The same legacy weather/radar offsets landed inside the persistent property tracker:
-# one fragment stole add()'s closing brace and another sits after the Card return. Repair
-# that small region so Community 3D is top-level again instead of being parsed inside it.
+# Legacy weather/radar offsets also landed inside the persistent property tracker. Repair
+# that small region so Community 3D remains a top-level component.
 def clean_trackers(segment: str) -> str:
     segment = re.sub(
         r"\n\s*if\(weatherEntitledV318\)_OpportunityChip\(label:'WEATHER • \$weatherText',"
@@ -122,14 +118,8 @@ def clean_trackers(segment: str) -> str:
 if TRACKERS in body and COMMUNITY_3D in body:
     body = edit_span(body, TRACKERS, COMMUNITY_3D, 'persistent property trackers', clean_trackers)
 
-# Restore Dashboard navigation/workspace initialization without requiring generated brace
-# balance. This class anchor prevents any orphan navigation list from becoming the target.
-cs, ce = dashboard_anchored_span(body, 'generated')
-ss, se = dashboard_anchored_span(source, 'canonical')
-body = body[:cs] + source[ss:se] + body[ce:]
-
-# Legacy V318 can also leave executable helper calls at file/class scope. Remove all
-# standalone invocations; v735 re-adds exactly one awaited call inside _configureFromServer.
+# Remove executable V318 helper calls that leaked to file/class scope. The authoritative
+# repair will keep/reinsert the legitimate access call inside server configuration.
 body = re.sub(
     r'(?m)^\s*(?:await\s+|unawaited\s*\(\s*)?_configureAccessV318\(\)\s*\)?\s*;\s*\n?',
     '',
@@ -138,7 +128,10 @@ body = re.sub(
 
 PATH.write_text(body, encoding='utf-8')
 
-# With high-risk seams normalized, run the authoritative localization/national/access/
-# remembered-auth/resilience repair and fail closed if any release contract regresses.
+# Do not replace a valid evolved Dashboard with the older source-owned navigation block.
+# v735 now preserves a structurally valid Dashboard and falls back only if still damaged.
+if not dashboard_anchor_health(body):
+    raise SystemExit('v736: targeted seam repair did not recover Dashboard anchors; refusing to downgrade evolved Dashboard')
+
 subprocess.run([sys.executable, 'tool/repair_generated_release_v735.py'], check=True)
-print(f'BridgePoint v736 normalized legacy injection seams; compact navigation repairs={compact_repairs}; full v735 contract passed.')
+print(f'BridgePoint v736 repaired targeted legacy seams without deleting evolved helpers/dashboard; compact navigation repairs={compact_repairs}; full v735 contract passed.')
