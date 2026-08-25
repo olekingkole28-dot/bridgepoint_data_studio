@@ -42,7 +42,9 @@ def require_release_contract(value: str) -> None:
 
 if marker in body:
     require_release_contract(body)
-    print('BridgePoint v444 dynamic avatar + localization + V728 national release contract verified.')
+    path.write_text(body,encoding='utf-8')
+    subprocess.run([sys.executable,'tool/repair_generated_release_v735.py'],check=True)
+    print('BridgePoint v444 dynamic avatar + localization + V728 national release contract verified, then v735 authoritative repair applied.')
     raise SystemExit(0)
 
 start=body.find('class _TopBar extends StatelessWidget')
@@ -218,4 +220,5 @@ if "onAvatarTap:()=>_navigateTrainingLabel('Settings')" not in body:
 
 require_release_contract(body)
 path.write_text(body,encoding='utf-8')
-print('Applied BridgePoint v444 dynamic account avatar with V728 national/localization release guard.')
+subprocess.run([sys.executable,'tool/repair_generated_release_v735.py'],check=True)
+print('Applied BridgePoint v444 dynamic account avatar with V728 national/localization release guard, followed by v735 authoritative generated-release repair.')
