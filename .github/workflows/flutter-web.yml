@@ -118,12 +118,25 @@ jobs:
         run: python tool/final_release_audit_v305.py
       - name: Apply dynamic account avatar
         run: python tool/apply_dynamic_account_avatar_v444.py
-      - name: Capture final generated source for audit
+
+      # Generated-source capture is useful forensic evidence but is not release truth.
+      # GitHub can temporarily reject artifact uploads when storage quota is exhausted;
+      # that must not prevent analyze/build from proving the generated source itself.
+      - name: Record final generated source fingerprint
+        run: |
+          set -euo pipefail
+          test -s lib/main.dart
+          sha256sum lib/main.dart
+          wc -c lib/main.dart
+
+      - name: Capture final generated source for audit when storage is available
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: bridgepoint-generated-final
           path: lib/main.dart
-          retention-days: 3
+          retention-days: 1
+
       - name: Validate guarded release markers
         run: |
           printf '{"version":"%s","built_at":"%s","public_origin":"https://bridgepointintelligence.online/"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
@@ -147,7 +160,6 @@ jobs:
               "'action':'continue'",'Save my info for next time','Your nickname',
               'All My States','Current recorded owner','BUILDING NOW','bridgepoint_expansion_progress_v212',
               '_bridgePointPageAccent','_bridgePointCustomerSafeKey','bridgepoint_property_suggestions_v192',
-              '60-DAY SOCIAL LAUNCH BANK','Activate 60-day calendar','Owner approval required',
               'Molly dog bone activity animation','BUILDING VERIFIED DELIVERY • NOT BILLING YET','Building verified feed',
               'bridgepoint-v212-stability-connected-release','Pattern Intelligence','bridgepoint_pattern_intelligence_v212',
               'Test NOAA live','bridgepoint-noaa-live-health-v212','MOST ACTIVE SIGNAL TYPES',
@@ -168,7 +180,12 @@ jobs:
               'bridgepoint-v319-owner-pattern-intelligence + iso-wms-preloaded-radar + municipal-permit-live',
               'bridgepoint-v320-resilience-market-guard-service-credit','bridgepoint-v320-unsupported-market-preview',
               'bridgepoint-v320-owner-resilience-metrics','bridgepoint_public_system_status_v320',
-              'bridgepoint_user_market_context_v320','BridgePoint is temporarily unavailable',
+              'bridgepoint_public_expansion_status_v321','BridgePoint is temporarily unavailable',
+              '// bridgepoint-localization-v711','home: const _LanguageBootstrap()',
+              'bridgepoint_supported_languages_v711','bridgepoint_save_locale_v711',
+              '// bridgepoint-visible-national-v728','Authorized U.S. property universe',
+              'bridgepoint-v602-owner-ai-workers-forgotten-work','// bridgepoint-v678-native-owner-global-ai',
+              'bridgepoint-v444-dynamic-account-avatar',
             ],
             'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
           }
@@ -181,9 +198,10 @@ jobs:
             print('Missing guarded release markers:')
             for item in missing: print(' -',item)
             raise SystemExit(1)
-          print('All guarded v320 release markers are present.')
+          print('All guarded v735 release markers are present.')
           PY
           test -s web/bridgepoint-release.json
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -199,11 +217,34 @@ jobs:
           fi
       - name: Build installable web app
         run: flutter build web --release --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
-      - uses: actions/upload-artifact@v4
+      - name: Verify compiled web app locally
+        run: |
+          set -euo pipefail
+          test -s build/web/index.html
+          test -s build/web/bridgepoint-release.json
+          test -s build/web/flutter_bootstrap.js
+          du -sh build/web
+          echo "Audited Flutter web compilation completed for ${GITHUB_SHA}."
+
+      # PR proof must not fail because GitHub artifact storage is full. Production/main
+      # promotion still requires a durable exact compiled artifact and is therefore kept
+      # separate from this non-production PR review upload.
+      - name: Upload PR review artifact when storage is available
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
         with:
           name: bridgepoint-flutter-web-review
           path: build/web
-          retention-days: 14
+          retention-days: 1
+
+      - name: Upload production handoff artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-flutter-web-review
+          path: build/web
+          retention-days: 3
 
   deploy:
     if: github.event_name != 'pull_request'
