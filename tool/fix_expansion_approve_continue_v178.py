@@ -1,4 +1,5 @@
 from pathlib import Path
+import runpy
 
 p=Path('lib/main.dart')
 text=p.read_text(encoding='utf-8')
@@ -53,3 +54,7 @@ else:
     if "import 'screens/bridgepoint_owner_command_center.dart';" not in text or 'BridgePointOwnerCommandCenter' not in text:
         raise SystemExit('v675 global control exists but owner command center is not wired into the app')
     print('Legacy v178 approval continuation superseded by wired Owner Global Control v675/v817; expansion commands already queue work immediately with readiness gates enforced.')
+
+# v818: normalize formatted auth/settings boundaries before the historical
+# remembered-sign-in + nickname installer runs in the next workflow step.
+runpy.run_path('tool/repair_auth_nickname_compat_v818.py',run_name='__main__')
