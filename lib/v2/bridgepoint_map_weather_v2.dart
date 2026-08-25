@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class BridgePointMapWeatherV2 extends StatefulWidget {
   const BridgePointMapWeatherV2({super.key});
@@ -14,23 +15,25 @@ class BridgePointMapWeatherV2 extends StatefulWidget {
 class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
   bool radar = true;
   bool satellite = true;
+  bool opportunities = true;
+  bool signals = true;
   bool playing = true;
+  bool intelligenceBusy = false;
   int frame = 48;
   Timer? timer;
+  List<Map<String, dynamic>> _opportunities = const [];
+  List<Map<String, dynamic>> _signals = const [];
+  String? _intelligenceMessage;
+
+  static const _cyan = Color(0xFF35D2E8);
+  static const _muted = Color(0xFF8FA5BF);
+  static const _amber = Color(0xFFFFC857);
+  static const _green = Color(0xFF38D49A);
 
   List<DateTime> get frames {
     final now = DateTime.now().toUtc();
-    final rounded = DateTime.utc(
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-      (now.minute ~/ 5) * 5,
-    );
-    return List.generate(
-      49,
-      (i) => rounded.subtract(Duration(minutes: (48 - i) * 5)),
-    );
+    final rounded = DateTime.utc(now.year, now.month, now.day, now.hour, (now.minute ~/ 5) * 5);
+    return List.generate(49, (i) => rounded.subtract(Duration(minutes: (48 - i) * 5)));
   }
 
   DateTime get radarTime => frames[frame.clamp(0, 48)];
@@ -38,6 +41,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
   @override
   void initState() {
     super.initState();
+    _loadNationalIntelligence();
     timer = Timer.periodic(const Duration(milliseconds: 750), (_) {
       if (mounted && radar && playing) {
         setState(() => frame = frame >= 48 ? 0 : frame + 1);
@@ -51,184 +55,239 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
     super.dispose();
   }
 
+  List<Map<String, dynamic>> _rows(dynamic value) {
+    if (value is List) return value.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    return const [];
+  }
+
+  Future<void> _loadNationalIntelligence() async {
+    if (intelligenceBusy) return;
+    setState(() {
+      intelligenceBusy = true;
+      _intelligenceMessage = null;
+    });
+    try {
+      final raw = await Supabase.instance.client.rpc(
+        'bridgepoint_flutter_intelligence_map_national_v346',
+        params: {
+          'p_model_key': 'all',
+          'p_min_lat': null,
+          'p_max_lat': null,
+          'p_min_lng': null,
+          'p_max_lng': null,
+          'p_min_score': 45,
+          'p_opportunity_limit': 240,
+          'p_signal_limit': 80,
+        },
+      );
+      final map = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+      if (!mounted) return;
+      setState(() {
+        _opportunities = _rows(map['opportunities']);
+        _signals = _rows(map['signals']);
+        if (map['map_intelligence_available'] == false) {
+          _intelligenceMessage = 'Map intelligence is not included in this account package.';
+        }
+      });
+    } catch (e) {
+      if (mounted) setState(() => _intelligenceMessage = 'Map intelligence unavailable: $e');
+    } finally {
+      if (mounted) setState(() => intelligenceBusy = false);
+    }
+  }
+
+  double? _double(dynamic value) => value is num ? value.toDouble() : double.tryParse('$value');
+
   String _clock(DateTime value) {
     final local = value.toLocal();
     final minute = local.minute.toString().padLeft(2, '0');
     return '${local.hour}:$minute';
   }
 
+  Color _opportunityColor(Map<String, dynamic> row) {
+    final priority = '${row['priority'] ?? ''}'.toLowerCase();
+    final score = _double(row['score']) ?? 0;
+    if (priority.contains('critical') || score >= 85) return const Color(0xFFFF6B6B);
+    if (priority.contains('high') || score >= 70) return _amber;
+    if (score >= 55) return _cyan;
+    return _green;
+  }
+
+  void _showOpportunity(Map<String, dynamic> row) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('${row['title'] ?? row['full_address'] ?? 'Opportunity'}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            if ('${row['full_address'] ?? ''}'.trim().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text('${row['full_address']}', style: const TextStyle(color: _muted)),
+            ],
+            const SizedBox(height: 12),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              Chip(label: Text('Score ${row['score'] ?? '—'}')),
+              Chip(label: Text('${row['priority'] ?? 'priority unavailable'}')),
+              Chip(label: Text('${row['direct_source_count'] ?? 0} direct sources')),
+              Chip(label: Text('${row['confidence_score'] ?? '—'}% confidence')),
+            ]),
+            const SizedBox(height: 10),
+            Text('${row['explanation'] ?? row['reason'] ?? 'No explanation returned.'}', style: const TextStyle(height: 1.45)),
+            if ('${row['recommended_action'] ?? ''}'.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text('Next best action: ${row['recommended_action']}', style: const TextStyle(color: _cyan, fontWeight: FontWeight.w800)),
+            ],
+            const SizedBox(height: 10),
+            Text('Evidence families: ${row['independent_evidence_families'] ?? row['evidence_families'] ?? 'unavailable'}', style: const TextStyle(color: _muted, fontSize: 10)),
+            const SizedBox(height: 8),
+            const Text('Opportunity ranking is decision support, not confirmed damage or a guaranteed customer event.', style: TextStyle(color: _amber, fontSize: 10)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  void _showSignal(Map<String, dynamic> row) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('${row['signal_name'] ?? row['title'] ?? 'Signal'}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 5),
+            Text('${row['full_address'] ?? [row['municipality'], row['state_code']].where((x) => x != null).join(', ')}', style: const TextStyle(color: _muted)),
+            const SizedBox(height: 10),
+            Text('${row['evidence_summary'] ?? row['title'] ?? 'No evidence summary returned.'}', style: const TextStyle(height: 1.45)),
+            const SizedBox(height: 8),
+            Text('Family: ${row['signal_family'] ?? 'unknown'} • detected ${row['detected_at'] ?? 'unknown'}', style: const TextStyle(color: _muted, fontSize: 10)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  List<Marker> _opportunityMarkers() => _opportunities.map((row) {
+    final lat = _double(row['latitude']);
+    final lng = _double(row['longitude']);
+    if (lat == null || lng == null) return null;
+    final color = _opportunityColor(row);
+    return Marker(
+      point: LatLng(lat, lng),
+      width: 34,
+      height: 34,
+      child: Tooltip(
+        message: '${row['title'] ?? row['full_address'] ?? 'Opportunity'} • score ${row['score'] ?? '—'}',
+        child: GestureDetector(
+          onTap: () => _showOpportunity(row),
+          child: Container(
+            decoration: BoxDecoration(color: const Color(0xE6071321), shape: BoxShape.circle, border: Border.all(color: color, width: 2)),
+            child: Icon(Icons.home_work_rounded, size: 18, color: color),
+          ),
+        ),
+      ),
+    );
+  }).whereType<Marker>().toList();
+
+  List<Marker> _signalMarkers() => _signals.map((row) {
+    final lat = _double(row['latitude']);
+    final lng = _double(row['longitude']);
+    if (lat == null || lng == null) return null;
+    return Marker(
+      point: LatLng(lat, lng),
+      width: 24,
+      height: 24,
+      child: Tooltip(
+        message: '${row['signal_name'] ?? row['title'] ?? 'Signal'}',
+        child: GestureDetector(
+          onTap: () => _showSignal(row),
+          child: Container(
+            decoration: BoxDecoration(color: const Color(0xD9071321), shape: BoxShape.circle, border: Border.all(color: _cyan)),
+            child: const Icon(Icons.bolt_rounded, size: 13, color: _cyan),
+          ),
+        ),
+      ),
+    );
+  }).whereType<Marker>().toList();
+
   @override
   Widget build(BuildContext context) {
     final mapHeight = MediaQuery.sizeOf(context).height.clamp(520.0, 820.0);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Geospatial Intelligence',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 5),
-        const Text(
-          'One map for weather, imagery, parcels, buildings, risks and intelligence. Provider layers stay source-aware and permission-aware instead of being treated as anonymous tiles.',
-          style: TextStyle(color: Color(0xFF8FA5BF), height: 1.45),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilterChip(
-              selected: satellite,
-              label: const Text('Satellite'),
-              avatar: const Icon(Icons.satellite_alt_outlined, size: 18),
-              onSelected: (value) => setState(() => satellite = value),
-            ),
-            FilterChip(
-              selected: radar,
-              label: const Text('NOAA radar'),
-              avatar: const Icon(Icons.radar_rounded, size: 18),
-              onSelected: (value) => setState(() => radar = value),
-            ),
-            ActionChip(
-              avatar: Icon(
-                playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              ),
-              label: Text(playing ? 'Pause weather' : 'Play weather'),
-              onPressed: () => setState(() => playing = !playing),
-            ),
-            const Chip(
-              avatar: Icon(Icons.layers_outlined, size: 18),
-              label: Text('Premium aerial / 3D via licensed connectors'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: mapHeight,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Stack(
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Geospatial Intelligence', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+          SizedBox(height: 5),
+          Text('Weather, imagery, verified opportunities and active signals in one source-aware property intelligence map.', style: TextStyle(color: _muted, height: 1.45)),
+        ])),
+        IconButton.filledTonal(onPressed: intelligenceBusy ? null : _loadNationalIntelligence, tooltip: 'Refresh intelligence', icon: const Icon(Icons.refresh_rounded)),
+      ]),
+      if (intelligenceBusy) ...[const SizedBox(height: 8), const LinearProgressIndicator()],
+      if (_intelligenceMessage != null) ...[const SizedBox(height: 8), Text(_intelligenceMessage!, style: const TextStyle(color: _amber))],
+      const SizedBox(height: 12),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        FilterChip(selected: satellite, label: const Text('Satellite'), avatar: const Icon(Icons.satellite_alt_outlined, size: 18), onSelected: (v) => setState(() => satellite = v)),
+        FilterChip(selected: radar, label: const Text('NOAA radar'), avatar: const Icon(Icons.radar_rounded, size: 18), onSelected: (v) => setState(() => radar = v)),
+        FilterChip(selected: opportunities, label: Text('Opportunities (${_opportunities.length})'), avatar: const Icon(Icons.home_work_outlined, size: 18), onSelected: (v) => setState(() => opportunities = v)),
+        FilterChip(selected: signals, label: Text('Signals (${_signals.length})'), avatar: const Icon(Icons.bolt_outlined, size: 18), onSelected: (v) => setState(() => signals = v)),
+        ActionChip(avatar: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded), label: Text(playing ? 'Pause weather' : 'Play weather'), onPressed: () => setState(() => playing = !playing)),
+        const Chip(avatar: Icon(Icons.layers_outlined, size: 18), label: Text('Premium aerial / 3D via licensed connectors')),
+      ]),
+      const SizedBox(height: 10),
+      SizedBox(
+        height: mapHeight,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(children: [
+            FlutterMap(
+              options: const MapOptions(initialCenter: LatLng(39.5, -98.35), initialZoom: 4, minZoom: 3, maxZoom: 18),
               children: [
-                FlutterMap(
-                  options: const MapOptions(
-                    initialCenter: LatLng(39.5, -98.35),
-                    initialZoom: 4,
-                    minZoom: 3,
-                    maxZoom: 18,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: satellite
-                          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                          : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.bridgepoint.data_studio',
-                      maxNativeZoom: 19,
-                    ),
-                    if (satellite)
-                      TileLayer(
-                        urlTemplate:
-                            'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-                        userAgentPackageName: 'com.bridgepoint.data_studio',
-                      ),
-                    if (radar)
-                      TileLayer(
-                        key: ValueKey(
-                          'bp-radar-${radarTime.millisecondsSinceEpoch}',
-                        ),
-                        wmsOptions: WMSTileLayerOptions(
-                          baseUrl:
-                              'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',
-                          layers: const ['0'],
-                          format: 'image/png',
-                          transparent: true,
-                          version: '1.3.0',
-                          otherParameters: {
-                            'TIME': radarTime.toUtc().toIso8601String(),
-                          },
-                        ),
-                        maxNativeZoom: 10,
-                        userAgentPackageName: 'com.bridgepoint.data_studio',
-                      ),
-                    RichAttributionWidget(
-                      attributions: const [
-                        TextSourceAttribution('NOAA / NWS MRMS'),
-                        TextSourceAttribution('Esri / OpenStreetMap'),
-                      ],
-                    ),
-                  ],
+                TileLayer(
+                  urlTemplate: satellite ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.bridgepoint.data_studio',
+                  maxNativeZoom: 19,
                 ),
-                if (radar)
-                  Positioned(
-                    left: 12,
-                    right: 12,
-                    bottom: 12,
-                    child: Card(
-                      color: const Color(0xEE071321),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  'NOAA MRMS • ~1 KM SOURCE',
-                                  style: TextStyle(
-                                    fontSize: 8.5,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF35D2E8),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Slider(
-                                    value: frame.toDouble(),
-                                    min: 0,
-                                    max: 48,
-                                    divisions: 48,
-                                    onChanged: (value) => setState(() {
-                                      playing = false;
-                                      frame = value.round();
-                                    }),
-                                  ),
-                                ),
-                                Text(
-                                  _clock(radarTime),
-                                  style: const TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Text(
-                              'Four-hour time-enabled radar • about 5-minute frames • raw reflectivity is regional weather context, not roof-level proof. Deep property zoom should rely on matched storm/event evidence, not stretched radar pixels.',
-                              style: TextStyle(
-                                color: Color(0xFF8FA5BF),
-                                fontSize: 8.5,
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                if (satellite) TileLayer(urlTemplate: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', userAgentPackageName: 'com.bridgepoint.data_studio'),
+                if (radar) TileLayer(
+                  key: ValueKey('bp-radar-${radarTime.millisecondsSinceEpoch}'),
+                  wmsOptions: WMSTileLayerOptions(
+                    baseUrl: 'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',
+                    layers: const ['0'], format: 'image/png', transparent: true, version: '1.3.0', otherParameters: {'TIME': radarTime.toUtc().toIso8601String()},
                   ),
+                  maxNativeZoom: 10,
+                  userAgentPackageName: 'com.bridgepoint.data_studio',
+                ),
+                if (signals && _signals.isNotEmpty) MarkerLayer(markers: _signalMarkers()),
+                if (opportunities && _opportunities.isNotEmpty) MarkerLayer(markers: _opportunityMarkers()),
+                RichAttributionWidget(attributions: const [TextSourceAttribution('NOAA / NWS MRMS'), TextSourceAttribution('Esri / OpenStreetMap')]),
               ],
             ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Card(
-          child: Padding(
-            padding: EdgeInsets.all(12),
-            child: Text(
-              'Premium layer contract: Nearmap, EagleView, LiDAR/DSM, historical aerial, parcel/building geometry, roof/site change, zoning, infrastructure and hazard layers are enabled only when provider rights, resolution, coverage and readiness are verified.',
-              style: TextStyle(color: Color(0xFF8FA5BF), fontSize: 10, height: 1.45),
+            if (radar) Positioned(
+              left: 12, right: 12, bottom: 12,
+              child: Card(
+                color: const Color(0xEE071321),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Row(children: [
+                      const Text('NOAA MRMS • ~1 KM SOURCE', style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: _cyan)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Slider(value: frame.toDouble(), min: 0, max: 48, divisions: 48, onChanged: (value) => setState(() { playing = false; frame = value.round(); }))),
+                      Text(_clock(radarTime), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
+                    ]),
+                    const Text('Four-hour time-enabled radar • about 5-minute frames • raw reflectivity is regional weather context, not roof-level proof. Deep property zoom relies on matched storm/event evidence rather than stretched radar pixels.', style: TextStyle(color: _muted, fontSize: 8.5, height: 1.35)),
+                  ]),
+                ),
+              ),
             ),
-          ),
+          ]),
         ),
-      ],
-    );
+      ),
+      const SizedBox(height: 10),
+      const Card(child: Padding(padding: EdgeInsets.all(12), child: Text('Map truth contract: marker intelligence is sourced from BridgePoint verified ranked opportunities and active property signals with state/package access controls. Nearmap, EagleView, LiDAR/DSM, historical aerial and other premium layers remain gated by provider rights, coverage, resolution and readiness.', style: TextStyle(color: _muted, fontSize: 10, height: 1.45)))),
+    ]);
   }
 }
