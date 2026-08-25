@@ -44,3 +44,17 @@ elif new_check not in t:
     raise SystemExit('v124 U.S. control compatibility repair target not found')
 v124.write_text(t,encoding='utf-8')
 print('Repaired v124 U.S. map control compatibility')
+
+# v189 still searches for the pre-national Connecticut map subtitle. Update only its
+# historical matcher to the current canonical U.S. subtitle; later layers remain free
+# to evolve the rendered copy and v735 will still enforce national truth.
+v189=Path('tool/apply_premium_navigation_expansion_v189.py')
+u=v189.read_text(encoding='utf-8')
+old_sub="${widget.packageName} • live Connecticut intelligence with visible expansion markets"
+current_sub="${widget.packageName} • live U.S. property intelligence • property-linked signals and expansion coverage"
+if old_sub in u:
+    u=u.replace(old_sub,current_sub,1)
+elif current_sub not in u:
+    raise SystemExit('v189 map heading compatibility target not found')
+v189.write_text(u,encoding='utf-8')
+print('Repaired v189 national map heading compatibility')
