@@ -1,0 +1,46 @@
+name: V318 Patch Inspector
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: bridgepoint-v318-inspect-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode only v318 operations relevant to dashboard access
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import ast, base64, json, zlib
+          source=Path('tool/apply_access_weather_v318.py').read_text(encoding='utf-8')
+          tree=ast.parse(source)
+          blob=None
+          for node in tree.body:
+              if isinstance(node,ast.Assign):
+                  for target in node.targets:
+                      if isinstance(target,ast.Name) and target.id=='blob':
+                          blob=ast.literal_eval(node.value)
+          if not blob:
+              raise SystemExit('v318 blob not found')
+          ops=json.loads(zlib.decompress(base64.b64decode(blob)).decode())
+          keys=('navigationItems','visibleNavigationItems','_configureAccessV318','_effectiveOwnerMode','_availablePackagesV318','_hasFeatureV318','_featuresV318','_accessResolvedV318','Weather Center','owner_override','feature_flags')
+          print('V318 relevant operations:')
+          count=0
+          for idx,(i1,i2,new_lines) in enumerate(ops):
+              payload=''.join(new_lines)
+              if any(k in payload for k in keys):
+                  count+=1
+                  print(f'\n--- OP {idx}: replace lines {i1}:{i2} ---')
+                  print(payload[:12000])
+          print(f'\nRelevant op count: {count} / {len(ops)}')
+          PY
