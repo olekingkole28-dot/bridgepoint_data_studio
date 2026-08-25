@@ -14,6 +14,7 @@ BILLING_READY = 'Future<Map<String,dynamic>> _bridgePointBillingReadinessV220() 
 BILLING_BANNER = 'class _BillingReadinessBannerV220 extends StatefulWidget'
 TRACKERS = 'class _PersistentPropertyTrackersV212State extends State<_PersistentPropertyTrackersV212>'
 COMMUNITY_3D = 'class _Community3DMapV255 extends StatefulWidget'
+AFTER_DASHBOARD = 'class _BridgePointSetupChecklistV215 extends StatefulWidget'
 
 
 def canonical_source() -> str:
@@ -43,6 +44,79 @@ def edit_span(value: str, start_token: str, end_token: str, label: str, editor) 
     segment = value[start:end]
     repaired = editor(segment)
     return value[:start] + repaired + value[end:]
+
+
+def brace_depth_by_line(segment: str) -> list[tuple[int,int,str]]:
+    depth=0
+    quote=None
+    escaped=False
+    line_comment=False
+    block_comment=False
+    line=1
+    rows=[]
+    current=[]
+    i=0
+    while i<len(segment):
+        ch=segment[i]
+        nxt=segment[i+1] if i+1<len(segment) else ''
+        current.append(ch)
+        if line_comment:
+            if ch=='\n':
+                line_comment=False
+                rows.append((line,depth,''.join(current).rstrip()))
+                current=[];line+=1
+            i+=1;continue
+        if block_comment:
+            if ch=='*' and nxt=='/':
+                current.append(nxt);block_comment=False;i+=2;continue
+            if ch=='\n':
+                rows.append((line,depth,''.join(current).rstrip()));current=[];line+=1
+            i+=1;continue
+        if quote is not None:
+            if escaped:escaped=False
+            elif ch=='\\':escaped=True
+            elif ch==quote:quote=None
+            if ch=='\n':
+                rows.append((line,depth,''.join(current).rstrip()));current=[];line+=1
+            i+=1;continue
+        if ch=='/' and nxt=='/':
+            current.append(nxt);line_comment=True;i+=2;continue
+        if ch=='/' and nxt=='*':
+            current.append(nxt);block_comment=True;i+=2;continue
+        if ch in ("'",'\"'):
+            quote=ch;i+=1;continue
+        if ch=='{':depth+=1
+        elif ch=='}':depth-=1
+        if ch=='\n':
+            rows.append((line,depth,''.join(current).rstrip()));current=[];line+=1
+        i+=1
+    if current:rows.append((line,depth,''.join(current).rstrip()))
+    return rows
+
+
+def print_dashboard_diagnostics(value: str) -> None:
+    start=value.find(DASHBOARD)
+    end=value.find(AFTER_DASHBOARD,start+len(DASHBOARD)) if start>=0 else -1
+    if start<0 or end<0:
+        print(f'v736 dashboard diagnostics unavailable: start={start} end={end}',file=sys.stderr)
+        return
+    segment=value[start:end]
+    rows=brace_depth_by_line(segment)
+    final_depth=rows[-1][1] if rows else 0
+    print(f'v736 dashboard diagnostics: lines={len(rows)} final_relative_depth={final_depth}',file=sys.stderr)
+    # Show member-looking lines that are suspiciously deeper than class depth 1, plus
+    # the last 90 lines. This pinpoints where a method/widget stopped closing.
+    suspicious=[]
+    member=re.compile(r'^\s{2}(?:@override|Future<|Future<void>|void |Widget |bool |int |String |List<|Map<|Set<|static |final |late |Timer\?|double )')
+    for number,depth,text in rows:
+        if depth>1 and member.search(text):
+            suspicious.append((number,depth,text))
+    print('v736 suspicious dashboard member-depth lines:',file=sys.stderr)
+    for number,depth,text in suspicious[-60:]:
+        print(f'  D{depth} L{number}: {text[:220]}',file=sys.stderr)
+    print('v736 dashboard tail:',file=sys.stderr)
+    for number,depth,text in rows[-90:]:
+        print(f'  D{depth} L{number}: {text[:260]}',file=sys.stderr)
 
 
 body = PATH.read_text(encoding='utf-8')
@@ -128,10 +202,12 @@ body = re.sub(
 
 PATH.write_text(body, encoding='utf-8')
 
-# Do not replace a valid evolved Dashboard with the older source-owned navigation block.
-# v735 now preserves a structurally valid Dashboard and falls back only if still damaged.
 if not dashboard_anchor_health(body):
+    print_dashboard_diagnostics(body)
     raise SystemExit('v736: targeted seam repair did not recover Dashboard anchors; refusing to downgrade evolved Dashboard')
 
+# Always emit depth diagnostics before the v735 parser runs. This is compact enough for
+# CI logs and identifies the exact still-open method if the class remains unbalanced.
+print_dashboard_diagnostics(body)
 subprocess.run([sys.executable, 'tool/repair_generated_release_v735.py'], check=True)
 print(f'BridgePoint v736 repaired targeted legacy seams without deleting evolved helpers/dashboard; compact navigation repairs={compact_repairs}; full v735 contract passed.')
