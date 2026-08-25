@@ -1,4 +1,4 @@
-name: BridgePoint UI Repair v790
+name: BridgePoint UI Repair v792
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: bridgepoint-ui-repair-v790
+  group: bridgepoint-ui-repair-v792
   cancel-in-progress: false
 
 jobs:
@@ -26,8 +26,10 @@ jobs:
         run: |
           python -m py_compile tool/apply_package_truth_v778.py
           python -m py_compile tool/apply_enterprise_studio_v790.py
+          python -m py_compile tool/apply_owner_surface_audit_v792.py
           python tool/apply_package_truth_v778.py
           python tool/apply_enterprise_studio_v790.py
+          python tool/apply_owner_surface_audit_v792.py
 
       - name: Detect changes
         id: changes
@@ -49,7 +51,7 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         run: |
           flutter pub get
-          dart format lib/main.dart lib/bridgepoint_intelligence_studio_v790.dart lib/bridgepoint_integrations_hub_v790.dart
+          dart format lib/main.dart lib/bridgepoint_intelligence_studio_v790.dart lib/bridgepoint_integrations_hub_v790.dart lib/screens/bridgepoint_owner_command_center.dart lib/screens/bridgepoint_owner_surface_audit_v792.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Commit verified repairs
@@ -57,6 +59,6 @@ jobs:
         run: |
           git config user.name "bridgepoint-automation"
           git config user.email "actions@users.noreply.github.com"
-          git add lib/main.dart lib/bridgepoint_intelligence_studio_v790.dart lib/bridgepoint_integrations_hub_v790.dart
-          git commit -m "Apply verified BridgePoint enterprise UI v790"
+          git add lib/main.dart lib/bridgepoint_intelligence_studio_v790.dart lib/bridgepoint_integrations_hub_v790.dart lib/screens/bridgepoint_owner_command_center.dart lib/screens/bridgepoint_owner_surface_audit_v792.dart
+          git commit -m "Apply verified BridgePoint owner surface audit v792"
           git push origin HEAD:main
