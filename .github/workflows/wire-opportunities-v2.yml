@@ -1,0 +1,58 @@
+name: Wire Opportunities V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wire-opportunities-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire Opportunities workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('lib/v2/bridgepoint_app_v2.dart')
+          s=p.read_text()
+          if "import 'bridgepoint_opportunities_v2.dart';" not in s:
+              s=s.replace("import 'bridgepoint_operations_workspace_v2.dart';\n", "import 'bridgepoint_operations_workspace_v2.dart';\nimport 'bridgepoint_opportunities_v2.dart';\n")
+          if "  opportunities,\n" not in s:
+              s=s.replace("  properties,\n  investment,", "  properties,\n  opportunities,\n  investment,")
+          marker="  _AreaSpecV2(_AreaV2.properties, 'Properties', Icons.holiday_village_rounded),\n"
+          insert=marker+"  _AreaSpecV2(_AreaV2.opportunities, 'Opportunities', Icons.bolt_rounded),\n"
+          if "_AreaV2.opportunities, 'Opportunities'" not in s:
+              if marker not in s: raise SystemExit('properties nav marker missing')
+              s=s.replace(marker,insert)
+          page_marker="        _AreaV2.properties => const BridgePointPropertiesV2(),\n"
+          if "_AreaV2.opportunities =>" not in s:
+              if page_marker not in s: raise SystemExit('properties page marker missing')
+              s=s.replace(page_marker,page_marker+"        _AreaV2.opportunities => const BridgePointOpportunitiesV2(),\n")
+          title_marker="      _AreaV2.properties => 'Properties',\n"
+          if "_AreaV2.opportunities => 'Opportunities'" not in s:
+              if title_marker not in s: raise SystemExit('properties title marker missing')
+              s=s.replace(title_marker,title_marker+"      _AreaV2.opportunities => 'Opportunities',\n")
+          p.write_text(s)
+          PY
+          git diff --check
+      - name: Commit Opportunities navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_app_v2.dart
+          if git diff --cached --quiet; then
+            echo 'Opportunities is already wired.'
+            exit 0
+          fi
+          git commit -m 'Expose state-aware Opportunities workspace in Clean V2'
+          git push origin HEAD:main
