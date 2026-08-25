@@ -84,7 +84,7 @@ class _BridgePointPublicLandingV2State extends State<BridgePointPublicLandingV2>
     }
     return Row(
       children: [
-        const Expanded(child: brand),
+        Expanded(child: brand),
         TextButton(
           onPressed: () => _open(Uri.parse('mailto:bridgepointintelligence@gmail.com')),
           child: const Text('Contact'),
@@ -272,7 +272,7 @@ class _Hero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Wrap(
+                Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
@@ -287,8 +287,8 @@ class _Hero extends StatelessWidget {
                   style: TextStyle(fontSize: phone ? 38 : 62, fontWeight: FontWeight.w900, height: .98, letterSpacing: -1.5),
                 ),
                 const SizedBox(height: 16),
-                const ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 860),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
                   child: Text(
                     'BridgePoint connects fragmented property records, public data, weather, permits, ownership changes, environmental evidence, physical intelligence and model outputs into one explainable property story—then turns that story into ranked action.',
                     style: TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 15, height: 1.65),
@@ -300,7 +300,7 @@ class _Hero extends StatelessWidget {
                   runSpacing: 10,
                   children: [
                     FilledButton.icon(onPressed: onOpen, icon: const Icon(Icons.arrow_forward_rounded), label: const Text('Open BridgePoint')),
-                    const _HeroPill(icon: Icons.verified_user_outlined, label: 'EVIDENCE + PROVENANCE', color: _BridgePointPublicLandingV2State._amber),
+                    _HeroPill(icon: Icons.verified_user_outlined, label: 'EVIDENCE + PROVENANCE', color: _BridgePointPublicLandingV2State._amber),
                   ],
                 ),
               ],

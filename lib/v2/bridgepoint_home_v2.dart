@@ -371,7 +371,7 @@ class _Hero extends StatelessWidget {
                   children: [
                     const _BrandMark(),
                     const _LivePill(),
-                    if (owner) const _MiniPill(icon: Icons.admin_panel_settings_rounded, label: 'OWNER ACCESS'),
+                    if (owner) _MiniPill(icon: Icons.admin_panel_settings_rounded, label: 'OWNER ACCESS'),
                   ],
                 ),
                 SizedBox(height: phone ? 26 : 38),
@@ -385,8 +385,8 @@ class _Hero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: 820),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 820),
                   child: Text(
                     'One property story from parcel records, public data, weather, permits, risk, ownership change, physical intelligence and BridgePoint scoring—without hiding the evidence or uncertainty.',
                     style: TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 14, height: 1.55),
@@ -477,7 +477,7 @@ class _LivePill extends StatelessWidget {
   const _LivePill();
 
   @override
-  Widget build(BuildContext context) => const _MiniPill(icon: Icons.circle, label: 'LIVE INTELLIGENCE', color: _BridgePointHomeV2State._green);
+  Widget build(BuildContext context) => _MiniPill(icon: Icons.circle, label: 'LIVE INTELLIGENCE', color: _BridgePointHomeV2State._green);
 }
 
 class _MiniPill extends StatelessWidget {
