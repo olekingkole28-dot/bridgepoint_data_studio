@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'bridgepoint_operations_hub.dart';
 import 'bridgepoint_owner_ai_cockpit.dart';
 import 'bridgepoint_owner_global_control.dart';
+import 'bridgepoint_owner_overview_v2.dart';
 import 'bridgepoint_owner_surface_audit_v792.dart';
 import 'bridgepoint_owner_v2_requirements_v832.dart';
 
@@ -33,26 +34,31 @@ class _BridgePointOwnerCommandCenterV2State
               segments: const [
                 ButtonSegment(
                   value: 0,
+                  icon: Icon(Icons.space_dashboard_rounded),
+                  label: Text('Backend Overview'),
+                ),
+                ButtonSegment(
+                  value: 1,
                   icon: Icon(Icons.rule_folder_rounded),
                   label: Text('V2 Requirements'),
                 ),
                 ButtonSegment(
-                  value: 1,
+                  value: 2,
                   icon: Icon(Icons.auto_awesome_rounded),
                   label: Text('AI Cockpit'),
                 ),
                 ButtonSegment(
-                  value: 2,
+                  value: 3,
                   icon: Icon(Icons.public_rounded),
                   label: Text('Global / Export'),
                 ),
                 ButtonSegment(
-                  value: 3,
+                  value: 4,
                   icon: Icon(Icons.build_circle_outlined),
                   label: Text('Operations'),
                 ),
                 ButtonSegment(
-                  value: 4,
+                  value: 5,
                   icon: Icon(Icons.visibility_outlined),
                   label: Text('Surfaces'),
                 ),
@@ -64,10 +70,11 @@ class _BridgePointOwnerCommandCenterV2State
         ),
         Expanded(
           child: switch (_tab) {
-            0 => const BridgePointOwnerV2Requirements(),
-            1 => const BridgePointOwnerAiCockpit(),
-            2 => const BridgePointOwnerGlobalControl(),
-            3 => const BridgePointOperationsHub(),
+            0 => const BridgePointOwnerOverviewV2(),
+            1 => const BridgePointOwnerV2Requirements(),
+            2 => const BridgePointOwnerAiCockpit(),
+            3 => const BridgePointOwnerGlobalControl(),
+            4 => const BridgePointOperationsHub(),
             _ => const BridgePointOwnerSurfaceAudit(),
           },
         ),
