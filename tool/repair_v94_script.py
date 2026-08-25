@@ -12,8 +12,7 @@ elif new not in s:
     raise SystemExit('v94 banner matcher repair target not found')
 
 # v94 is a historical generator. Current canonical source legitimately contains newer
-# equivalents (for example "Show U.S. intelligence" instead of the old Northeast button).
-# An absent OLD anchor therefore means "superseded", not "destroy the whole release".
+# equivalents. An absent OLD anchor therefore means "superseded", not "destroy release".
 # Duplicate old anchors remain a hard failure because that is genuine structural drift.
 old_helper="""    if count != 1:\n        raise SystemExit(f'{label}: expected exactly 1 match, found {count}')\n    text = text.replace(old, new, 1)\n"""
 new_helper="""    if count == 0:\n        print(f'{label}: legacy anchor already superseded; leaving current source unchanged')\n        return\n    if count != 1:\n        raise SystemExit(f'{label}: expected at most 1 legacy match, found {count}')\n    text = text.replace(old, new, 1)\n"""
@@ -46,8 +45,7 @@ v124.write_text(t,encoding='utf-8')
 print('Repaired v124 U.S. map control compatibility')
 
 # v189 still searches for the pre-national Connecticut map subtitle. Update only its
-# historical matcher to the current canonical U.S. subtitle; later layers remain free
-# to evolve the rendered copy and v735 will still enforce national truth.
+# historical matcher to the current canonical U.S. subtitle.
 v189=Path('tool/apply_premium_navigation_expansion_v189.py')
 u=v189.read_text(encoding='utf-8')
 old_sub="${widget.packageName} • live Connecticut intelligence with visible expansion markets"
@@ -60,8 +58,7 @@ v189.write_text(u,encoding='utf-8')
 print('Repaired v189 national map heading compatibility')
 
 # v192 itself introduced the all-state suggestion RPC in an older release. Canonical
-# source already uses that RPC, so only its first matcher needs to be idempotent; the
-# location/recenter changes later in the script should still execute.
+# source already uses that RPC, so only its first matcher needs to be idempotent.
 v192=Path('tool/apply_global_search_location_v192.py')
 v=v192.read_text(encoding='utf-8')
 old_guard="""if old not in text: raise SystemExit('global CT search anchor missing')\ntext=text.replace(old,new,1)\n"""
@@ -72,3 +69,17 @@ elif new_guard not in v:
     raise SystemExit('v192 global-search compatibility repair target not found')
 v192.write_text(v,encoding='utf-8')
 print('Repaired v192 global-search idempotency')
+
+# v271 enriches the U.S. map control so it explicitly turns on/loading NOAA radar. Its
+# old matcher still expects the v94 tooltip and zoom. Teach it the current canonical
+# "Show U.S. intelligence" control while preserving the v271 live-radar behavior.
+v271=Path('tool/fix_noaa_live_weather_v271.py')
+w=v271.read_text(encoding='utf-8')
+old_guard271="""if body.count(old_us_button)!=1:\n    raise SystemExit(f'v271 US weather button anchor {body.count(old_us_button)}')\nbody=body.replace(old_us_button,new_us_button,1)\n"""
+new_guard271="""if body.count(old_us_button)==1:\n    body=body.replace(old_us_button,new_us_button,1)\nelse:\n    current_us_button=\"\"\"                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show U.S. intelligence',onTap:()=>_mapController.move(const LatLng(39.50,-98.35),4.0)),\n\"\"\"\n    current_us_live=\"\"\"                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show U.S. intelligence',onTap:(){\n                              setState((){_showRadar=true;_radarPlaying=true;_radarFrameIndex=_radarFrames.length-1;_radarRevision++;});\n                              _mapController.move(const LatLng(39.50,-98.35),4.0);\n                              unawaited(_loadNoaaRadarFramesV271());\n                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(duration:Duration(seconds:2),content:Text('U.S. intelligence view on • loading the latest NOAA precipitation radar…')));\n                            }),\n\"\"\"\n    if body.count(current_us_button)!=1:\n        raise SystemExit(f'v271 U.S. map control missing or ambiguous: legacy={body.count(old_us_button)} current={body.count(current_us_button)}')\n    body=body.replace(current_us_button,current_us_live,1)\n"""
+if old_guard271 in w:
+    w=w.replace(old_guard271,new_guard271,1)
+elif new_guard271 not in w:
+    raise SystemExit('v271 U.S. map control compatibility repair target not found')
+v271.write_text(w,encoding='utf-8')
+print('Repaired v271 NOAA/U.S. map control compatibility')
