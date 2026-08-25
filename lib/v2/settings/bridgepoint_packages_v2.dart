@@ -15,9 +15,13 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
   String? _message;
 
   static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _blue = Color(0xFF4F7CFF);
   static const _green = Color(0xFF38D49A);
   static const _amber = Color(0xFFFFC857);
+  static const _red = Color(0xFFFF6B6B);
+  static const _muted = Color(0xFF8FA5BF);
+  static const _panel = Color(0xFF0D1A2B);
+  static const _soft = Color(0xFF122238);
 
   @override
   void initState() {
@@ -34,9 +38,26 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
     return <String, dynamic>{};
   }
 
+  Map<String, dynamic> _configuration(Map<String, dynamic> package) =>
+      _map(package['configuration']);
+
+  dynamic _field(Map<String, dynamic> package, String key) {
+    if (package[key] != null) return package[key];
+    return _configuration(package)[key];
+  }
+
+  bool _boolField(Map<String, dynamic> package, String key) {
+    final value = _field(package, key);
+    if (value is bool) return value;
+    return '${value ?? ''}'.toLowerCase() == 'true';
+  }
+
   List<Map<String, dynamic>> _rows(dynamic value) {
     if (value is List) {
-      return value.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      return value
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
     }
     if (value is Map) {
       for (final key in const ['packages', 'items', 'results', 'catalog']) {
@@ -46,17 +67,57 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
     return const [];
   }
 
+  List<String> _stringList(dynamic value) {
+    if (value is List) {
+      return value
+          .map((e) => '$e'.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    if (value is String && value.trim().isNotEmpty) return [value.trim()];
+    return const [];
+  }
+
   String _key(Map<String, dynamic> p) => '${p['package_key'] ?? p['key'] ?? ''}';
 
   String _action(Map<String, dynamic> p) {
-    final delivery = '${p['delivery_status'] ?? ''}'.toUpperCase();
-    final mode = '${p['purchase_mode'] ?? ''}'.toUpperCase();
-    final self = p['available_for_self_checkout'] == true || p['checkout_ready'] == true;
-    final approval = p['owner_approval_required'] == true || mode.contains('APPROVAL') || mode.contains('MANAGED');
-    if (delivery == 'BUILDING' || delivery == 'ROADMAP') return delivery;
-    if (self && (delivery.isEmpty || delivery == 'READY' || delivery == 'IMMEDIATE')) return 'BUY';
+    final delivery = '${_field(p, 'delivery_status') ?? ''}'.toUpperCase();
+    final mode = '${_field(p, 'purchase_mode') ?? ''}'.toUpperCase();
+    final self = _boolField(p, 'available_for_self_checkout') ||
+        _boolField(p, 'checkout_ready') && mode == 'IMMEDIATE';
+    final approval = _boolField(p, 'owner_approval_required') ||
+        mode.contains('APPROVAL') ||
+        mode.contains('MANAGED');
+
+    if (delivery == 'BUILDING') return 'BUILDING';
+    if (delivery == 'ROADMAP') return 'ROADMAP';
     if (approval) return 'REQUEST';
+    if (self &&
+        (delivery.isEmpty ||
+            delivery == 'READY' ||
+            delivery == 'IMMEDIATE' ||
+            delivery == 'LIMITED')) {
+      return 'BUY';
+    }
+    if (mode == 'IMMEDIATE' && delivery == 'READY') return 'BUY';
     return 'UNAVAILABLE';
+  }
+
+  Color _actionColor(String action) => switch (action) {
+        'BUY' => _green,
+        'REQUEST' => _cyan,
+        'BUILDING' => _amber,
+        'ROADMAP' => _blue,
+        _ => _red,
+      };
+
+  String _money(dynamic value) {
+    if (value == null) return '';
+    final number = value is num ? value.toDouble() : double.tryParse('$value');
+    if (number == null) return '$value';
+    return number == number.roundToDouble()
+        ? '\$${number.round()}'
+        : '\$${number.toStringAsFixed(2)}';
   }
 
   Future<void> _buy(Map<String, dynamic> package) async {
@@ -118,83 +179,220 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
   }
 
   Widget _card(Map<String, dynamic> p) {
+    final config = _configuration(p);
     final action = _action(p);
+    final color = _actionColor(action);
     final name = '${p['package_name'] ?? p['name'] ?? _key(p)}';
-    final disclosure = '${p['customer_delivery_disclosure'] ?? p['delivery_disclosure'] ?? p['description'] ?? ''}';
+    final description = '${p['description'] ?? ''}'.trim();
+    final disclosure = '${_field(p, 'customer_delivery_disclosure') ??
+            _field(p, 'delivery_summary') ??
+            _field(p, 'delivery_note') ??
+            ''}'
+        .trim();
     final monthly = p['monthly_price'] ?? p['price_monthly'];
-    final annual = p['annual_price'] ?? p['price_annual'];
-    final color = action == 'BUY' ? _green : action == 'REQUEST' ? _cyan : _amber;
-    return Card(
+    final yearly = p['yearly_price'] ?? p['annual_price'] ?? p['price_annual'];
+    final trialDays = p['trial_days'];
+    final pricingLabel = '${_field(p, 'pricing_label') ?? ''}'.trim();
+    final pricingNote = '${_field(p, 'pricing_note') ?? ''}'.trim();
+    final bestFor = '${config['best_for'] ?? ''}'.trim();
+    final includes = _stringList(config['includes']);
+    final modelCount = p['included_model_count'];
+    final featured = p['featured'] == true;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            _panel,
+            color.withValues(alpha: featured ? .10 : .045),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: color.withValues(alpha: featured ? .30 : .14),
+        ),
+        boxShadow: const [
+          BoxShadow(color: Color(0x22000000), blurRadius: 18, offset: Offset(0, 10)),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(17),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: Text(name,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w900)),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .11),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _key(p).startsWith('technology_')
+                        ? Icons.memory_rounded
+                        : Icons.workspace_premium_rounded,
+                    color: color,
+                  ),
                 ),
-                Chip(
-                  label: Text('${p['delivery_status'] ?? p['purchase_mode'] ?? action}'),
-                  side: BorderSide(color: color.withValues(alpha: .35)),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        pricingLabel.isEmpty ? 'BridgePoint package' : pricingLabel,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: .7,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (featured)
+                  const Icon(Icons.star_rounded, color: _amber, size: 19),
+              ],
+            ),
+            const SizedBox(height: 13),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (monthly != null)
+                  Text(
+                    _money(monthly),
+                    style: const TextStyle(
+                      fontSize: 27,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                if (monthly != null)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 4, left: 3),
+                    child: Text('/mo', style: TextStyle(color: _muted, fontSize: 10)),
+                  ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .08),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: color.withValues(alpha: .22)),
+                  ),
+                  child: Text(
+                    action,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
               ],
             ),
-            if (monthly != null || annual != null) ...[
+            if (yearly != null) ...[
+              const SizedBox(height: 2),
+              Text('${_money(yearly)} / year', style: const TextStyle(color: _muted, fontSize: 10)),
+            ],
+            if (trialDays != null && '$trialDays' != '0') ...[
               const SizedBox(height: 7),
               Text(
-                [
-                  if (monthly != null) '\$$monthly / month',
-                  if (annual != null) '\$$annual / year',
-                ].join(' • '),
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                '$trialDays-day free trial',
+                style: const TextStyle(
+                  color: _cyan,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ],
-            if (p['trial_days'] != null || p['founding_discount'] != null) ...[
-              const SizedBox(height: 6),
+            if (modelCount != null) ...[
+              const SizedBox(height: 5),
               Text(
-                [
-                  if (p['trial_days'] != null) '${p['trial_days']}-day trial',
-                  if (p['founding_discount'] != null) '${p['founding_discount']}',
-                ].join(' • '),
-                style: const TextStyle(color: _cyan, fontSize: 10),
+                '$modelCount intelligence model${'$modelCount' == '1' ? '' : 's'} included',
+                style: const TextStyle(color: _green, fontSize: 10),
               ),
             ],
-            if (disclosure.trim().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(disclosure,
-                  style: const TextStyle(
-                      color: _muted, fontSize: 10, height: 1.45)),
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                description,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: _muted, fontSize: 10, height: 1.45),
+              ),
             ],
-            const SizedBox(height: 12),
+            if (bestFor.isNotEmpty) ...[
+              const SizedBox(height: 9),
+              Text('BEST FOR', style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: .8)),
+              const SizedBox(height: 3),
+              Text(bestFor, style: const TextStyle(fontSize: 10, height: 1.4)),
+            ],
+            if (includes.isNotEmpty) ...[
+              const SizedBox(height: 9),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: includes.take(5).map((item) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: _soft,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(item, style: const TextStyle(fontSize: 8.5)),
+                    )).toList(),
+              ),
+            ],
+            if (disclosure.isNotEmpty || pricingNote.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                [if (disclosure.isNotEmpty) disclosure, if (pricingNote.isNotEmpty) pricingNote].join(' '),
+                style: const TextStyle(color: _muted, fontSize: 9.5, height: 1.4),
+              ),
+            ],
+            const SizedBox(height: 14),
             if (action == 'BUY')
               FilledButton.icon(
                 onPressed: _busy ? null : () => _buy(p),
                 icon: const Icon(Icons.credit_card_rounded),
-                label: const Text('Buy now'),
+                label: const Text('Start trial / Buy'),
               )
             else if (action == 'REQUEST')
               FilledButton.tonalIcon(
                 onPressed: _busy ? null : () => _requestActivation(p),
                 icon: const Icon(Icons.outgoing_mail),
-                label: Text('${p['request_cta'] ?? 'Request activation'}'),
+                label: Text('${_field(p, 'request_cta') ?? 'Request activation'}'),
+              )
+            else if (action == 'BUILDING')
+              OutlinedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.construction_rounded),
+                label: const Text('Building — early access not open yet'),
+              )
+            else if (action == 'ROADMAP')
+              OutlinedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.route_rounded),
+                label: const Text('Roadmap / interest only'),
               )
             else
               OutlinedButton.icon(
                 onPressed: null,
-                icon: const Icon(Icons.construction_rounded),
-                label: Text(action == 'BUILDING'
-                    ? 'Building — not purchasable yet'
-                    : action == 'ROADMAP'
-                        ? 'Roadmap / interest only'
-                        : 'Not available for self-service'),
+                icon: const Icon(Icons.info_outline_rounded),
+                label: const Text('Not available for this purchase path'),
               ),
           ],
         ),
@@ -207,25 +405,56 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
     return FutureBuilder<dynamic>(
       future: _request,
       builder: (context, snapshot) {
-        final packages = _rows(snapshot.data);
+        final payload = _map(snapshot.data);
+        final packages = _rows(payload);
+        final ready = packages.where((p) => _action(p) == 'BUY').length;
+        final request = packages.where((p) => _action(p) == 'REQUEST').length;
+        final building = packages.where((p) => _action(p) == 'BUILDING').length;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (_busy || snapshot.connectionState == ConnectionState.waiting)
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [_panel, _cyan.withValues(alpha: .06)]),
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(color: _cyan.withValues(alpha: .14)),
+              ),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Icon(Icons.workspace_premium_rounded, color: _cyan, size: 28),
+                  const Text('BridgePoint Packages', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                  Chip(label: Text('$ready ready to buy')),
+                  Chip(label: Text('$request request / approval')),
+                  if (building > 0) Chip(label: Text('$building building')),
+                  if (payload['catalog_scope'] != null)
+                    Chip(label: Text('${payload['catalog_scope']}')),
+                ],
+              ),
+            ),
+            if (_busy || snapshot.connectionState == ConnectionState.waiting) ...[
+              const SizedBox(height: 8),
               const LinearProgressIndicator(),
+            ],
             if (_message != null) ...[
               const SizedBox(height: 8),
               Text(_message!, style: const TextStyle(color: _cyan)),
             ],
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             if (snapshot.hasError)
               Text('Package catalog unavailable: ${snapshot.error}')
             else if (packages.isEmpty)
               const Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('No packages returned for this account.',
-                      style: TextStyle(color: _muted)),
+                  child: Text(
+                    'No packages returned for this account.',
+                    style: TextStyle(color: _muted),
+                  ),
                 ),
               )
             else
@@ -248,7 +477,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
               ),
             const SizedBox(height: 10),
             const Text(
-              'Commercial truth rule: BUILDING/ROADMAP packages are never presented as immediately purchasable. Checkout uses the live Stripe contract, trial eligibility, delivery disclosures and account entitlements.',
+              'Commercial truth rule: READY + IMMEDIATE packages use the live Stripe checkout contract. Owner-approval and managed products remain request-based. BUILDING and ROADMAP products are visible without being falsely sold as finished.',
               style: TextStyle(color: _amber, fontSize: 10, height: 1.45),
             ),
           ],
