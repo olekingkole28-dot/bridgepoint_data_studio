@@ -91,6 +91,7 @@ jobs:
           run_py tool/apply_map_density_heat_v306.py
           run_py tool/final_release_audit_v305.py
           run_py tool/apply_dynamic_account_avatar_v444.py
+          run_py tool/repair_dashboard_anchor_v736.py
           echo "Generated source: $(wc -c < lib/main.dart) bytes"
           sha256sum lib/main.dart
 
