@@ -99,6 +99,8 @@ jobs:
           cp CNAME build/web/CNAME 2>/dev/null || printf 'bridgepointintelligence.online\n' > build/web/CNAME
 
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v4
         with:
