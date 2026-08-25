@@ -11,15 +11,14 @@ def replace_once(old,new,label):
         raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
     text=text.replace(old,new,1)
 
-replace_once(
-"""import 'package:url_launcher/url_launcher.dart';
-
-const _supabaseUrl""",
-"""import 'package:url_launcher/url_launcher.dart';
-import 'bridgepoint_download.dart';
-
-const _supabaseUrl""",
-'download-helper-import')
+# v797: newer BridgePoint builds add feature-module imports between package
+# imports and constants. Add the download helper directly after url_launcher
+# when it is not already present instead of depending on the old adjacency.
+if "import 'bridgepoint_download.dart';" not in text:
+    import_anchor="import 'package:url_launcher/url_launcher.dart';\n"
+    if text.count(import_anchor)!=1:
+        raise SystemExit(f'download-helper-import: expected exactly 1 url_launcher import, found {text.count(import_anchor)}')
+    text=text.replace(import_anchor,import_anchor+"import 'bridgepoint_download.dart';\n",1)
 
 marker="Future<void> _saveOpportunity(BuildContext context,Map<String,dynamic> opportunity) async {"
 if text.count(marker)!=1:
@@ -127,4 +126,4 @@ replace_once(
 if text==original:
     raise SystemExit('No export changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied BridgePoint export/print patch v101')
+print('Applied BridgePoint export/print patch v101/v797')
