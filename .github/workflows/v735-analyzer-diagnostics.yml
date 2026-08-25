@@ -3,6 +3,8 @@ name: V735 Analyzer Diagnostics
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [chatgpt/completion-release-v735]
   workflow_dispatch:
 
 concurrency:
