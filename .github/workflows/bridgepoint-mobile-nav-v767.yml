@@ -1,4 +1,4 @@
-name: BridgePoint Mobile Navigation v767
+name: BridgePoint UI Wiring v769
 
 on:
   push:
@@ -9,18 +9,18 @@ permissions:
   contents: write
 
 concurrency:
-  group: bridgepoint-mobile-nav-v767
+  group: bridgepoint-ui-wiring-v769
   cancel-in-progress: false
 
 jobs:
-  patch-mobile-navigation:
+  patch-ui-wiring:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Patch mobile navigation and superseded release matcher
+      - name: Patch mobile navigation, owner center, and superseded release matcher
         id: patch
         shell: bash
         run: |
@@ -30,10 +30,6 @@ jobs:
 
           changed = False
 
-          # v768: make the historical v94 map-control patch idempotent. The current
-          # canonical UI already uses the U.S. live-weather control, so an old
-          # generator must not abort a modern release simply because its old text
-          # no longer exists.
           release_path = Path('tool/apply_launch_v94.py')
           release = release_path.read_text(encoding='utf-8')
           release_marker = '# bridgepoint-release-idempotency-v768'
@@ -63,6 +59,8 @@ else:
 
           path = Path('lib/main.dart')
           text = path.read_text(encoding='utf-8')
+          main_changed = False
+
           marker = '// bridgepoint-mobile-nav-v767'
           if marker not in text:
               start_marker = 'class _CompactNavigation extends StatelessWidget {'
@@ -73,15 +71,9 @@ else:
               end = text.find(end_marker, start)
               if end < 0:
                   raise SystemExit('Could not find _DailyBriefPage boundary after _CompactNavigation.')
-
               replacement = r'''// bridgepoint-mobile-nav-v767
 class _CompactNavigation extends StatelessWidget {
-  const _CompactNavigation({
-    required this.items,
-    required this.selectedIndex,
-    required this.onSelected,
-  });
-
+  const _CompactNavigation({required this.items, required this.selectedIndex, required this.onSelected});
   final List<_NavigationItem> items;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
@@ -92,113 +84,55 @@ class _CompactNavigation extends StatelessWidget {
       backgroundColor: AppTheme.panel,
       isScrollControlled: true,
       useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (sheetContext) {
         final height = MediaQuery.sizeOf(sheetContext).height;
         return SizedBox(
           height: height * .72,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 14, 12, 10),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Everything BridgePoint',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          SizedBox(height: 3),
-                          Text(
-                            'Choose any workspace destination',
-                            style: TextStyle(
-                              color: AppTheme.textMuted,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 12, 10),
+              child: Row(children: [
+                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Everything BridgePoint', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+                  SizedBox(height: 3),
+                  Text('Choose any workspace destination', style: TextStyle(color: AppTheme.textMuted, fontSize: 10)),
+                ])),
+                IconButton(tooltip: 'Close navigation', onPressed: () => Navigator.of(sheetContext).pop(), icon: const Icon(Icons.close_rounded)),
+              ]),
+            ),
+            Divider(height: 1, color: Colors.white.withOpacity(.07)),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(14),
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 190, mainAxisExtent: 82, crossAxisSpacing: 10, mainAxisSpacing: 10),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final selected = index == selectedIndex;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(15),
+                    onTap: () { Navigator.of(sheetContext).pop(); onSelected(index); },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: selected ? AppTheme.cyan.withOpacity(.13) : AppTheme.panelSoft.withOpacity(.62),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: selected ? AppTheme.cyan.withOpacity(.35) : Colors.white.withOpacity(.07)),
                       ),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(item.icon, color: selected ? AppTheme.cyan : Colors.white70, size: 23),
+                        const SizedBox(height: 7),
+                        Text(item.label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+                          style: TextStyle(color: selected ? Colors.white : AppTheme.textMuted, fontSize: 10, fontWeight: selected ? FontWeight.w800 : FontWeight.w600)),
+                      ]),
                     ),
-                    IconButton(
-                      tooltip: 'Close navigation',
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
-              Divider(height: 1, color: Colors.white.withOpacity(.07)),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(14),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 190,
-                    mainAxisExtent: 82,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    final selected = index == selectedIndex;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(15),
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        onSelected(index);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? AppTheme.cyan.withOpacity(.13)
-                              : AppTheme.panelSoft.withOpacity(.62),
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(
-                            color: selected
-                                ? AppTheme.cyan.withOpacity(.35)
-                                : Colors.white.withOpacity(.07),
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              item.icon,
-                              color: selected ? AppTheme.cyan : Colors.white70,
-                              size: 23,
-                            ),
-                            const SizedBox(height: 7),
-                            Text(
-                              item.label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: selected ? Colors.white : AppTheme.textMuted,
-                                fontSize: 10,
-                                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          ]),
         );
       },
     );
@@ -208,23 +142,14 @@ class _CompactNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final primaryCount = items.length > 4 ? 4 : items.length;
     final hasMore = items.length > primaryCount;
-    final selectedDestination = selectedIndex < primaryCount
-        ? selectedIndex
-        : (hasMore ? primaryCount : 0);
-
+    final selectedDestination = selectedIndex < primaryCount ? selectedIndex : (hasMore ? primaryCount : 0);
     return Container(
       margin: const EdgeInsets.fromLTRB(10, 3, 10, 8),
       decoration: BoxDecoration(
         color: AppTheme.panel.withOpacity(.94),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withOpacity(.08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.22),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(.22), blurRadius: 18, offset: const Offset(0, 7))],
       ),
       clipBehavior: Clip.antiAlias,
       child: NavigationBar(
@@ -233,42 +158,48 @@ class _CompactNavigation extends StatelessWidget {
         backgroundColor: Colors.transparent,
         indicatorColor: AppTheme.cyan.withOpacity(.15),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        onDestinationSelected: (index) {
-          if (index < primaryCount) {
-            onSelected(index);
-          } else {
-            _showAllDestinations(context);
-          }
-        },
+        onDestinationSelected: (index) { if (index < primaryCount) { onSelected(index); } else { _showAllDestinations(context); } },
         destinations: [
           for (var index = 0; index < primaryCount; index++)
-            NavigationDestination(
-              icon: Icon(items[index].icon, size: 20),
-              selectedIcon: Icon(items[index].icon, color: AppTheme.cyan, size: 21),
-              label: items[index].label,
-              tooltip: items[index].label,
-            ),
+            NavigationDestination(icon: Icon(items[index].icon, size: 20), selectedIcon: Icon(items[index].icon, color: AppTheme.cyan, size: 21), label: items[index].label, tooltip: items[index].label),
           if (hasMore)
-            NavigationDestination(
-              icon: const Icon(Icons.grid_view_rounded, size: 20),
-              selectedIcon: const Icon(Icons.grid_view_rounded, color: AppTheme.cyan, size: 21),
-              label: selectedIndex >= primaryCount ? items[selectedIndex].label : 'More',
-              tooltip: 'All BridgePoint destinations',
-            ),
+            NavigationDestination(icon: const Icon(Icons.grid_view_rounded, size: 20), selectedIcon: const Icon(Icons.grid_view_rounded, color: AppTheme.cyan, size: 21), label: selectedIndex >= primaryCount ? items[selectedIndex].label : 'More', tooltip: 'All BridgePoint destinations'),
         ],
       ),
     );
   }
 }
 '''
-              path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
-              changed = True
+              text = text[:start] + replacement + text[end:]
+              main_changed = True
               print('Replaced horizontal ChoiceChip navigation with compact labeled navigation + destination sheet.')
+
+          owner_import = "import 'screens/bridgepoint_owner_command_center.dart';"
+          if owner_import not in text:
+              anchor = "import 'package:url_launcher/url_launcher.dart';"
+              if text.count(anchor) != 1:
+                  raise SystemExit(f'Owner command center import anchor count={text.count(anchor)}')
+              text = text.replace(anchor, anchor + "\n\n" + owner_import, 1)
+              main_changed = True
+              print('Imported owner completion command center.')
+
+          old_route = "if(widget.ownerMode)return const _OwnerCenterPage();"
+          new_route = "if(widget.ownerMode)return const BridgePointOwnerCommandCenter();"
+          if old_route in text:
+              text = text.replace(old_route, new_route, 1)
+              main_changed = True
+              print('Wired Owner Center to the new completion/AI/global/operations command center.')
+          elif new_route not in text:
+              raise SystemExit('Could not locate Owner Center route for v769 wiring.')
+
+          if main_changed:
+              path.write_text(text, encoding='utf-8')
+              changed = True
 
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
               f.write(f'changed={str(changed).lower()}\n')
           if not changed:
-              print('v767/v768 repairs already present; no source change needed.')
+              print('v767/v768/v769 repairs already present; no source change needed.')
           PY
 
       - name: Validate Python release patch
@@ -285,14 +216,14 @@ class _CompactNavigation extends StatelessWidget {
         if: steps.patch.outputs.changed == 'true'
         run: |
           flutter pub get
-          dart format lib/main.dart
+          dart format lib/main.dart lib/screens/bridgepoint_owner_command_center.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Commit validated navigation and release repair
+      - name: Commit validated UI wiring
         if: steps.patch.outputs.changed == 'true'
         run: |
           git config user.name "bridgepoint-automation"
           git config user.email "actions@users.noreply.github.com"
-          git add lib/main.dart tool/apply_launch_v94.py
-          git commit -m "Fix mobile navigation and release matcher v768"
+          git add lib/main.dart lib/screens/bridgepoint_owner_command_center.dart tool/apply_launch_v94.py
+          git commit -m "Wire mobile and owner command center v769"
           git push origin HEAD:main
