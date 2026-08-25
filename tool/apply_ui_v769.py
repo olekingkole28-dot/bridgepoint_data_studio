@@ -2,6 +2,7 @@ from pathlib import Path
 
 MAIN = Path('lib/main.dart')
 RELEASE = Path('tool/apply_launch_v94.py')
+OWNER = Path('lib/screens/bridgepoint_owner_command_center.dart')
 
 
 def patch_release() -> bool:
@@ -171,10 +172,25 @@ def patch_main() -> bool:
     return True
 
 
+def patch_owner_command_center() -> bool:
+    text = OWNER.read_text(encoding='utf-8')
+    original = text
+    text = text.replace(
+        'BridgePointOwnerCommandCenter._',
+        '_BridgePointOwnerCommandCenterState._',
+    )
+    if text == original:
+        return False
+    OWNER.write_text(text, encoding='utf-8')
+    print('v771: fixed owner command-center theme constant ownership.')
+    return True
+
+
 def main() -> None:
     changed = patch_release()
     changed = patch_main() or changed
-    print('BridgePoint UI v769 changed=' + str(changed).lower())
+    changed = patch_owner_command_center() or changed
+    print('BridgePoint UI v771 changed=' + str(changed).lower())
 
 
 if __name__ == '__main__':
