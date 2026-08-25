@@ -31,3 +31,16 @@ elif new_tail not in s:
 
 p.write_text(s,encoding='utf-8')
 print('Repaired v94 historical generator for current canonical source')
+
+# v124 used the exact v94 tooltip as a final sanity check even though newer source calls
+# the same control "Show U.S. intelligence". Make that one check semantic instead of stale.
+v124=Path('tool/apply_map_viewport_v124.py')
+t=v124.read_text(encoding='utf-8')
+old_check="""if text.count(controls)!=1:\n    raise SystemExit(f'US weather control missing: found {text.count(controls)}')\ntext=text.replace(controls,replacement,1)\n"""
+new_check="""if text.count(controls)==1:\n    text=text.replace(controls,replacement,1)\nelif text.count(\"_MapControlButton(icon:Icons.public_rounded,tooltip:'Show U.S. intelligence'\")==1:\n    print('v124: current U.S. intelligence control already supersedes historical weather tooltip')\nelse:\n    raise SystemExit(f'US map control missing or ambiguous: historical={text.count(controls)}')\n"""
+if old_check in t:
+    t=t.replace(old_check,new_check,1)
+elif new_check not in t:
+    raise SystemExit('v124 U.S. control compatibility repair target not found')
+v124.write_text(t,encoding='utf-8')
+print('Repaired v124 U.S. map control compatibility')
