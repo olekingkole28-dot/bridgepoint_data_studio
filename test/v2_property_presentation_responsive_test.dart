@@ -201,6 +201,9 @@ void main() {
       expect(find.text('Digital Twin fidelity'), findsOneWidget);
       expect(find.text('Permit / municipal context'), findsOneWidget);
       expect(find.text('Imagery / media history'), findsOneWidget);
+      await tester.tap(find.text('Severe wind exposure'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
       expect(find.textContaining('not verified property damage'), findsOneWidget);
       expect(find.textContaining('never labeled an exact replica'), findsNothing);
     });
