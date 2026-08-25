@@ -1,290 +1,178 @@
 from pathlib import Path
 import re
 
-p = Path('lib/main.dart')
-text = p.read_text(encoding='utf-8')
-original = text
+p=Path('lib/main.dart')
+text=p.read_text(encoding='utf-8')
+original=text
 
-# v825: locate the current Intelligence Map state structurally. Historical v190
-# used _MapLegendDot as a hard end marker; later map layers may move/replace
-# helper widgets without changing the map state itself.
-start = text.find('class _IntelligenceMapPageState extends State<_IntelligenceMapPage>')
-if start < 0:
-    start = text.find('class _IntelligenceMapPageState')
-if start < 0:
-    raise SystemExit('Intelligence map state missing')
-next_class = re.search(r'(?m)^class\s+_[A-Za-z0-9_]+', text[start + 1:])
-if next_class is None:
-    end = len(text)
-else:
-    end = start + 1 + next_class.start()
-if end <= start:
-    raise SystemExit('Intelligence map structural boundary invalid')
-block = text[start:end]
+start=text.find('class _IntelligenceMapPageState extends State<_IntelligenceMapPage>')
+if start<0:
+    start=text.find('class _IntelligenceMapPageState')
+if start<0:
+    raise SystemExit('v826 Intelligence Map state missing')
+end=text.find('class _MapLegendDot',start)
+if end<0:
+    m=re.search(r'(?m)^class\s+_[A-Za-z0-9_]+',text[start+1:])
+    end=len(text) if m is None else start+1+m.start()
+if end<=start:
+    raise SystemExit('v826 Intelligence Map boundary invalid')
+block=text[start:end]
 
-# The official NOAA/NWS time-enabled MRMS service updates on a 5-minute
-# cadence and the underlying composite is roughly 1 km resolution. Preserve
-# that truth: animate time, but do not stretch raw reflectivity into fake
-# roof-level precision when the user zooms deeply into a property.
+# Add the four-hour / five-minute playback state without changing unrelated map state.
 if '_radarAnimationTimer' not in block:
-    radar_line = re.search(r'(?m)^(\s*)bool\s+_showRadar\s*=\s*true;\s*$', block)
-    if not radar_line:
-        raise SystemExit('Radar state field missing')
-    indent = radar_line.group(1)
-    fields = f"""{radar_line.group(0)}
-{indent}Timer? _radarAnimationTimer;
-{indent}bool _radarPlaying = true;
-{indent}int _radarFrameIndex = 48;
-{indent}List<DateTime> get _radarFrames {{
-{indent}  final now = DateTime.now().toUtc();
-{indent}  final rounded = DateTime.utc(
-{indent}      now.year, now.month, now.day, now.hour, (now.minute ~/ 5) * 5);
-{indent}  return List.generate(
-{indent}      49, (i) => rounded.subtract(Duration(minutes: (48 - i) * 5)));
-{indent}}}
-{indent}DateTime get _radarFrame =>
-{indent}    _radarFrames[_radarFrameIndex.clamp(0, 48)];
-{indent}String _radarClock(DateTime t) {{
-{indent}  final l = t.toLocal();
-{indent}  final h = l.hour % 12 == 0 ? 12 : l.hour % 12;
-{indent}  final m = l.minute.toString().padLeft(2, '0');
-{indent}  return '$h:$m ${{l.hour >= 12 ? 'PM' : 'AM'}}';
-{indent}}}
-{indent}void _startRadarLoop() {{
-{indent}  _radarAnimationTimer?.cancel();
-{indent}  _radarAnimationTimer =
-{indent}      Timer.periodic(const Duration(milliseconds: 700), (_) {{
-{indent}    if (!mounted || !_radarPlaying || !_showRadar) return;
-{indent}    final step = _viewportZoom >= 8.5 ? 2 : 1;
-{indent}    setState(() {{
-{indent}      _radarFrameIndex =
-{indent}          _radarFrameIndex + step > 48 ? 0 : _radarFrameIndex + step;
-{indent}    }});
-{indent}  }});
-{indent}}}
-{indent}void _toggleRadarPlayback() =>
-{indent}    setState(() => _radarPlaying = !_radarPlaying);"""
-    block = block[:radar_line.start()] + fields + block[radar_line.end():]
+    m=re.search(r'(?m)^(\s*)bool\s+_showRadar\s*=\s*true;\s*$',block)
+    if m is None:
+        raise SystemExit('v826 radar state field missing')
+    i=m.group(1)
+    fields=f"""{m.group(0)}
+{i}Timer? _radarAnimationTimer;
+{i}bool _radarPlaying = true;
+{i}int _radarFrameIndex = 48;
+{i}List<DateTime> get _radarFrames {{
+{i}  final now=DateTime.now().toUtc();
+{i}  final rounded=DateTime.utc(now.year,now.month,now.day,now.hour,(now.minute~/5)*5);
+{i}  return List.generate(49,(index)=>rounded.subtract(Duration(minutes:(48-index)*5)));
+{i}}}
+{i}DateTime get _radarFrame=>_radarFrames[_radarFrameIndex.clamp(0,48)];
+{i}String _radarClock(DateTime t){{
+{i}  final l=t.toLocal();final h=l.hour%12==0?12:l.hour%12;
+{i}  return '$h:${{l.minute.toString().padLeft(2,'0')}} ${{l.hour>=12?'PM':'AM'}}';
+{i}}}
+{i}void _startRadarLoop(){{
+{i}  _radarAnimationTimer?.cancel();
+{i}  _radarAnimationTimer=Timer.periodic(const Duration(milliseconds:700),(_){{
+{i}    if(!mounted||!_radarPlaying||!_showRadar)return;
+{i}    final step=_viewportZoom>=8.5?2:1;
+{i}    setState(()=>_radarFrameIndex=_radarFrameIndex+step>48?0:_radarFrameIndex+step);
+{i}  }});
+{i}}}
+{i}void _toggleRadarPlayback()=>setState(()=>_radarPlaying=!_radarPlaying);"""
+    block=block[:m.start()]+fields+block[m.end():]
 
 if '_startRadarLoop();' not in block:
-    init_at = block.find('void initState()')
-    if init_at < 0:
-        raise SystemExit('map initState missing')
-    brace_at = block.find('{', init_at)
-    depth = 0
-    init_end = None
-    for i in range(brace_at, len(block)):
-        if block[i] == '{':
-            depth += 1
-        elif block[i] == '}':
-            depth -= 1
-            if depth == 0:
-                init_end = i
-                break
-    if init_end is None:
-        raise SystemExit('map initState end missing')
-    block = block[:init_end] + '    _startRadarLoop();\n' + block[init_end:]
+    init=block.find('void initState()')
+    if init<0:
+        raise SystemExit('v826 map initState missing')
+    brace=block.find('{',init);depth=0;close=None
+    for x in range(brace,len(block)):
+        if block[x]=='{': depth+=1
+        elif block[x]=='}':
+            depth-=1
+            if depth==0:
+                close=x;break
+    if close is None:
+        raise SystemExit('v826 map initState unterminated')
+    block=block[:close]+'    _startRadarLoop();\n'+block[close:]
 
-# Extend the existing lifecycle cleanup if present.
-dispose_at = block.find('void dispose()')
-if dispose_at >= 0:
-    dispose_end_probe = block[dispose_at:]
-    if '_radarAnimationTimer?.cancel();' not in dispose_end_probe:
-        brace_at = block.find('{', dispose_at)
-        block = block[:brace_at + 1] + '\n    _radarAnimationTimer?.cancel();' + block[brace_at + 1:]
+# Reuse the existing map dispose hook created by viewport v124.
+dispose=block.find('void dispose()')
+if dispose>=0:
+    next_method=block.find('\n  @override',dispose+1)
+    probe=block[dispose: next_method if next_method>dispose else len(block)]
+    if '_radarAnimationTimer?.cancel();' not in probe:
+        brace=block.find('{',dispose)
+        block=block[:brace+1]+'\n    _radarAnimationTimer?.cancel();'+block[brace+1:]
 else:
-    # Insert cleanup before the first later override/method rather than depending
-    # on a specific didUpdateWidget helper that newer map layers may not retain.
-    marker = '  @override\n  Widget build('
+    marker='  @override\n  Widget build('
     if marker not in block:
-        marker = '  @override\n  void didUpdateWidget'
-    if marker not in block:
-        raise SystemExit('map lifecycle anchor missing for radar cleanup')
-    dispose = """  @override
-  void dispose() {
+        raise SystemExit('v826 map lifecycle insertion anchor missing')
+    block=block.replace(marker,"""  @override
+  void dispose(){
     _radarAnimationTimer?.cancel();
     super.dispose();
   }
 
-"""
-    block = block.replace(marker, dispose + marker, 1)
+"""+marker,1)
 
-old_services = [
-    'https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows?',
-    'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity/MapServer/WMSServer?',
-]
-new_url = 'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?'
-replaced = 0
-for old in old_services:
-    count = block.count(old)
-    if count:
-        block = block.replace(old, new_url)
-        replaced += count
-if new_url not in block:
-    raise SystemExit('No NOAA radar service found in intelligence map')
-
-url_at = block.find(new_url)
-wms_at = block.rfind('WMSTileLayerOptions(', 0, url_at)
-if wms_at < 0:
-    # Current formatting places baseUrl after the options constructor, so search
-    # forward/backward around the URL rather than assuming the constructor text
-    # immediately precedes it.
-    wms_at = block.rfind('WMSTileLayerOptions(', 0, url_at + len(new_url))
-if wms_at < 0:
-    raise SystemExit('NOAA WMS options missing')
-depth = 0
-wms_end = None
-for i in range(wms_at, len(block)):
-    if block[i] == '(':
-        depth += 1
-    elif block[i] == ')':
-        depth -= 1
-        if depth == 0:
-            wms_end = i
-            break
+# Locate the actual main radar WMS controlled by _showRadar. This intentionally
+# ignores the separate v177 preview/dialog WMS maps.
+radar=re.search(r'if\s*\(\s*_showRadar(?:\s*&&[^)]*)?\s*\)\s*\n\s*TileLayer\(',block,re.S)
+if radar is None:
+    raise SystemExit('v826 main _showRadar TileLayer missing')
+wms_at=block.find('WMSTileLayerOptions(',radar.end())
+if wms_at<0 or wms_at-radar.end()>1400:
+    raise SystemExit('v826 main radar WMS options missing')
+depth=0;wms_end=None
+for x in range(wms_at,len(block)):
+    if block[x]=='(': depth+=1
+    elif block[x]==')':
+        depth-=1
+        if depth==0:
+            wms_end=x;break
 if wms_end is None:
-    raise SystemExit('NOAA WMS options unterminated')
-wms = block[wms_at:wms_end + 1]
-wms = re.sub(r"layers\s*:\s*const\s*\[['\"](?:conus_bref_qcd|0)['\"]\]", "layers: const ['0']", wms)
-if "layers: const ['0']" not in wms and "layers:const ['0']" not in wms:
-    raise SystemExit('Could not normalize NOAA WMS layer id')
+    raise SystemExit('v826 main radar WMS unterminated')
+wms=block[wms_at:wms_end+1]
+
+new_url='https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?'
+base=re.compile(r"baseUrl\s*:\s*'[^']*'",re.S)
+if base.search(wms) is None:
+    raise SystemExit('v826 main radar baseUrl missing')
+wms=base.sub(f"baseUrl: '{new_url}'",wms,count=1)
+layers=re.compile(r"layers\s*:\s*const\s*\[[^\]]+\]",re.S)
+if layers.search(wms) is None:
+    raise SystemExit('v826 main radar layers missing')
+wms=layers.sub("layers: const ['0']",wms,count=1)
 if 'otherParameters:' not in wms:
-    close = wms.rfind(')')
-    wms = wms[:close] + "  otherParameters: {'TIME': _radarFrame.toUtc().toIso8601String()},\n" + wms[close:]
-block = block[:wms_at] + wms + block[wms_end + 1:]
+    close=wms.rfind(')')
+    wms=wms[:close]+"  otherParameters: {'TIME': _radarFrame.toUtc().toIso8601String()},\n"+wms[close:]
+block=block[:wms_at]+wms+block[wms_end+1:]
 
-condition_pattern = r'if\s*\(\s*_showRadar\s*\)\s*\n(\s*)TileLayer\('
-if re.search(condition_pattern, block):
-    block = re.sub(
-        condition_pattern,
-        lambda m: 'if (_showRadar && _viewportZoom <= 10.5)\n' + m.group(1) + 'TileLayer(',
-        block,
-        count=1,
-    )
-elif 'if (_showRadar && _viewportZoom <= 10.5)' not in block:
-    raise SystemExit('Could not apply radar native-resolution zoom gate')
+# Raw reflectivity is regional context; don't fake property-level pixel precision.
+condition=r'if\s*\(\s*_showRadar\s*\)\s*\n(\s*)TileLayer\('
+block,count=re.subn(condition,lambda m:'if (_showRadar && _viewportZoom <= 10.5)\n'+m.group(1)+'TileLayer(',block,count=1)
+if count!=1 and 'if (_showRadar && _viewportZoom <= 10.5)' not in block:
+    raise SystemExit('v826 radar zoom-gate anchor missing')
 
-controls_pattern = re.compile(
-    r'(?m)^(?P<indent>\s*)Positioned\(\s*\n(?P=indent)\s*top:\s*14,\s*\n(?P=indent)\s*right:\s*14,',
-)
-controls_match = controls_pattern.search(block)
-if controls_match is None:
-    raise SystemExit('map controls anchor missing')
-controls_at = controls_match.start()
-indent = controls_match.group('indent')
-weather_controls = r'''                      if (_showRadar && _viewportZoom <= 10.5)
+# Timeline controls sit above the existing top-right map controls.
+control=re.search(r'(?m)^\s*Positioned\(\s*\n\s*top:\s*14,\s*\n\s*right:\s*14,',block)
+if control is None:
+    raise SystemExit('v826 map controls anchor missing')
+weather=r'''                      if (_showRadar && _viewportZoom <= 10.5)
                         Positioned(
-                          left: 14,
-                          right: 14,
-                          bottom: 14,
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(10, 8, 10, 7),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF071321).withOpacity(.94),
-                              borderRadius: BorderRadius.circular(13),
-                              border: Border.all(color: AppTheme.cyan.withOpacity(.28)),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(.35), blurRadius: 14)],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(children: [
-                                  IconButton.filledTonal(
-                                    tooltip: _radarPlaying ? 'Pause weather motion' : 'Play weather motion',
-                                    onPressed: _toggleRadarPlayback,
-                                    icon: Icon(_radarPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 20),
-                                  ),
-                                  const SizedBox(width: 7),
-                                  const _PulseDot(color: AppTheme.green),
-                                  const SizedBox(width: 6),
-                                  const Text('NOAA MRMS • ~1 KM SOURCE RESOLUTION', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w900, letterSpacing: .45)),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Slider(
-                                      value: _radarFrameIndex.toDouble(), min: 0, max: 48, divisions: 48,
-                                      onChanged: (v) => setState(() { _radarPlaying = false; _radarFrameIndex = v.round(); }),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                                    decoration: BoxDecoration(color: AppTheme.cyan.withOpacity(.10), borderRadius: BorderRadius.circular(8)),
-                                    child: Text('${_radarClock(_radarFrame)}${_radarFrameIndex == 48 ? ' • NOW' : ''}', style: const TextStyle(color: AppTheme.cyan, fontSize: 8.5, fontWeight: FontWeight.w900)),
-                                  ),
-                                ]),
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 44, right: 8),
-                                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                                    Text('-4h', style: TextStyle(color: AppTheme.textMuted, fontSize: 7)),
-                                    Text('-3h', style: TextStyle(color: AppTheme.textMuted, fontSize: 7)),
-                                    Text('-2h', style: TextStyle(color: AppTheme.textMuted, fontSize: 7)),
-                                    Text('-1h', style: TextStyle(color: AppTheme.textMuted, fontSize: 7)),
-                                    Text('Now', style: TextStyle(color: AppTheme.cyan, fontSize: 7, fontWeight: FontWeight.w900)),
-                                  ]),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (_showRadar && _viewportZoom > 10.5)
-                        Positioned(
-                          left: 14,
-                          right: 14,
-                          bottom: 14,
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: const Color(0xFF071321).withOpacity(.95), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.amber.withOpacity(.35))),
-                            child: const Row(children: [
-                              Icon(Icons.zoom_out_map_rounded, color: AppTheme.amber, size: 18),
-                              SizedBox(width: 8),
-                              Expanded(child: Text('Raw NOAA radar is ~1 km regional data, so BridgePoint stops over-zooming it here. Zoom out for reflectivity; property-level storm evidence stays separate from the raw radar pixels.', style: TextStyle(color: AppTheme.textMuted, fontSize: 9, height: 1.4))),
+                          left:14,right:14,bottom:14,
+                          child:Container(
+                            padding:const EdgeInsets.fromLTRB(10,8,10,7),
+                            decoration:BoxDecoration(color:const Color(0xFF071321).withOpacity(.94),borderRadius:BorderRadius.circular(13),border:Border.all(color:AppTheme.cyan.withOpacity(.28)),boxShadow:[BoxShadow(color:Colors.black.withOpacity(.35),blurRadius:14)]),
+                            child:Column(mainAxisSize:MainAxisSize.min,children:[
+                              Row(children:[
+                                IconButton.filledTonal(tooltip:_radarPlaying?'Pause weather motion':'Play weather motion',onPressed:_toggleRadarPlayback,icon:Icon(_radarPlaying?Icons.pause_rounded:Icons.play_arrow_rounded,size:20)),
+                                const SizedBox(width:7),const _PulseDot(color:AppTheme.green),const SizedBox(width:6),
+                                const Text('NOAA MRMS • ~1 KM SOURCE RESOLUTION',style:TextStyle(color:Colors.white,fontSize:8.5,fontWeight:FontWeight.w900,letterSpacing:.45)),
+                                const SizedBox(width:8),
+                                Expanded(child:Slider(value:_radarFrameIndex.toDouble(),min:0,max:48,divisions:48,onChanged:(v)=>setState((){_radarPlaying=false;_radarFrameIndex=v.round();}))),
+                                const SizedBox(width:6),
+                                Container(padding:const EdgeInsets.symmetric(horizontal:8,vertical:5),decoration:BoxDecoration(color:AppTheme.cyan.withOpacity(.10),borderRadius:BorderRadius.circular(8)),child:Text('${_radarClock(_radarFrame)}${_radarFrameIndex==48?' • NOW':''}',style:const TextStyle(color:AppTheme.cyan,fontSize:8.5,fontWeight:FontWeight.w900))),
+                              ]),
+                              const Padding(padding:EdgeInsets.only(left:44,right:8),child:Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+                                Text('-4h',style:TextStyle(color:AppTheme.textMuted,fontSize:7)),Text('-3h',style:TextStyle(color:AppTheme.textMuted,fontSize:7)),Text('-2h',style:TextStyle(color:AppTheme.textMuted,fontSize:7)),Text('-1h',style:TextStyle(color:AppTheme.textMuted,fontSize:7)),Text('Now',style:TextStyle(color:AppTheme.cyan,fontSize:7,fontWeight:FontWeight.w900)),
+                              ])),
                             ]),
                           ),
                         ),
+                      if (_showRadar && _viewportZoom > 10.5)
+                        Positioned(left:14,right:14,bottom:14,child:Container(padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:const Color(0xFF071321).withOpacity(.95),borderRadius:BorderRadius.circular(12),border:Border.all(color:AppTheme.amber.withOpacity(.35))),child:const Row(children:[
+                          Icon(Icons.zoom_out_map_rounded,color:AppTheme.amber,size:18),SizedBox(width:8),Expanded(child:Text('Raw NOAA radar is ~1 km regional data, so BridgePoint stops over-zooming it here. Zoom out for reflectivity; property-level storm evidence stays separate from the raw radar pixels.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4))),
+                        ]))),
 '''
-# Existing map stack uses 22-space child indentation. The inserted controls are
-# deliberately aligned to that stack, independent of Positioned formatting.
-block = block[:controls_at] + weather_controls + block[controls_at:]
+block=block[:control.start()]+weather+block[control.start():]
 
-toggle_pattern = re.compile(
-    r"_MapControlButton\(\s*icon:\s*_showRadar\s*\?\s*Icons\.radar_rounded\s*:\s*Icons\.hide_source_rounded,\s*"
-    r"tooltip:\s*_showRadar\s*\?\s*'[^']*'\s*:\s*'[^']*',\s*"
-    r"onTap:\s*\(\)\s*=>\s*setState\(\(\)\s*=>\s*_showRadar\s*=\s*!_showRadar\)\s*\)\s*\)",
-    re.S,
-)
-replacement = """_MapControlButton(
-                                icon: _showRadar
-                                    ? Icons.radar_rounded
-                                    : Icons.hide_source_rounded,
-                                tooltip: _showRadar
-                                    ? 'Hide animated NOAA radar'
-                                    : 'Show animated NOAA radar',
-                                onTap: () => setState(() {
-                                  _showRadar = !_showRadar;
-                                  if (_showRadar) {
-                                    _radarFrameIndex = 48;
-                                    _radarPlaying = true;
-                                  }
-                                }))"""
-block, toggle_count = toggle_pattern.subn(replacement, block, count=1)
-if toggle_count != 1:
-    raise SystemExit(f'radar toggle anchor mismatch: {toggle_count}')
+# Upgrade the existing radar toggle in place.
+toggle=re.compile(r"_MapControlButton\(\s*icon:\s*_showRadar\s*\?\s*Icons\.radar_rounded\s*:\s*Icons\.hide_source_rounded,\s*tooltip:\s*_showRadar\s*\?\s*'[^']*'\s*:\s*'[^']*',\s*onTap:\s*\(\)\s*=>\s*setState\(\(\)\s*=>\s*_showRadar\s*=\s*!_showRadar\)\s*\)\s*\)",re.S)
+replacement="""_MapControlButton(
+                                icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,
+                                tooltip:_showRadar?'Hide animated NOAA radar':'Show animated NOAA radar',
+                                onTap:()=>setState((){_showRadar=!_showRadar;if(_showRadar){_radarFrameIndex=48;_radarPlaying=true;}}))"""
+block,toggle_count=toggle.subn(replacement,block,count=1)
+if toggle_count!=1:
+    raise SystemExit(f'v826 radar toggle anchor mismatch: {toggle_count}')
 
-text = text[:start] + block + text[end:]
-text = text.replace('Live NOAA Radar', 'NOAA Weather Motion')
-text = text.replace('LIVE NOAA RADAR • TAP TO ZOOM', 'NOAA WEATHER • TAP TO EXPAND')
-for marker in [
-    'NOAA MRMS • ~1 KM SOURCE RESOLUTION',
-    'Pause weather motion',
-    'radar_base_reflectivity_time/ImageServer/WMSServer',
-    "otherParameters: {'TIME'",
-    '_viewportZoom <= 10.5',
-    'stops over-zooming it here',
-    'max: 48',
-]:
+text=text[:start]+block+text[end:]
+text=text.replace('Live NOAA Radar','NOAA Weather Motion')
+text=text.replace('LIVE NOAA RADAR • TAP TO ZOOM','NOAA WEATHER • TAP TO EXPAND')
+for marker in ['NOAA MRMS • ~1 KM SOURCE RESOLUTION','Pause weather motion','radar_base_reflectivity_time/ImageServer/WMSServer',"otherParameters: {'TIME'",'_viewportZoom <= 10.5','stops over-zooming it here','max:48']:
     if marker not in text:
-        raise SystemExit(f'missing weather v825 marker {marker}')
-if text == original:
-    raise SystemExit('No animated NOAA weather changes applied')
-p.write_text(text, encoding='utf-8')
-print(f'Applied NOAA time-enabled scale-aware weather v825; replaced {replaced} legacy radar URL(s)')
+        raise SystemExit(f'missing NOAA weather v826 marker {marker}')
+if text==original:
+    raise SystemExit('No NOAA weather v826 changes applied')
+p.write_text(text,encoding='utf-8')
+print('Applied structural NOAA time-enabled scale-aware weather timeline v826')
