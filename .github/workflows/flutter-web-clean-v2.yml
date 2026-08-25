@@ -23,19 +23,47 @@ jobs:
         run: |
           set -euo pipefail
           test -s lib/main_v2.dart
+          test -s lib/v2/bridgepoint_app_v2.dart
+          test -s lib/v2/bridgepoint_home_v2.dart
+          test -s lib/v2/bridgepoint_property_360_v2.dart
+          test -s lib/v2/bridgepoint_map_weather_v2.dart
+          test -s lib/v2/bridgepoint_operations_workspace_v2.dart
+          test -s lib/v2/bridgepoint_portfolio_risk_v2.dart
+          test -s lib/v2/bridgepoint_ai_v2.dart
+          test -s lib/v2/bridgepoint_products_settings_v2.dart
+          test -s lib/v2/bridgepoint_public_landing_v2.dart
           test -s lib/bridgepoint_intelligence_studio_v790.dart
           test -s lib/bridgepoint_integrations_hub_v790.dart
           test -s lib/screens/bridgepoint_owner_command_center.dart
+          test -s lib/screens/bridgepoint_owner_v2_requirements_v832.dart
           python - <<'PY'
           from pathlib import Path
-          source=Path('lib/main_v2.dart').read_text(encoding='utf-8')
+          files=[Path('lib/main_v2.dart'),*Path('lib/v2').glob('*.dart'),Path('lib/bridgepoint_intelligence_studio_v790.dart'),Path('lib/bridgepoint_integrations_hub_v790.dart'),*Path('lib/screens').glob('bridgepoint_owner*.dart')]
+          source='\n'.join(p.read_text(encoding='utf-8') for p in files if p.exists())
           required=[
             'bridgepoint_daily_brief_v74',
             'bridgepoint_public_system_status_v320',
-            'bridgepoint_user_market_context_v320',
+            'bridgepoint_public_expansion_status_v321',
             'bridgepoint_property_suggestions_v192',
             'bridgepoint_flutter_property_detail_v344',
-            'bridgepoint_capability_library_v831',
+            'bridgepoint_property_timeline_v78',
+            'bridgepoint_property_climate_profile_v510',
+            'bridgepoint_digital_twin_summary_v509',
+            'bridgepoint_property_media_bundle_v169',
+            'bridgepoint_flutter_opportunities_v235',
+            'bridgepoint_flutter_signals',
+            'bridgepoint_flutter_sources',
+            'bridgepoint_flutter_models',
+            'bridgepoint_watchlists_v88',
+            'bridgepoint_route_plans_v87',
+            'bridgepoint_team_workspace_v80',
+            'bridgepoint_notifications_v74',
+            'bridgepoint_flutter_packages_core_v429',
+            'bridgepoint-checkout-v67',
+            'bridgepoint_update_display_preferences_v98',
+            'bridgepoint_ai_answer_ui_v322',
+            'bridgepoint_portfolio_intelligence_v460',
+            'bridgepoint_owner_v2_requirements_v832',
             'BridgePointIntelligenceStudio',
             'BridgePointIntegrationsHub',
             'BridgePointOwnerCommandCenter',
@@ -44,8 +72,12 @@ jobs:
           ]
           missing=[x for x in required if x not in source]
           if missing:
-            raise SystemExit('Missing clean v2 contract markers: '+', '.join(missing))
-          print('Clean v2 architecture contract verified: no release-time source generation is required.')
+            raise SystemExit('Missing clean V2 contract markers: '+', '.join(missing))
+          forbidden=['apply_launch_v95.py','apply_weather_home_community_v145.py','apply_map_viewport_v124.py','repair_owner_expansion_v96.py']
+          found=[x for x in forbidden if x in source]
+          if found:
+            raise SystemExit('Historical patch machinery leaked into clean V2 source: '+', '.join(found))
+          print('Clean V2 module graph verified: direct source modules + stable backend contracts; no historical release replay required.')
           PY
 
       - uses: subosito/flutter-action@v2
