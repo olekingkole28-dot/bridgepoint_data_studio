@@ -103,3 +103,6 @@ print('Applied front-first property media + separate aerial zoom controls v186')
 # v820: normalize the current responsive property card/detail boundaries before
 # the multistate/current-owner installer enriches them in the next step.
 runpy.run_path('tool/repair_multistate_owner_compat_v820.py',run_name='__main__')
+
+# v829: temporary release-shape diagnostic while modernizing NOAA timeline.
+runpy.run_path('tool/diagnose_generated_radar_v829.py',run_name='__main__')
