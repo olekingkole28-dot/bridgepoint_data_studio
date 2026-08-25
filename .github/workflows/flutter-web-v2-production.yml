@@ -52,7 +52,10 @@ jobs:
           from pathlib import Path
           roots=[Path('lib/main_v2.dart'),*Path('lib/v2').rglob('*.dart'),Path('lib/bridgepoint_intelligence_studio_v790.dart'),Path('lib/bridgepoint_integrations_hub_v790.dart'),*Path('lib/screens').glob('bridgepoint_owner*.dart')]
           source='\n'.join(p.read_text(encoding='utf-8') for p in roots if p.exists())
-          required=['BridgePointV2App','BridgePointHomeLiveV2','BridgePointPropertiesV2','BridgePointInvestorV2','BridgePointBuildingsV2','BridgePointProperty360V2','BridgePointMapWeatherV2','BridgePointOperationsWorkspaceV2','BridgePointClaimsV2','BridgePointCalendarV2','BridgePointPortfolioRiskV2','BridgePointAiV2','BridgePointIntelligenceStudio','BridgePointIntelligenceLiveV2','BridgePointIntegrationsHub','BridgePointProductsSettingsV2','BridgePointOwnerCommandCenter','BridgePointOwnerOverviewV2','bridgepoint_owner_v2_requirements_v832','bridgepoint_property_geometry_v837','bridgepoint_property_timeline_v78','bridgepoint_flutter_intelligence_map_national_v346','bridgepoint_flutter_intelligence_map','bridgepoint_flutter_properties_v725','bridgepoint_security_center_v147']
+          required=[
+            'BridgePointV2App','BridgePointHomeLiveV2','BridgePointPropertiesV2','BridgePointInvestorV2','BridgePointBuildingsV2','BridgePointProperty360V2','BridgePointMapWeatherV2','BridgePointOperationsWorkspaceV2','BridgePointClaimsV2','BridgePointCalendarV2','BridgePointPortfolioRiskV2','BridgePointAiV2','BridgePointIntelligenceStudio','BridgePointIntelligenceLiveV2','BridgePointIntegrationsHub','BridgePointProductsSettingsV2','BridgePointOwnerCommandCenter','BridgePointOwnerOverviewV2',
+            'bridgepoint_owner_v2_requirements_v832','bridgepoint_property_geometry_v837','bridgepoint_property_timeline_v78','bridgepoint_flutter_intelligence_map_national_v346','bridgepoint_flutter_intelligence_map','bridgepoint_flutter_map_state_status_v838','bridgepoint_flutter_property_map_viewport_v838','bridgepoint_flutter_properties_state_browse_v840','bridgepoint_security_center_v147'
+          ]
           missing=[x for x in required if x not in source]
           if missing: raise SystemExit('Missing V2 production markers: '+', '.join(missing))
           forbidden=['apply_launch_v95.py','apply_weather_home_community_v145.py','apply_map_viewport_v124.py','repair_owner_expansion_v96.py']
@@ -75,7 +78,7 @@ jobs:
         run: |
           set -euo pipefail
           cat > web/bridgepoint-v2-release.json <<EOF
-          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","historical_patch_replay":false,"production_candidate":true,"restored_product_surfaces":true}
+          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","historical_patch_replay":false,"production_candidate":true,"restored_product_surfaces":true,"progressive_national_map":true}
           EOF
           flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
           grep -q '<base href="/app/">' build/web/index.html
@@ -83,10 +86,10 @@ jobs:
           ! grep -q 'bp-expansion-launcher' build/web/index.html
           MAIN_SHA="$(sha256sum build/web/main.dart.js | awk '{print $1}')"
           cat > build/web/bridgepoint-release.json <<EOF
-          {"version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","public_origin":"https://bridgepointintelligence.online/","architecture":"clean-v2","restored_product_surfaces":true}
+          {"version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","public_origin":"https://bridgepointintelligence.online/","architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true}
           EOF
           cat > build/web/public-promotion-v682.json <<EOF
-          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","source_repo_private":true,"architecture":"clean-v2","restored_product_surfaces":true}
+          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","source_repo_private":true,"architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true}
           EOF
           touch build/web/.nojekyll
 
@@ -105,7 +108,7 @@ jobs:
           BYTES="$(stat -c '%s' /tmp/v2-delta.tar.gz)"
           CHUNKS="$(find /tmp/v2-handoff -type f -name 'chunk-*' | wc -l)"
           cat > /tmp/v2-handoff/manifest.json <<EOF
-          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","restored_product_surfaces":true}
+          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","restored_product_surfaces":true,"progressive_national_map":true}
           EOF
           cat /tmp/v2-handoff/manifest.json
 
