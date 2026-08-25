@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'bridgepoint_building_geometry_v2.dart';
+
 class BridgePointProperty360V2 extends StatefulWidget {
   const BridgePointProperty360V2({super.key});
 
@@ -21,6 +23,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
   Map<String, dynamic> _timeline = const {};
   Map<String, dynamic> _climate = const {};
   Map<String, dynamic> _twin = const {};
+  Map<String, dynamic> _geometry = const {};
   Map<String, dynamic> _permits = const {};
   Map<String, dynamic> _media = const {};
   Map<String, dynamic> _notes = const {};
@@ -104,6 +107,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       _safe('bridgepoint_property_timeline_v78', {'p_property_id': id, 'p_limit': 250}),
       _safe('bridgepoint_property_climate_profile_v510', {'p_property_id': id}),
       _safe('bridgepoint_digital_twin_summary_v509', {'p_property_id': id}),
+      _safe('bridgepoint_property_geometry_v837', {'p_property_id': id, 'p_limit': 25}),
       municipality.isEmpty
           ? Future.value({'available': false, 'reason': 'Municipality unavailable'})
           : _safe('bridgepoint_flutter_permit_context_v68', {'p_municipality': municipality}),
@@ -117,10 +121,11 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       _timeline = _map(values[1]);
       _climate = _map(values[2]);
       _twin = _map(values[3]);
-      _permits = _map(values[4]);
-      _media = _map(values[5]);
-      _notes = _map(values[6]);
-      _watchlists = _map(values[7]);
+      _geometry = _map(values[4]);
+      _permits = _map(values[5]);
+      _media = _map(values[6]);
+      _notes = _map(values[7]);
+      _watchlists = _map(values[8]);
       _tab = 0;
       _busy = false;
     });
@@ -351,6 +356,8 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
               SizedBox(width: width, child: _section('Digital Twin fidelity', _twin, Icons.view_in_ar_rounded)),
             ]);
           }),
+          const SizedBox(height: 12),
+          BridgePointBuildingGeometryV2(payload: _geometry),
           const SizedBox(height: 8),
           const Text('Risk scores are prioritization/model output, not proof of damage or future loss. Twin levels are shown at their actual fidelity; low-fidelity massing is never labeled an exact replica.', style: TextStyle(color: _amber, fontSize: 10)),
         ],
