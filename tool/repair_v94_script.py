@@ -11,7 +11,7 @@ if old in s:
 elif new not in s:
     raise SystemExit('v94 banner matcher repair target not found in either historical or repaired form')
 
-# v781: v94 predates the canonical national NOAA map stack, the server-driven
+# v782: v94 predates the canonical national NOAA map stack, the server-driven
 # package purchase/delivery truth, and the current Owner Global Control plane.
 # Historical replacements remain strict unless newer checked-in source proves
 # the capability that superseded them.
@@ -141,7 +141,7 @@ def replace_once(old: str, new: str, label: str):
         return
     raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
 '''
-new_v781='''_SUPERSEDED_V94_MAP_LABELS = {
+new_v782='''_SUPERSEDED_V94_MAP_LABELS = {
     'map-radar-state',
     'map-radar-timer',
     'map-opportunity-limit',
@@ -223,15 +223,15 @@ def replace_once(old: str, new: str, label: str):
         return
     raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
 '''
-if new_v781 not in s:
+if new_v782 not in s:
     if old_v780 in s:
-        s=s.replace(old_v780,new_v781,1)
+        s=s.replace(old_v780,new_v782,1)
     elif old_v776 in s:
-        s=s.replace(old_v776,new_v781,1)
+        s=s.replace(old_v776,new_v782,1)
     elif old_v775 in s:
-        s=s.replace(old_v775,new_v781,1)
+        s=s.replace(old_v775,new_v782,1)
     elif old_replace in s:
-        s=s.replace(old_replace,new_v781,1)
+        s=s.replace(old_replace,new_v782,1)
     else:
         raise SystemExit('v94 replace_once compatibility target not found')
 
@@ -258,31 +258,29 @@ if new_us not in s:
     s=s.replace(old_us,new_us,1)
 
 # The old owner expansion class was injected outside replace_once as well.
-old_owner_preamble='''marker = "class _EmergencyAdminPanel extends StatefulWidget{"
-if text.count(marker) != 1:
+old_owner_guard="""if text.count(marker) != 1:
     raise SystemExit('owner-expansion-class-marker not found exactly once')
-owner_class = r'''\'''
-new_owner_preamble='''marker = "class _EmergencyAdminPanel extends StatefulWidget{"
-_owner_global_superseded = _canonical_owner_global_truth_present()
+"""
+new_owner_guard="""_owner_global_superseded = _canonical_owner_global_truth_present()
 if not _owner_global_superseded and text.count(marker) != 1:
     raise SystemExit('owner-expansion-class-marker not found exactly once')
-owner_class = r'''\'''
-if new_owner_preamble not in s:
-    if old_owner_preamble not in s:
-        raise SystemExit('v94 owner-expansion class preamble target not found')
-    s=s.replace(old_owner_preamble,new_owner_preamble,1)
+"""
+if new_owner_guard not in s:
+    if old_owner_guard not in s:
+        raise SystemExit('v94 owner-expansion class guard target not found')
+    s=s.replace(old_owner_guard,new_owner_guard,1)
 
 old_owner_insert="text = text.replace(marker, owner_class + marker, 1)"
-new_owner_insert='''if _owner_global_superseded:
+new_owner_insert="""if _owner_global_superseded:
     print('owner-expansion-class: superseded by wired Owner Global Control v675; continuing')
 elif 'class _OwnerExpansionPanel extends StatefulWidget' in text:
     print('owner-expansion-class: already present; continuing')
 else:
-    text = text.replace(marker, owner_class + marker, 1)'''
+    text = text.replace(marker, owner_class + marker, 1)"""
 if new_owner_insert not in s:
     if old_owner_insert not in s:
         raise SystemExit('v94 owner-expansion class insertion target not found')
     s=s.replace(old_owner_insert,new_owner_insert,1)
 
 p.write_text(s,encoding='utf-8')
-print('Repaired v94 supersession for canonical map + package + owner global truth v781')
+print('Repaired v94 supersession for canonical map + package + owner global truth v782')
