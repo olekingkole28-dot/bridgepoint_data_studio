@@ -23,63 +23,46 @@ jobs:
         run: |
           set -euo pipefail
           test -s lib/main_v2.dart
-          test -s lib/v2/bridgepoint_app_v2.dart
-          test -s lib/v2/bridgepoint_home_v2.dart
-          test -s lib/v2/bridgepoint_property_360_v2.dart
-          test -s lib/v2/bridgepoint_map_weather_v2.dart
-          test -s lib/v2/bridgepoint_operations_workspace_v2.dart
-          test -s lib/v2/bridgepoint_claims_v2.dart
-          test -s lib/v2/bridgepoint_portfolio_risk_v2.dart
-          test -s lib/v2/bridgepoint_ai_v2.dart
-          test -s lib/v2/bridgepoint_products_settings_v2.dart
-          test -s lib/v2/bridgepoint_public_landing_v2.dart
-          test -s lib/bridgepoint_intelligence_studio_v790.dart
-          test -s lib/bridgepoint_integrations_hub_v790.dart
-          test -s lib/screens/bridgepoint_owner_command_center.dart
-          test -s lib/screens/bridgepoint_owner_v2_requirements_v832.dart
+          for f in \
+            lib/v2/bridgepoint_app_v2.dart \
+            lib/v2/bridgepoint_home_v2.dart \
+            lib/v2/bridgepoint_property_360_v2.dart \
+            lib/v2/bridgepoint_map_weather_v2.dart \
+            lib/v2/bridgepoint_operations_workspace_v2.dart \
+            lib/v2/bridgepoint_claims_v2.dart \
+            lib/v2/bridgepoint_calendar_v2.dart \
+            lib/v2/bridgepoint_portfolio_risk_v2.dart \
+            lib/v2/bridgepoint_ai_v2.dart \
+            lib/v2/bridgepoint_products_settings_v2.dart \
+            lib/v2/bridgepoint_public_landing_v2.dart \
+            lib/bridgepoint_intelligence_studio_v790.dart \
+            lib/bridgepoint_integrations_hub_v790.dart \
+            lib/screens/bridgepoint_owner_command_center.dart \
+            lib/screens/bridgepoint_owner_v2_requirements_v832.dart; do
+              test -s "$f"
+          done
           python - <<'PY'
           from pathlib import Path
           files=[Path('lib/main_v2.dart'),*Path('lib/v2').glob('*.dart'),Path('lib/bridgepoint_intelligence_studio_v790.dart'),Path('lib/bridgepoint_integrations_hub_v790.dart'),*Path('lib/screens').glob('bridgepoint_owner*.dart')]
           source='\n'.join(p.read_text(encoding='utf-8') for p in files if p.exists())
           required=[
             'bridgepoint_daily_brief_v74',
-            'bridgepoint_public_system_status_v320',
-            'bridgepoint_public_expansion_status_v321',
-            'bridgepoint_property_suggestions_v192',
-            'bridgepoint_flutter_property_detail_v344',
-            'bridgepoint_property_timeline_v78',
-            'bridgepoint_property_climate_profile_v510',
-            'bridgepoint_digital_twin_summary_v509',
-            'bridgepoint_property_media_bundle_v169',
-            'bridgepoint_flutter_opportunities_v235',
-            'bridgepoint_save_opportunity_v70',
-            'bridgepoint_record_opportunity_feedback_v88',
-            'bridgepoint_flutter_signals',
-            'bridgepoint_flutter_sources',
-            'bridgepoint_flutter_models',
-            'bridgepoint_watchlists_v88',
-            'bridgepoint_route_plans_v87',
-            'bridgepoint_team_workspace_v80',
-            'bridgepoint_invite_team_member_v80',
-            'bridgepoint_notifications_v74',
-            'bridgepoint_claims_workspace_v833',
-            'bridgepoint_open_claim_v78',
-            'bridgepoint_update_claim_v78',
-            'bridgepoint_flutter_packages_core_v429',
-            'bridgepoint-checkout-v67',
-            'bridgepoint_package_fit_preview_v315',
-            'bridgepoint_complete_onboarding_v315',
-            'bridgepoint_notification_preferences_v834',
-            'bridgepoint_update_notification_preferences_v74',
-            'bridgepoint_update_display_preferences_v98',
+            'bridgepoint_public_system_status_v320','bridgepoint_public_expansion_status_v321','bridgepoint_public_capability_directory_v735',
+            'bridgepoint_property_suggestions_v192','bridgepoint_flutter_property_detail_v344','bridgepoint_property_timeline_v78',
+            'bridgepoint_property_climate_profile_v510','bridgepoint_digital_twin_summary_v509','bridgepoint_property_media_bundle_v169',
+            'bridgepoint_save_customer_note_v70','bridgepoint_watchlists_v88','bridgepoint_create_watchlist_v88','bridgepoint_add_watchlist_item_v88',
             'bridgepoint_ai_answer_ui_v322',
-            'bridgepoint_portfolio_intelligence_v460',
-            'bridgepoint_owner_v2_requirements_v832',
-            'BridgePointIntelligenceStudio',
-            'BridgePointIntegrationsHub',
-            'BridgePointOwnerCommandCenter',
-            'radar_base_reflectivity_time/ImageServer/WMSServer',
-            'NOAA MRMS • ~1 KM SOURCE',
+            'bridgepoint_flutter_intelligence_map_national_v346','radar_base_reflectivity_time/ImageServer/WMSServer','NOAA MRMS • ~1 KM SOURCE',
+            'bridgepoint_flutter_opportunities_v235','bridgepoint_save_opportunity_v70','bridgepoint_record_opportunity_feedback_v88',
+            'bridgepoint_flutter_signals','bridgepoint_flutter_sources','bridgepoint_source_health_v86','bridgepoint_flutter_models',
+            'bridgepoint_route_plans_v87','bridgepoint_route_build_v154','bridgepoint_prepare_offline_route_v154','bridgepoint_team_workspace_v80','bridgepoint_invite_team_member_v80','bridgepoint_notifications_v74','bridgepoint_mark_notifications_read_v74',
+            'bridgepoint_claims_workspace_v833','bridgepoint_open_claim_v78','bridgepoint_update_claim_v78',
+            'bridgepoint_calendar_agenda_v835','bridgepoint_calendar_event_upsert_v835','bridgepoint_calendar_event_delete_v835','bridgepoint_schedule_route_v835',
+            'bridgepoint_portfolio_intelligence_v460','bridgepoint_portfolio_climate_summary_v509','bridgepoint_outcome_funnel_v86',
+            'bridgepoint_flutter_packages_core_v429','bridgepoint-checkout-v67','bridgepoint_request_owner_approved_package_v323',
+            'bridgepoint_package_fit_preview_v315','bridgepoint_complete_onboarding_v315','bridgepoint_onboarding_state_v70',
+            'bridgepoint_notification_preferences_v834','bridgepoint_update_notification_preferences_v74','bridgepoint_update_display_preferences_v98',
+            'bridgepoint_owner_v2_requirements_v832','BridgePointIntelligenceStudio','BridgePointIntegrationsHub','BridgePointOwnerCommandCenter',
           ]
           missing=[x for x in required if x not in source]
           if missing:
@@ -88,7 +71,11 @@ jobs:
           found=[x for x in forbidden if x in source]
           if found:
             raise SystemExit('Historical patch machinery leaked into clean V2 source: '+', '.join(found))
-          print('Clean V2 module graph verified: direct source modules + stable backend contracts; no historical release replay required.')
+          mobile_required=['NavigationBar(','More','Ask BridgePoint AI','SingleChildScrollView']
+          mobile_missing=[x for x in mobile_required if x not in source]
+          if mobile_missing:
+            raise SystemExit('Missing mobile usability markers: '+', '.join(mobile_missing))
+          print('Clean V2 workflow contract verified: direct modules, real backend actions, mobile navigation, no historical release replay.')
           PY
 
       - uses: subosito/flutter-action@v2
