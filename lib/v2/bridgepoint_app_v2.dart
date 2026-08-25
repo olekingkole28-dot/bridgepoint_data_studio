@@ -20,6 +20,7 @@ import 'bridgepoint_products_settings_v2.dart';
 import 'bridgepoint_properties_v2.dart';
 import 'bridgepoint_property_360_v2.dart';
 import 'bridgepoint_public_landing_v2.dart';
+import 'bridgepoint_saved_alerts_v2.dart';
 import 'settings/bridgepoint_account_support_v2.dart';
 
 class BridgePointV2App extends StatelessWidget {
@@ -266,6 +267,7 @@ enum _AreaV2 {
   signals,
   sources,
   models,
+  savedAlerts,
   buildings,
   operations,
   claims,
@@ -295,6 +297,7 @@ const _baseAreasV2 = <_AreaSpecV2>[
   _AreaSpecV2(_AreaV2.signals, 'Signals', Icons.radar_rounded),
   _AreaSpecV2(_AreaV2.sources, 'Sources', Icons.hub_rounded),
   _AreaSpecV2(_AreaV2.models, 'Models', Icons.psychology_alt_rounded),
+  _AreaSpecV2(_AreaV2.savedAlerts, 'Saved & Alerts', Icons.bookmark_added_outlined),
   _AreaSpecV2(_AreaV2.operations, 'Operations', Icons.track_changes_rounded),
   _AreaSpecV2(_AreaV2.claims, 'Claims', Icons.assignment_outlined),
   _AreaSpecV2(_AreaV2.calendar, 'Calendar', Icons.calendar_month_rounded),
@@ -397,6 +400,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
         _AreaV2.signals => const BridgePointSignalsV2(),
         _AreaV2.sources => const BridgePointSourcesV2(),
         _AreaV2.models => const BridgePointModelsV2(),
+        _AreaV2.savedAlerts => const BridgePointSavedAlertsV2(),
         _AreaV2.buildings => const BridgePointBuildingsV2(),
         _AreaV2.operations => const BridgePointOperationsWorkspaceV2(),
         _AreaV2.claims => const BridgePointClaimsV2(),
@@ -679,6 +683,7 @@ String _title(_AreaV2 area) => switch (area) {
       _AreaV2.signals => 'Signals',
       _AreaV2.sources => 'Sources',
       _AreaV2.models => 'Models',
+      _AreaV2.savedAlerts => 'Saved & Alerts',
       _AreaV2.buildings => 'Buildings & Digital Twin',
       _AreaV2.operations => 'Operations Workspace',
       _AreaV2.claims => 'Claims Workspace',
