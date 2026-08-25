@@ -157,8 +157,7 @@ void main() {
   };
 
   for (final width in widths) {
-    testWidgets('structured Property 360 is usable at ${width.toInt()}px',
-        (tester) async {
+    testWidgets('structured Property 360 is usable at ${width.toInt()}px', (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = Size(width, 1200);
       addTearDown(() {
@@ -201,7 +200,11 @@ void main() {
       expect(find.text('Digital Twin fidelity'), findsOneWidget);
       expect(find.text('Permit / municipal context'), findsOneWidget);
       expect(find.text('Imagery / media history'), findsOneWidget);
-      await tester.tap(find.text('Severe wind exposure'));
+
+      final evidenceEvent = find.text('Severe wind exposure');
+      await tester.ensureVisible(evidenceEvent);
+      await tester.pumpAndSettle();
+      await tester.tap(evidenceEvent);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.textContaining('not verified property damage'), findsOneWidget);
