@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'v2/bridgepoint_intelligence_live_v2.dart';
+
 class BridgePointIntelligenceStudio extends StatefulWidget {
   const BridgePointIntelligenceStudio({
     super.key,
@@ -197,9 +199,9 @@ class _BridgePointIntelligenceStudioState
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: _cyan.withOpacity(.06),
+            color: _cyan.withValues(alpha: .06),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _cyan.withOpacity(.18)),
+            border: Border.all(color: _cyan.withValues(alpha: .18)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +211,7 @@ class _BridgePointIntelligenceStudioState
               Expanded(
                 child: Text(
                   widget.ownerMode
-                      ? 'Owner mode adds the execution/worker truth in Owner Center; this Studio is the product-facing map of the intelligence architecture. Backend capability is not considered product-complete until it has a deliberate UI, integration/API, or internal-only classification.'
+                      ? 'Owner mode adds live source-health and execution truth while keeping secrets and protected model internals out of the UI. Backend capability is not complete until it has a deliberate UI, integration/API, internal-automation, or security-internal destination.'
                       : 'Every stage stays explainable. Scores do not replace evidence, map layers do not hide their source, and integrations do not become “connected” until they are actually verified.',
                   style: const TextStyle(
                     color: _muted,
@@ -222,6 +224,18 @@ class _BridgePointIntelligenceStudioState
           ),
         ),
         const SizedBox(height: 14),
+        BridgePointIntelligenceLiveV2(ownerMode: widget.ownerMode),
+        const SizedBox(height: 18),
+        const Text(
+          'Intelligence architecture',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Use this map to jump from the live evidence chain into the rest of the product.',
+          style: TextStyle(color: _muted, fontSize: 10),
+        ),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -232,7 +246,7 @@ class _BridgePointIntelligenceStudioState
                 onChanged: (value) => setState(() => _query = value),
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search_rounded),
-                  labelText: 'Find a capability',
+                  labelText: 'Find an architecture lane',
                   hintText:
                       'Try “roof,” “claims,” “ownership,” “AI,” “radar,” or “Palantir”',
                   border: OutlineInputBorder(),
@@ -242,7 +256,7 @@ class _BridgePointIntelligenceStudioState
             SizedBox(
               width: 220,
               child: DropdownButtonFormField<String>(
-                value: _lane,
+                initialValue: _lane,
                 dropdownColor: _panelSoft,
                 decoration: const InputDecoration(
                   labelText: 'Lane',
@@ -266,7 +280,7 @@ class _BridgePointIntelligenceStudioState
             child: Padding(
               padding: EdgeInsets.all(18),
               child: Text(
-                'No matching capability. The backend-to-UI coverage requirement treats genuinely unclassified capabilities as unfinished work rather than hiding them.',
+                'No matching capability. Genuinely unclassified capabilities remain unfinished work rather than being hidden.',
                 style: TextStyle(color: _muted),
               ),
             ),
@@ -295,9 +309,9 @@ class _BridgePointIntelligenceStudioState
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: stage.color.withOpacity(.11),
+                  color: stage.color.withValues(alpha: .11),
                   borderRadius: BorderRadius.circular(13),
-                  border: Border.all(color: stage.color.withOpacity(.2)),
+                  border: Border.all(color: stage.color.withValues(alpha: .2)),
                 ),
                 child: Center(
                   child: Text(
