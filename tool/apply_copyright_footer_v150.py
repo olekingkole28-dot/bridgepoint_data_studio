@@ -1,33 +1,44 @@
 from pathlib import Path
+import re
 
 path = Path('lib/main.dart')
 text = path.read_text(encoding='utf-8')
 original = text
 
-old = """                            child: KeyedSubtree(
-                              key: ValueKey(_liveRefreshTick),
-                              child: _buildSelectedPage(),
-                            ),
-"""
-new = """                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                KeyedSubtree(
-                                  key: ValueKey(_liveRefreshTick),
-                                  child: _buildSelectedPage(),
-                                ),
-                                const SizedBox(height: 30),
-                                const _BridgePointLegalFooter(),
-                              ],
-                            ),
-"""
-if text.count(old) != 1:
-    raise SystemExit(f'workspace page wrapper: expected 1 match, found {text.count(old)}')
-text = text.replace(old, new, 1)
+# v804: wrap the selected workspace page structurally so dart-format or earlier
+# page insertions cannot break the legal footer install.
+pattern = re.compile(
+    r"(?P<indent>[ \t]*)child:\s*KeyedSubtree\(\s*"
+    r"key:\s*ValueKey\(_liveRefreshTick\),\s*"
+    r"child:\s*_buildSelectedPage\(\),\s*"
+    r"\),",
+    re.S,
+)
+match = pattern.search(text)
+if match is None:
+    raise SystemExit('workspace page wrapper: selected page KeyedSubtree not found')
+indent = match.group('indent')
+replacement = f"""{indent}child: Column(
+{indent}  crossAxisAlignment: CrossAxisAlignment.stretch,
+{indent}  children: [
+{indent}    KeyedSubtree(
+{indent}      key: ValueKey(_liveRefreshTick),
+{indent}      child: _buildSelectedPage(),
+{indent}    ),
+{indent}    const SizedBox(height: 30),
+{indent}    const _BridgePointLegalFooter(),
+{indent}  ],
+{indent}),"""
+text = pattern.sub(replacement, text, count=1)
 
-marker = "class _WorkspaceAtmosphere extends StatelessWidget{"
-if text.count(marker) != 1:
-    raise SystemExit('Workspace atmosphere marker missing')
+# Accept both historical compact and current formatted class declarations.
+markers = [
+    'class _WorkspaceAtmosphere extends StatelessWidget {',
+    'class _WorkspaceAtmosphere extends StatelessWidget{',
+]
+marker = next((m for m in markers if text.count(m) == 1), None)
+if marker is None:
+    raise SystemExit('Workspace atmosphere marker missing or duplicated')
 
 footer = r'''class _BridgePointLegalFooter extends StatelessWidget {
   const _BridgePointLegalFooter();
@@ -105,7 +116,13 @@ footer = r'''class _BridgePointLegalFooter extends StatelessWidget {
 '''
 text = text.replace(marker, footer + marker, 1)
 
+for required in ['© 2026 BridgePoint Intelligence. All rights reserved.',
+                 'Questions or Concerns: 203-605-2389',
+                 'const _BridgePointLegalFooter()']:
+    if required not in text:
+        raise SystemExit(f'v804 legal footer marker missing: {required}')
+
 if text == original:
     raise SystemExit('No copyright footer changes applied')
 path.write_text(text, encoding='utf-8')
-print('Applied BridgePoint copyright/legal footer v150')
+print('Applied BridgePoint copyright/legal footer v150/v804')
