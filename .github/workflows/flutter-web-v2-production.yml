@@ -118,3 +118,5 @@ jobs:
           git commit -m "Clean V2 compiled handoff ${GITHUB_SHA}"
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin clean-v2-handoff
+
+# Polished V2 release trigger: rich dashboard, founder/about restoration, premium public landing.
