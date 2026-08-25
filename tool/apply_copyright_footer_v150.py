@@ -138,3 +138,9 @@ exec(compile(repair_source, str(repair_path), 'exec'), {'__name__': '__main__'})
 training_repair_path = Path('tool/repair_training_demo_founder_v808.py')
 training_repair_source = training_repair_path.read_text(encoding='utf-8')
 exec(compile(training_repair_source, str(training_repair_path), 'exec'), {'__name__': '__main__'})
+
+# v809: keep v160's strict generated-source repair, but update only its parser
+# boundary for the modern v159 training/founder block.
+generated_repair_path = Path('tool/repair_generated_release_compat_v809.py')
+generated_repair_source = generated_repair_path.read_text(encoding='utf-8')
+exec(compile(generated_repair_source, str(generated_repair_path), 'exec'), {'__name__': '__main__'})
