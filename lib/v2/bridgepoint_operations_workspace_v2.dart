@@ -13,12 +13,12 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
   late Future<List<dynamic>> _request;
   final _inviteEmail = TextEditingController();
   String _inviteRole = 'FIELD';
+  final Set<String> _routeSelection = {};
   bool _busy = false;
   String? _message;
 
   static const _cyan = Color(0xFF35D2E8);
   static const _muted = Color(0xFF8FA5BF);
-  static const _amber = Color(0xFFFFC857);
 
   @override
   void initState() {
@@ -33,11 +33,8 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
   }
 
   Future<dynamic> _safe(String name, [Map<String, dynamic>? params]) async {
-    try {
-      return await Supabase.instance.client.rpc(name, params: params);
-    } catch (e) {
-      return {'available': false, 'rpc': name, 'error': '$e'};
-    }
+    try { return await Supabase.instance.client.rpc(name, params: params); }
+    catch (e) { return {'available': false, 'rpc': name, 'error': '$e'}; }
   }
 
   Future<List<dynamic>> _load() => Future.wait([
@@ -72,6 +69,8 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
   }
 
   num? _num(dynamic value) => value is num ? value : num.tryParse('$value');
+
+  void _refresh() => setState(() => _request = _load());
 
   Future<void> _saveOpportunity(Map<String, dynamic> row) async {
     final opportunityId = '${row['opportunity_id'] ?? ''}';
@@ -118,12 +117,73 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
     }
   }
 
+  Future<void> _buildRoute() async {
+    if (_routeSelection.isEmpty) {
+      setState(() => _message = 'Select at least one opportunity for the route.');
+      return;
+    }
+    final name = TextEditingController(text: 'BridgePoint Field Route');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Build field route'),
+        content: SizedBox(width: 430, child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('${_routeSelection.length} selected opportunities'),
+          const SizedBox(height: 10),
+          TextField(controller: name, decoration: const InputDecoration(labelText: 'Route name')),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Build route')),
+        ],
+      ),
+    );
+    if (ok != true) { name.dispose(); return; }
+    setState(() { _busy = true; _message = null; });
+    try {
+      final raw = await Supabase.instance.client.rpc('bridgepoint_route_build_v154', params: {
+        'p_route_name': name.text.trim().isEmpty ? 'BridgePoint Field Route' : name.text.trim(),
+        'p_opportunity_ids': _routeSelection.toList(),
+        'p_start_latitude': null,
+        'p_start_longitude': null,
+        'p_max_stops': 25,
+      });
+      final result = _map(raw);
+      if (mounted) setState(() {
+        _message = 'Route built with ${result['stop_count'] ?? _routeSelection.length} stops.';
+        _routeSelection.clear();
+        _request = _load();
+        _tab = 3;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _message = 'Route build unavailable: $e');
+    } finally {
+      name.dispose();
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _prepareOffline(Map<String, dynamic> route) async {
+    final id = '${route['route_plan_id'] ?? route['id'] ?? ''}';
+    if (id.isEmpty) return;
+    setState(() { _busy = true; _message = null; });
+    try {
+      final raw = await Supabase.instance.client.rpc('bridgepoint_prepare_offline_route_v154', params: {'p_route_plan_id': id, 'p_hours': 24});
+      final result = _map(raw);
+      if (mounted) setState(() => _message = '${result['message'] ?? 'Offline route prepared for 24 hours.'}');
+    } catch (e) {
+      if (mounted) setState(() => _message = 'Offline preparation unavailable: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _markRead(Map<String, dynamic> row) async {
     final id = '${row['notification_id'] ?? row['id'] ?? ''}';
     if (id.isEmpty) return;
     try {
       await Supabase.instance.client.rpc('bridgepoint_mark_notifications_read_v74', params: {'p_notification_id': id});
-      setState(() => _request = _load());
+      _refresh();
     } catch (e) {
       if (mounted) setState(() => _message = 'Could not mark read: $e');
     }
@@ -146,11 +206,15 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
 
   Widget _opportunityCard(Map<String, dynamic> row) {
     final score = row['score'] ?? row['property_intelligence_score'];
+    final opportunityId = '${row['opportunity_id'] ?? ''}';
+    final selected = opportunityId.isNotEmpty && _routeSelection.contains(opportunityId);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(13),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
+            if (opportunityId.isNotEmpty)
+              Checkbox(value: selected, onChanged: _busy ? null : (value) => setState(() => value == true ? _routeSelection.add(opportunityId) : _routeSelection.remove(opportunityId))),
             Expanded(child: Text('${row['title'] ?? row['full_address'] ?? 'Opportunity'}', style: const TextStyle(fontWeight: FontWeight.w900))),
             if (score != null) Chip(label: Text('Score $score')),
           ]),
@@ -176,6 +240,22 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
     );
   }
 
+  Widget _routeCard(Map<String, dynamic> route) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(13),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Expanded(child: Text('${route['route_name'] ?? route['name'] ?? 'Field route'}', style: const TextStyle(fontWeight: FontWeight.w900))),
+          Chip(label: Text('${route['route_status'] ?? route['status'] ?? 'DRAFT'}')),
+        ]),
+        const SizedBox(height: 5),
+        Text('${route['stop_count'] ?? _rows(route['stops'], const ['items']).length} stops • ${route['optimization_strategy'] ?? 'BridgePoint route ordering'}', style: const TextStyle(color: _muted)),
+        const SizedBox(height: 9),
+        Align(alignment: Alignment.centerLeft, child: FilledButton.tonalIcon(onPressed: _busy ? null : () => _prepareOffline(route), icon: const Icon(Icons.offline_pin_outlined), label: const Text('Prepare 24h offline pack'))),
+      ]),
+    ),
+  );
+
   Widget _dataPanel(String title, dynamic value, IconData icon, List<String> keys) {
     final rows = _rows(value, keys);
     final map = _map(value);
@@ -194,11 +274,12 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
         final data = snapshot.data ?? const [];
         dynamic at(int i) => i < data.length ? data[i] : const <String, dynamic>{};
         final opportunities = _rows(at(0), const ['opportunities','items','results']);
+        final routes = _rows(at(6), const ['routes','items','results']);
         final notifications = _rows(at(10), const ['notifications','items','results']);
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Row(children: [
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Operations Workspace', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)), SizedBox(height: 5), Text('Ranked opportunities, evidence, models, field work, teams and alerts in one operating flow.', style: TextStyle(color: _muted, height: 1.45))])),
-            IconButton.filledTonal(onPressed: () => setState(() => _request = _load()), icon: const Icon(Icons.refresh_rounded)),
+            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Operations Workspace', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)), SizedBox(height: 5), Text('Ranked opportunities, evidence, models, field routes, teams and alerts in one operating flow.', style: TextStyle(color: _muted, height: 1.45))])),
+            IconButton.filledTonal(onPressed: _refresh, icon: const Icon(Icons.refresh_rounded)),
           ]),
           if (_busy || snapshot.connectionState == ConnectionState.waiting) const LinearProgressIndicator(),
           if (_message != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_message!, style: const TextStyle(color: _cyan))),
@@ -212,6 +293,8 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
           ], selected: {_tab}, onSelectionChanged: (v) => setState(() => _tab = v.first))),
           const SizedBox(height: 12),
           if (_tab == 0) ...[
+            if (_routeSelection.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(10), child: Row(children: [Expanded(child: Text('${_routeSelection.length} selected for field route', style: const TextStyle(fontWeight: FontWeight.w800))), TextButton(onPressed: () => setState(_routeSelection.clear), child: const Text('Clear')), FilledButton.icon(onPressed: _busy ? null : _buildRoute, icon: const Icon(Icons.route_rounded), label: const Text('Build route'))]))),
+            if (_routeSelection.isNotEmpty) const SizedBox(height: 8),
             if (opportunities.isEmpty) _dataPanel('Ranked opportunities / Why Now', at(0), Icons.track_changes_rounded, const ['opportunities']) else ...opportunities.map(_opportunityCard),
             const SizedBox(height: 8),
             const Card(child: Padding(padding: EdgeInsets.all(13), child: Text('Opportunity ranking is decision support. Weather exposure, model scores and signals are not confirmed damage. Field feedback is written back to BridgePoint’s learning loop when the account/workspace allows it.', style: TextStyle(color: _muted, fontSize: 10, height: 1.45)))),
@@ -227,7 +310,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
           if (_tab == 3) ...[
             _dataPanel('Watchlists / saved work', at(5), Icons.bookmark_outline_rounded, const ['watchlists','items']),
             const SizedBox(height: 10),
-            _dataPanel('Routes / offline packs', at(6), Icons.route_rounded, const ['routes','items']),
+            if (routes.isEmpty) _dataPanel('Routes / offline packs', at(6), Icons.route_rounded, const ['routes','items']) else ...routes.map((r) => Padding(padding: const EdgeInsets.only(bottom: 8), child: _routeCard(r))),
             const SizedBox(height: 10),
             _dataPanel('Team workspace', at(7), Icons.groups_2_outlined, const ['members','team','items']),
             const SizedBox(height: 10),
