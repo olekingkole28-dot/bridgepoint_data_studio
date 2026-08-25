@@ -5,168 +5,155 @@ p=Path('lib/main.dart')
 text=p.read_text(encoding='utf-8')
 original=text
 
-
-def _dart_block_end(source,start):
-    """Return the matching closing brace for a Dart class, ignoring strings/comments."""
-    opening=source.find('{',start)
-    if opening<0:
-        return -1
-    depth=0
-    i=opening
-    mode='code'
-    quote=None
-    triple=False
-    while i<len(source):
-        if mode=='line_comment':
-            if source[i]=='\n':
-                mode='code'
-            i+=1
-            continue
-        if mode=='block_comment':
-            if source.startswith('*/',i):
-                mode='code';i+=2
-            else:
-                i+=1
-            continue
-        if mode=='string':
-            if triple:
-                token=quote*3
-                if source.startswith(token,i):
-                    mode='code';quote=None;triple=False;i+=3
-                else:
-                    i+=1
-                continue
-            if source[i]=='\\':
-                i+=2
-                continue
-            if source[i]==quote:
-                mode='code';quote=None;i+=1
-            else:
-                i+=1
-            continue
-        if source.startswith('//',i):
-            mode='line_comment';i+=2;continue
-        if source.startswith('/*',i):
-            mode='block_comment';i+=2;continue
-        if source.startswith("'''",i):
-            mode='string';quote="'";triple=True;i+=3;continue
-        if source.startswith('"""',i):
-            mode='string';quote='"';triple=True;i+=3;continue
-        if source[i] in ("'",'"'):
-            mode='string';quote=source[i];triple=False;i+=1;continue
-        if source[i]=='{':
-            depth+=1
-        elif source[i]=='}':
-            depth-=1
-            if depth==0:
-                return i+1
-        i+=1
-    return -1
-
 start=text.find('class _IntelligenceMapPageState extends State<_IntelligenceMapPage>')
-if start<0:start=text.find('class _IntelligenceMapPageState')
-if start<0:raise SystemExit('v828 Intelligence Map state missing')
-end=_dart_block_end(text,start)
-if end<=start:raise SystemExit('v828 Intelligence Map brace boundary invalid')
-block=text[start:end]
+if start<0:
+    start=text.find('class _IntelligenceMapPageState')
+if start<0:
+    raise SystemExit('v830 Intelligence Map state missing')
 
-if '_radarAnimationTimer' not in block:
-    m=re.search(r'(?m)^(\s*)bool\s+_showRadar\s*=\s*true;\s*$',block)
-    if m is None:raise SystemExit('v828 radar state field missing')
-    i=m.group(1)
-    fields=f"""{m.group(0)}
-{i}Timer? _radarAnimationTimer;
-{i}bool _radarPlaying=true;
-{i}int _radarFrameIndex=48;
-{i}List<DateTime> get _radarFrames{{
-{i}  final now=DateTime.now().toUtc();
-{i}  final rounded=DateTime.utc(now.year,now.month,now.day,now.hour,(now.minute~/5)*5);
-{i}  return List.generate(49,(index)=>rounded.subtract(Duration(minutes:(48-index)*5)));
-{i}}}
-{i}DateTime get _radarFrame=>_radarFrames[_radarFrameIndex.clamp(0,48)];
-{i}String _radarClock(DateTime t){{final l=t.toLocal();final h=l.hour%12==0?12:l.hour%12;return '$h:${{l.minute.toString().padLeft(2,'0')}} ${{l.hour>=12?'PM':'AM'}}';}}
-{i}void _startRadarLoop(){{
-{i}  _radarAnimationTimer?.cancel();
-{i}  _radarAnimationTimer=Timer.periodic(const Duration(milliseconds:700),(_){{
-{i}    if(!mounted||!_radarPlaying||!_showRadar)return;
-{i}    final step=_viewportZoom>=8.5?2:1;
-{i}    setState(()=>_radarFrameIndex=_radarFrameIndex+step>48?0:_radarFrameIndex+step);
-{i}  }});
-{i}}}
-{i}void _toggleRadarPlayback()=>setState(()=>_radarPlaying=!_radarPlaying);"""
-    block=block[:m.start()]+fields+block[m.end():]
+# Work from stable semantic positions instead of trying to parse the entire Dart
+# class. Generated Dart contains nested string interpolation such as
+# '${map['key']}', which makes simplistic quote/brace scanners unreliable.
+show_radar=text.find('bool _showRadar = true;',start)
+if show_radar<0:
+    raise SystemExit('v830 radar state field missing')
+main_radar_if=text.find('if (_showRadar)',show_radar)
+if main_radar_if<0:
+    raise SystemExit('v830 main radar condition missing')
+main_tile=text.find('TileLayer(',main_radar_if)
+main_wms=text.find('WMSTileLayerOptions(',main_tile)
+marker_layer=text.find('MarkerLayer(markers: markers)',main_wms)
+if min(main_tile,main_wms,marker_layer)<0 or not (main_radar_if<main_tile<main_wms<marker_layer):
+    raise SystemExit('v830 main radar TileLayer/WMS sequence missing')
+radar_probe=text[main_wms:marker_layer]
+if not any(token in radar_probe.lower() for token in ('conus_bref_qcd','radar','reflectivity','ncep')):
+    raise SystemExit('v830 main WMS did not validate as radar')
 
-if '_startRadarLoop();' not in block:
-    init=block.find('void initState()')
-    if init<0:raise SystemExit('v828 map initState missing')
-    close=_dart_block_end(block,init)
-    if close<0:raise SystemExit('v828 initState unterminated')
-    block=block[:close-1]+'    _startRadarLoop();\n'+block[close-1:]
+# Playback state immediately follows _showRadar.
+if '_radarAnimationTimer' not in text[show_radar:main_radar_if]:
+    field='bool _showRadar = true;'
+    fields="""bool _showRadar = true;
+  Timer? _radarAnimationTimer;
+  bool _radarPlaying=true;
+  int _radarFrameIndex=48;
+  List<DateTime> get _radarFrames{
+    final now=DateTime.now().toUtc();
+    final rounded=DateTime.utc(now.year,now.month,now.day,now.hour,(now.minute~/5)*5);
+    return List.generate(49,(index)=>rounded.subtract(Duration(minutes:(48-index)*5)));
+  }
+  DateTime get _radarFrame=>_radarFrames[_radarFrameIndex.clamp(0,48)];
+  String _radarClock(DateTime t){
+    final l=t.toLocal();
+    final h=l.hour%12==0?12:l.hour%12;
+    return '$h:${l.minute.toString().padLeft(2,'0')} ${l.hour>=12?'PM':'AM'}';
+  }
+  void _startRadarLoop(){
+    _radarAnimationTimer?.cancel();
+    _radarAnimationTimer=Timer.periodic(const Duration(milliseconds:700),(_){
+      if(!mounted||!_radarPlaying||!_showRadar)return;
+      final step=_viewportZoom>=8.5?2:1;
+      setState(()=>_radarFrameIndex=_radarFrameIndex+step>48?0:_radarFrameIndex+step);
+    });
+  }
+  void _toggleRadarPlayback()=>setState(()=>_radarPlaying=!_radarPlaying);"""
+    text=text[:show_radar]+text[show_radar:].replace(field,fields,1)
+    # Recompute positions after insertion.
+    show_radar=text.find('bool _showRadar = true;',start)
+    main_radar_if=text.find('if (_showRadar)',show_radar)
+    main_tile=text.find('TileLayer(',main_radar_if)
+    main_wms=text.find('WMSTileLayerOptions(',main_tile)
+    marker_layer=text.find('MarkerLayer(markers: markers)',main_wms)
 
-dispose=block.find('void dispose()')
-if dispose>=0:
-    dispose_end=_dart_block_end(block,dispose)
-    if dispose_end<0:raise SystemExit('v828 dispose unterminated')
-    probe=block[dispose:dispose_end]
-    if '_radarAnimationTimer?.cancel();' not in probe:
-        brace=block.find('{',dispose)
-        block=block[:brace+1]+'\n    _radarAnimationTimer?.cancel();'+block[brace+1:]
-else:
-    marker='  @override\n  Widget build('
-    if marker not in block:raise SystemExit('v828 lifecycle anchor missing')
-    block=block.replace(marker,"""  @override
-  void dispose(){_radarAnimationTimer?.cancel();super.dispose();}
+# Start playback in the first Intelligence Map initState. Insert immediately
+# before the first dispose override rather than brace-parsing initState.
+init=text.find('void initState()',start,main_radar_if)
+first_dispose=text.find('void dispose()',init,main_radar_if)
+if init<0 or first_dispose<0:
+    raise SystemExit('v830 map init/dispose anchors missing')
+if '_startRadarLoop();' not in text[init:first_dispose]:
+    init_segment=text[init:first_dispose]
+    close=init_segment.rfind('\n  }')
+    if close<0:
+        raise SystemExit('v830 initState closing boundary missing')
+    init_segment=init_segment[:close]+'\n    _startRadarLoop();'+init_segment[close:]
+    text=text[:init]+init_segment+text[first_dispose:]
 
-"""+marker,1)
+# Consolidate duplicate generated dispose methods into one safe lifecycle hook.
+# The current replay has one radar-refresh dispose and one viewport dispose.
+first_dispose=text.find('void dispose()',init,main_radar_if)
+did_update=text.find('void didUpdateWidget',first_dispose,main_radar_if)
+if first_dispose<0 or did_update<0:
+    raise SystemExit('v830 dispose/didUpdateWidget boundaries missing')
+first_override=text.rfind('@override',init,first_dispose)
+did_override=text.rfind('@override',first_dispose,did_update)
+if first_override<0 or did_override<0:
+    raise SystemExit('v830 lifecycle override boundaries missing')
+lifecycle=text[first_override:did_override]
+if lifecycle.count('void dispose()')>=1:
+    merged="""@override
+  void dispose(){
+    _radarAnimationTimer?.cancel();
+    _radarRefreshTimer?.cancel();
+    _viewportRefreshTimer?.cancel();
+    super.dispose();
+  }
 
-# Select the first WMS options block inside the exact Intelligence Map class
-# that proves itself to be radar. Preview/dialog WMS helpers live outside this class.
-search_at=0;wms_at=None;wms_end=None;wms=None
-while True:
-    candidate=block.find('WMSTileLayerOptions(',search_at)
-    if candidate<0:break
-    depth=0;candidate_end=None
-    for x in range(candidate,len(block)):
-        if block[x]=='(':depth+=1
-        elif block[x]==')':
-            depth-=1
-            if depth==0:candidate_end=x;break
-    if candidate_end is None:raise SystemExit('v828 WMS options unterminated')
-    candidate_text=block[candidate:candidate_end+1]
-    lower=candidate_text.lower()
-    if any(token in lower for token in ('radar','ncep','bref','reflectivity')):
-        wms_at,wms_end,wms=candidate,candidate_end,candidate_text
-        break
-    search_at=candidate_end+1
-if wms_at is None or wms is None:
-    raise SystemExit(f'v828 radar WMS options not found; class_len={len(block)} wms_count={block.count("WMSTileLayerOptions(")}')
+  """
+    text=text[:first_override]+merged+text[did_override:]
 
+# Recompute main WMS positions after lifecycle edits.
+show_radar=text.find('bool _showRadar = true;',start)
+main_radar_if=text.find('if (_showRadar)',show_radar)
+main_tile=text.find('TileLayer(',main_radar_if)
+main_wms=text.find('WMSTileLayerOptions(',main_tile)
+marker_layer=text.find('MarkerLayer(markers: markers)',main_wms)
+if min(main_radar_if,main_tile,main_wms,marker_layer)<0:
+    raise SystemExit('v830 main radar anchors lost after lifecycle repair')
+
+# Extract just the main WMS options using the known MarkerLayer boundary.
+wms_segment=text[main_wms:marker_layer]
+# Find the options call close by parenthesis depth. No Dart-string brace parsing is needed.
+depth=0;wms_end_rel=None
+for i,ch in enumerate(wms_segment):
+    if ch=='(': depth+=1
+    elif ch==')':
+        depth-=1
+        if depth==0:
+            wms_end_rel=i+1
+            break
+if wms_end_rel is None:
+    raise SystemExit('v830 radar WMS options unterminated')
+wms=text[main_wms:main_wms+wms_end_rel]
 new_url='https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?'
-base=re.compile(r"baseUrl\s*:\s*'[^']*'",re.S)
-if base.search(wms) is None:raise SystemExit('v828 radar baseUrl missing')
-wms=base.sub(f"baseUrl:'{new_url}'",wms,count=1)
-layers=re.compile(r"layers\s*:\s*const\s*\[[^\]]+\]",re.S)
-if layers.search(wms) is None:raise SystemExit('v828 radar layers missing')
-wms=layers.sub("layers:const ['0']",wms,count=1)
+base_pat=re.compile(r"baseUrl\s*:\s*'[^']*'",re.S)
+layer_pat=re.compile(r"layers\s*:\s*const\s*\[[^\]]+\]",re.S)
+if not base_pat.search(wms) or not layer_pat.search(wms):
+    raise SystemExit('v830 radar WMS base/layer fields missing')
+wms=base_pat.sub(f"baseUrl:'{new_url}'",wms,count=1)
+wms=layer_pat.sub("layers:const ['0']",wms,count=1)
 if 'otherParameters:' not in wms:
     close=wms.rfind(')')
     wms=wms[:close]+"otherParameters:{'TIME':_radarFrame.toUtc().toIso8601String()},\n"+wms[close:]
-block=block[:wms_at]+wms+block[wms_end+1:]
+text=text[:main_wms]+wms+text[main_wms+wms_end_rel:]
 
-conditions=list(re.finditer(r'if\s*\(\s*_showRadar\s*\)',block))
-gated=False
-for c in conditions:
-    tail=block[c.end():c.end()+1400]
-    tile=tail.find('TileLayer(');positioned=tail.find('Positioned(')
-    if tile>=0 and (positioned<0 or tile<positioned):
-        block=block[:c.start()]+'if (_showRadar && _viewportZoom <= 10.5)'+block[c.end():]
-        gated=True;break
-if not gated and 'if (_showRadar && _viewportZoom <= 10.5)' not in block:
-    raise SystemExit('v828 radar zoom-gate anchor missing')
+# Gate only the main raw-radar layer at deep property zoom.
+main_radar_if=text.find('if (_showRadar)',show_radar)
+main_tile=text.find('TileLayer(',main_radar_if)
+if main_radar_if<0 or main_tile<0 or main_tile-main_radar_if>250:
+    raise SystemExit('v830 main radar condition/tile adjacency missing')
+text=text[:main_radar_if]+text[main_radar_if:main_tile].replace('if (_showRadar)','if (_showRadar && _viewportZoom <= 10.5)',1)+text[main_tile:]
 
-control=re.search(r'(?m)^\s*Positioned\(\s*\n\s*top:\s*14,\s*\n\s*right:\s*14,',block)
-if control is None:raise SystemExit('v828 map controls anchor missing')
-weather=r'''                      if (_showRadar && _viewportZoom <= 10.5)
+# Add the timeline immediately before the existing top-right map controls.
+controls=text.find('Positioned(',main_tile)
+while controls>=0:
+    probe=text[controls:controls+240]
+    if re.search(r'top\s*:\s*14',probe) and re.search(r'right\s*:\s*14',probe):
+        break
+    controls=text.find('Positioned(',controls+1)
+if controls<0:
+    raise SystemExit('v830 map controls anchor missing')
+if 'NOAA MRMS • ~1 KM SOURCE RESOLUTION' not in text[start:controls]:
+    weather="""if (_showRadar && _viewportZoom <= 10.5)
                         Positioned(left:14,right:14,bottom:14,child:Container(
                           padding:const EdgeInsets.fromLTRB(10,8,10,7),
                           decoration:BoxDecoration(color:const Color(0xFF071321).withOpacity(.94),borderRadius:BorderRadius.circular(13),border:Border.all(color:AppTheme.cyan.withOpacity(.28)),boxShadow:[BoxShadow(color:Colors.black.withOpacity(.35),blurRadius:14)]),
@@ -185,18 +172,62 @@ weather=r'''                      if (_showRadar && _viewportZoom <= 10.5)
                         )),
                       if (_showRadar && _viewportZoom > 10.5)
                         Positioned(left:14,right:14,bottom:14,child:Container(padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:const Color(0xFF071321).withOpacity(.95),borderRadius:BorderRadius.circular(12),border:Border.all(color:AppTheme.amber.withOpacity(.35))),child:const Row(children:[Icon(Icons.zoom_out_map_rounded,color:AppTheme.amber,size:18),SizedBox(width:8),Expanded(child:Text('Raw NOAA radar is ~1 km regional data, so BridgePoint stops over-zooming it here. Zoom out for reflectivity; property-level storm evidence stays separate from the raw radar pixels.',style:TextStyle(color:AppTheme.textMuted,fontSize:9,height:1.4)))]))),
-'''
-block=block[:control.start()]+weather+block[control.start():]
+                      """
+    text=text[:controls]+weather+text[controls:]
 
-toggle=re.compile(r"_MapControlButton\(\s*icon:\s*_showRadar\s*\?\s*Icons\.radar_rounded\s*:\s*Icons\.hide_source_rounded,\s*tooltip:\s*_showRadar\s*\?\s*'[^']*'\s*:\s*'[^']*',\s*onTap:\s*\(\)\s*=>\s*setState\(\(\)\s*=>\s*_showRadar\s*=\s*!_showRadar\)\s*\)\s*\)",re.S)
-replacement="""_MapControlButton(icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,tooltip:_showRadar?'Hide animated NOAA radar':'Show animated NOAA radar',onTap:()=>setState((){_showRadar=!_showRadar;if(_showRadar){_radarFrameIndex=48;_radarPlaying=true;}}))"""
-block,toggle_count=toggle.subn(replacement,block,count=1)
-if toggle_count!=1:raise SystemExit(f'v828 radar toggle anchor mismatch: {toggle_count}')
+# Formatting-tolerant radar control replacement. Restrict to the first control
+# after the Intelligence Map build and before expansion control.
+control_start=text.find('_MapControlButton(',controls)
+replaced_toggle=False
+while control_start>=0:
+    next_control=text.find('_MapControlButton(',control_start+1)
+    segment=text[control_start: next_control if next_control>0 else control_start+1800]
+    if '_showRadar' in segment and 'Icons.radar_rounded' in segment:
+        # Locate the call end by parenthesis depth; this is local and contains no problematic braces.
+        depth=0;end_call=None
+        for i,ch in enumerate(text[control_start:control_start+2200]):
+            if ch=='(': depth+=1
+            elif ch==')':
+                depth-=1
+                if depth==0:
+                    end_call=control_start+i+1
+                    break
+        if end_call is None:
+            raise SystemExit('v830 radar control call unterminated')
+        replacement="""_MapControlButton(
+                                icon:_showRadar?Icons.radar_rounded:Icons.hide_source_rounded,
+                                tooltip:_showRadar?'Hide animated NOAA radar':'Show animated NOAA radar',
+                                onTap:()=>setState((){_showRadar=!_showRadar;if(_showRadar){_radarFrameIndex=48;_radarPlaying=true;}}))"""
+        text=text[:control_start]+replacement+text[end_call:]
+        replaced_toggle=True
+        break
+    control_start=next_control
+if not replaced_toggle:
+    raise SystemExit('v830 radar toggle control missing')
 
-text=text[:start]+block+text[end:]
-text=text.replace('Live NOAA Radar','NOAA Weather Motion').replace('LIVE NOAA RADAR • TAP TO ZOOM','NOAA WEATHER • TAP TO EXPAND')
-for marker in ['NOAA MRMS • ~1 KM SOURCE RESOLUTION','Pause weather motion','radar_base_reflectivity_time/ImageServer/WMSServer',"'TIME':_radarFrame",'_viewportZoom <= 10.5','stops over-zooming it here','max:48']:
-    if marker not in text:raise SystemExit(f'missing NOAA v828 marker {marker}')
-if text==original:raise SystemExit('No NOAA weather v828 changes applied')
+text=text.replace('Live NOAA Radar','NOAA Weather Motion')
+text=text.replace('LIVE NOAA RADAR • TAP TO ZOOM','NOAA WEATHER • TAP TO EXPAND')
+
+required=[
+    'NOAA MRMS • ~1 KM SOURCE RESOLUTION',
+    'Pause weather motion',
+    'radar_base_reflectivity_time/ImageServer/WMSServer',
+    "'TIME':_radarFrame",
+    '_viewportZoom <= 10.5',
+    'stops over-zooming it here',
+    'max:48',
+    '_radarAnimationTimer?.cancel();',
+    '_radarRefreshTimer?.cancel();',
+    '_viewportRefreshTimer?.cancel();',
+]
+for marker in required:
+    if marker not in text:
+        raise SystemExit(f'missing NOAA v830 marker {marker}')
+# Ensure duplicate map dispose declarations were removed in the state prefix.
+prefix_end=text.find('void didUpdateWidget',start)
+if prefix_end<0 or text[start:prefix_end].count('void dispose()')!=1:
+    raise SystemExit('v830 map dispose consolidation failed')
+if text==original:
+    raise SystemExit('No NOAA weather v830 changes applied')
 p.write_text(text,encoding='utf-8')
-print('Applied brace-safe NOAA time-enabled scale-aware weather timeline v828')
+print('Applied generated-shape NOAA weather timeline + consolidated map lifecycle v830')
