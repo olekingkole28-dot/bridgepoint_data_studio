@@ -304,13 +304,28 @@ class BridgePointPropertyOverviewV2 extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            const Expanded(
-              child: Text('Why Now / verified opportunities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-            ),
-            Chip(label: Text('${opportunities.length} verified')),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compactWhyNow = constraints.maxWidth < 400;
+            final count = Chip(label: Text('${opportunities.length} verified'));
+            if (compactWhyNow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Why Now / verified opportunities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 6),
+                  Align(alignment: Alignment.centerLeft, child: count),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                const Expanded(child: Text('Why Now / verified opportunities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900))),
+                const SizedBox(width: 8),
+                count,
+              ],
+            );
+          },
         ),
         const SizedBox(height: 8),
         if (opportunities.isEmpty)
@@ -808,13 +823,35 @@ class BridgePointMediaHistoryV2 extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.photo_library_outlined, color: _bpCyan),
-                const SizedBox(width: 8),
-                const Expanded(child: Text('Imagery / media history', style: TextStyle(fontWeight: FontWeight.w900))),
-                Chip(label: Text('${items.length} current • ${history.length} history')),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final count = Chip(label: Text('${items.length} current • ${history.length} history'));
+                if (constraints.maxWidth < 400) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.photo_library_outlined, color: _bpCyan),
+                          SizedBox(width: 8),
+                          Expanded(child: Text('Imagery / media history', style: TextStyle(fontWeight: FontWeight.w900))),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Align(alignment: Alignment.centerLeft, child: count),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    const Icon(Icons.photo_library_outlined, color: _bpCyan),
+                    const SizedBox(width: 8),
+                    const Expanded(child: Text('Imagery / media history', style: TextStyle(fontWeight: FontWeight.w900))),
+                    const SizedBox(width: 8),
+                    count,
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 8),
             if (ordered.isEmpty && history.isEmpty)
