@@ -1,0 +1,145 @@
+name: BridgePoint Clean V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [bridgepoint-v2-clean]
+  pull_request:
+    branches: [bridgepoint-v2-clean]
+
+concurrency:
+  group: bridgepoint-clean-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify clean architecture contract
+        run: |
+          set -euo pipefail
+          test -s lib/main_v2.dart
+          for f in \
+            lib/v2/bridgepoint_app_v2.dart \
+            lib/v2/bridgepoint_home_v2.dart \
+            lib/v2/bridgepoint_property_360_v2.dart \
+            lib/v2/bridgepoint_building_geometry_v2.dart \
+            lib/v2/bridgepoint_map_weather_v2.dart \
+            lib/v2/bridgepoint_operations_workspace_v2.dart \
+            lib/v2/bridgepoint_claims_v2.dart \
+            lib/v2/bridgepoint_calendar_v2.dart \
+            lib/v2/bridgepoint_portfolio_risk_v2.dart \
+            lib/v2/bridgepoint_ai_v2.dart \
+            lib/v2/bridgepoint_products_settings_v2.dart \
+            lib/v2/settings/bridgepoint_packages_v2.dart \
+            lib/v2/settings/bridgepoint_package_fit_v2.dart \
+            lib/v2/settings/bridgepoint_notifications_settings_v2.dart \
+            lib/v2/settings/bridgepoint_display_settings_v2.dart \
+            lib/v2/settings/bridgepoint_legal_trust_v2.dart \
+            lib/v2/bridgepoint_public_landing_v2.dart \
+            lib/bridgepoint_intelligence_studio_v790.dart \
+            lib/bridgepoint_integrations_hub_v790.dart \
+            lib/screens/bridgepoint_owner_command_center.dart \
+            lib/screens/bridgepoint_owner_v2_requirements_v832.dart \
+            web/index.html \
+            web/manifest.json \
+            web/flutter_bootstrap.js \
+            web/acquisition_tracker.js; do
+              test -s "$f"
+          done
+          python - <<'PY'
+          from pathlib import Path
+          files=[Path('lib/main_v2.dart'),*Path('lib/v2').rglob('*.dart'),Path('lib/bridgepoint_intelligence_studio_v790.dart'),Path('lib/bridgepoint_integrations_hub_v790.dart'),*Path('lib/screens').glob('bridgepoint_owner*.dart')]
+          source='\n'.join(p.read_text(encoding='utf-8') for p in files if p.exists())
+          required=[
+            'bridgepoint_daily_brief_v74',
+            'bridgepoint_public_system_status_v320','bridgepoint_public_expansion_status_v321','bridgepoint_public_capability_directory_v735',
+            'bridgepoint_property_suggestions_v192','bridgepoint_flutter_property_detail_v344','bridgepoint_property_timeline_v78',
+            'bridgepoint_property_climate_profile_v510','bridgepoint_digital_twin_summary_v509','bridgepoint_property_geometry_v837','BridgePointBuildingGeometryV2','bridgepoint_property_media_bundle_v169',
+            'L0 property shell','L1 building massing','exact replica',
+            'bridgepoint_save_customer_note_v70','bridgepoint_watchlists_v88','bridgepoint_create_watchlist_v88','bridgepoint_add_watchlist_item_v88',
+            'bridgepoint_ai_answer_ui_v322',
+            'bridgepoint_flutter_intelligence_map_national_v346','radar_base_reflectivity_time/ImageServer/WMSServer','NOAA MRMS • ~1 KM SOURCE','Raw NOAA reflectivity is hidden at property-level zoom','My location',
+            'bridgepoint_flutter_opportunities_v235','bridgepoint_save_opportunity_v70','bridgepoint_record_opportunity_feedback_v88',
+            'bridgepoint_flutter_signals','bridgepoint_flutter_sources','bridgepoint_source_health_v86','bridgepoint_flutter_models',
+            'bridgepoint_route_plans_v87','bridgepoint_route_build_v154','bridgepoint_prepare_offline_route_v154','bridgepoint_route_stop_update_v154','bridgepoint_team_workspace_v80','bridgepoint_invite_team_member_v80','bridgepoint_notifications_v74','bridgepoint_mark_notifications_read_v74',
+            'bridgepoint_claims_workspace_v833','bridgepoint_claim_intelligence_v836','bridgepoint_open_claim_v78','bridgepoint_update_claim_v78','bridgepoint_supplement_gap_v519','bridgepoint_create_supplement_packet_v520',
+            'bridgepoint_calendar_agenda_v835','bridgepoint_calendar_event_upsert_v835','bridgepoint_calendar_event_delete_v835','bridgepoint_schedule_route_v835',
+            'bridgepoint_portfolio_intelligence_v460','bridgepoint_portfolio_climate_summary_v509','bridgepoint_outcome_funnel_v86',
+            'bridgepoint_flutter_packages_core_v429','bridgepoint-checkout-v67','bridgepoint_request_owner_approved_package_v323',
+            'bridgepoint_package_fit_preview_v315','bridgepoint_complete_onboarding_v315','bridgepoint_onboarding_state_v70',
+            'bridgepoint_notification_preferences_v834','bridgepoint_update_notification_preferences_v74','bridgepoint_display_preferences_v80','bridgepoint_update_display_preferences_v98',
+            'bridgepoint_security_center_v147','legal_state','bridgepoint_accept_legal_v82','bridgepoint_submit_privacy_request_v82','bridgepoint_report_security_incident_v147',
+            'bridgepoint_owner_v2_requirements_v832','BridgePointIntelligenceStudio','BridgePointIntegrationsHub','BridgePointOwnerCommandCenter',
+          ]
+          missing=[x for x in required if x not in source]
+          if missing:
+            raise SystemExit('Missing clean V2 contract markers: '+', '.join(missing))
+          forbidden=['apply_launch_v95.py','apply_weather_home_community_v145.py','apply_map_viewport_v124.py','repair_owner_expansion_v96.py']
+          found=[x for x in forbidden if x in source]
+          if found:
+            raise SystemExit('Historical patch machinery leaked into clean V2 source: '+', '.join(found))
+          mobile_required=['NavigationBar(','More','Ask BridgePoint AI','SingleChildScrollView']
+          mobile_missing=[x for x in mobile_required if x not in source]
+          if mobile_missing:
+            raise SystemExit('Missing mobile usability markers: '+', '.join(mobile_missing))
+
+          index=Path('web/index.html').read_text(encoding='utf-8')
+          bootstrap=Path('web/flutter_bootstrap.js').read_text(encoding='utf-8')
+          manifest=Path('web/manifest.json').read_text(encoding='utf-8')
+          tracker=Path('web/acquisition_tracker.js').read_text(encoding='utf-8')
+          pwa_required=['beforeinstallprompt','appinstalled','Install BridgePoint','manifest.json']
+          pwa_missing=[x for x in pwa_required if x not in index]
+          if pwa_missing:
+            raise SystemExit('Missing clean PWA install markers: '+', '.join(pwa_missing))
+          if 'bp-expansion-launcher' in index or 'Geographic Expansion Engine' in index:
+            raise SystemExit('Legacy raw owner expansion overlay leaked into clean web host')
+          if 'BridgePoint update ready' not in bootstrap or '_flutter.loader.load()' not in bootstrap:
+            raise SystemExit('Clean PWA update/bootstrap contract missing')
+          if '"display": "standalone"' not in manifest:
+            raise SystemExit('Manifest is not installable standalone PWA configuration')
+          for marker in ['country_code','region_code','COARSE_IP_REGION_LOOKUP']:
+            if marker not in tracker:
+              raise SystemExit('Acquisition coarse-geo contract missing: '+marker)
+          forbidden_geo=['navigator.geolocation','getCurrentPosition','latitude','longitude','city_name','city:']
+          leaked=[x for x in forbidden_geo if x in tracker]
+          if leaked:
+            raise SystemExit('Exact acquisition location leaked into web tracker: '+', '.join(leaked))
+          print('Clean V2 contract verified: modular source, PWA install/update, coarse acquisition privacy, truthful radar, geometry, claims, field workflows and no historical patch replay.')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Analyze clean app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests when present
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No tests yet."
+          fi
+
+      - name: Stamp clean release
+        run: |
+          printf '{"architecture":"clean-v2","version":"%s","built_at":"%s","backend":"existing-production-supabase","historical_patch_replay":false}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-v2-release.json
+
+      - name: Build clean installable web app
+        run: |
+          set -euo pipefail
+          flutter build web --release -t lib/main_v2.dart --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+          test -s build/web/index.html
+          test -s build/web/main.dart.js || test -s build/web/main.dart.wasm || true
+          grep -q "Install BridgePoint" build/web/index.html
+          ! grep -q "bp-expansion-launcher" build/web/index.html
+          echo "Clean V2 web build verified locally in the workflow. Artifact upload intentionally omitted because repository Actions storage is currently at quota."

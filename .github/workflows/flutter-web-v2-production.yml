@@ -1,0 +1,126 @@
+name: BridgePoint Clean V2 Production
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/main_v2.dart'
+      - 'lib/v2/**'
+      - 'lib/bridgepoint_intelligence_studio_v790.dart'
+      - 'lib/bridgepoint_integrations_hub_v790.dart'
+      - 'lib/screens/bridgepoint_owner**'
+      - 'web/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'test/**'
+      - '.github/workflows/flutter-web-v2-production.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: bridgepoint-pages-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Clean V2 release source
+        run: |
+          set -euo pipefail
+          test -s lib/main_v2.dart
+          test -s lib/v2/bridgepoint_app_v2.dart
+          test -s lib/v2/bridgepoint_property_360_v2.dart
+          test -s lib/v2/bridgepoint_map_weather_v2.dart
+          test -s lib/v2/bridgepoint_operations_workspace_v2.dart
+          test -s lib/v2/bridgepoint_claims_v2.dart
+          test -s lib/v2/bridgepoint_products_settings_v2.dart
+          test -s lib/v2/bridgepoint_intelligence_live_v2.dart
+          test -s lib/screens/bridgepoint_owner_v2_requirements_v832.dart
+          test -s web/manifest.json
+          test -s web/flutter_bootstrap.js
+          test -s web/acquisition_tracker.js
+          python - <<'PY'
+          from pathlib import Path
+          roots=[Path('lib/main_v2.dart'),*Path('lib/v2').rglob('*.dart'),Path('lib/bridgepoint_intelligence_studio_v790.dart'),Path('lib/bridgepoint_integrations_hub_v790.dart'),*Path('lib/screens').glob('bridgepoint_owner*.dart')]
+          source='\n'.join(p.read_text(encoding='utf-8') for p in roots if p.exists())
+          required=[
+            'BridgePointV2App','BridgePointProperty360V2','BridgePointMapWeatherV2','BridgePointOperationsWorkspaceV2',
+            'BridgePointClaimsV2','BridgePointCalendarV2','BridgePointPortfolioRiskV2','BridgePointAiV2',
+            'BridgePointIntelligenceStudio','BridgePointIntelligenceLiveV2','BridgePointIntegrationsHub','BridgePointProductsSettingsV2',
+            'BridgePointOwnerCommandCenter','bridgepoint_owner_v2_requirements_v832','bridgepoint_property_geometry_v837',
+            'bridgepoint_property_timeline_v78','bridgepoint_flutter_intelligence_map_national_v346','bridgepoint_security_center_v147'
+          ]
+          missing=[x for x in required if x not in source]
+          if missing:
+            raise SystemExit('Missing V2 production markers: '+', '.join(missing))
+          forbidden=['apply_launch_v95.py','apply_weather_home_community_v145.py','apply_map_viewport_v124.py','repair_owner_expansion_v96.py']
+          leaked=[x for x in forbidden if x in source]
+          if leaked:
+            raise SystemExit('Historical patch machinery leaked into Clean V2: '+', '.join(leaked))
+          print('Clean V2 production source contract verified.')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run release tests
+        run: flutter test
+
+      - name: Stamp release
+        run: |
+          cat > web/bridgepoint-v2-release.json <<EOF
+          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","historical_patch_replay":false,"production_candidate":true}
+          EOF
+
+      - name: Build production web app
+        run: |
+          flutter build web --release -t lib/main_v2.dart --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+          test -s build/web/index.html
+          test -s build/web/bridgepoint-v2-release.json
+          grep -q "Install BridgePoint" build/web/index.html
+          ! grep -q "bp-expansion-launcher" build/web/index.html
+          cp CNAME build/web/CNAME 2>/dev/null || printf 'bridgepointintelligence.online\n' > build/web/CNAME
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/web
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Verify live Clean V2 release
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ORIGIN="https://bridgepointintelligence.online"
+          for attempt in $(seq 1 18); do
+            body="$(curl -fsSL --max-time 12 -H 'Cache-Control: no-cache' "${ORIGIN}/bridgepoint-v2-release.json?verify=${EXPECTED_SHA}" 2>/dev/null || true)"
+            if printf '%s' "$body" | grep -q "$EXPECTED_SHA" && printf '%s' "$body" | grep -q '"architecture":"clean-v2"'; then
+              echo "Live Clean V2 release verified at ${ORIGIN}."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Live release marker did not converge to ${EXPECTED_SHA}."
+          exit 1

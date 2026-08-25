@@ -4,7 +4,8 @@
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="BridgePoint Intelligence turns verified property signals into explainable opportunities, field workflows, timelines, alerts, and live operational intelligence.">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="BridgePoint Intelligence connects property records, weather, permits, imagery, physical intelligence, risk, claims, portfolios, workflows and integrations around one canonical property identity.">
   <meta name="theme-color" content="#07111F">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,113 +13,62 @@
   <meta name="apple-mobile-web-app-title" content="BridgePoint">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <link rel="icon" type="image/png" href="favicon.png">
-  <title>BridgePoint Intelligence</title>
   <link rel="manifest" href="manifest.json">
+  <title>BridgePoint Intelligence</title>
   <style>
-    #bp-expansion-launcher{display:none;position:fixed;right:18px;bottom:18px;z-index:2147483000;border:1px solid rgba(53,210,232,.45);background:linear-gradient(135deg,#0d1a2b,#122238);color:#fff;border-radius:14px;padding:11px 14px;font:800 12px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:0 14px 42px rgba(0,0,0,.38);cursor:pointer}
-    #bp-expansion-launcher .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#38d49a;margin-right:8px;box-shadow:0 0 12px rgba(56,212,154,.7)}
-    #bp-expansion-panel{display:none;position:fixed;right:18px;bottom:68px;width:min(470px,calc(100vw - 24px));max-height:min(760px,calc(100vh - 95px));overflow:auto;z-index:2147483001;background:#0d1a2b;color:#fff;border:1px solid rgba(53,210,232,.25);border-radius:18px;box-shadow:0 22px 70px rgba(0,0,0,.56);font:500 13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif}
-    #bp-expansion-panel *{box-sizing:border-box}
-    .bp-exp-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:15px 16px;background:rgba(13,26,43,.97);border-bottom:1px solid rgba(255,255,255,.07);backdrop-filter:blur(12px)}
-    .bp-exp-logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#35d2e8,#4f7cff);font-weight:950}.bp-exp-title{font-weight:900;font-size:14px}.bp-exp-sub{color:#8fa5bf;font-size:10px}.bp-exp-close{margin-left:auto;border:0;background:transparent;color:#8fa5bf;font-size:22px;cursor:pointer}
-    .bp-exp-body{padding:15px}.bp-exp-private{padding:10px 11px;border-radius:11px;background:rgba(53,210,232,.07);border:1px solid rgba(53,210,232,.14);color:#8fa5bf;font-size:10px;margin-bottom:13px}.bp-exp-private b{color:#35d2e8}
-    .bp-exp-row{display:flex;gap:9px;align-items:center}.bp-exp-row select,.bp-exp-row input{min-width:0;flex:1;background:#122238;color:#fff;border:1px solid rgba(255,255,255,.11);border-radius:10px;padding:11px 10px;outline:none}.bp-btn{border:0;border-radius:10px;padding:11px 13px;font-weight:850;cursor:pointer}.bp-btn-primary{background:#35d2e8;color:#07111f}.bp-btn-secondary{background:#122238;color:#fff;border:1px solid rgba(255,255,255,.11)}.bp-btn-danger{background:rgba(255,107,107,.12);color:#ff6b6b;border:1px solid rgba(255,107,107,.24)}.bp-btn:disabled{opacity:.45;cursor:not-allowed}
-    .bp-exp-status{margin-top:14px;padding:13px;border-radius:12px;background:#122238;border:1px solid rgba(255,255,255,.07)}.bp-exp-status-top{display:flex;align-items:flex-start;gap:8px}.bp-exp-state{font-size:16px;font-weight:950}.bp-exp-phase{color:#35d2e8;font-size:10px;font-weight:900;letter-spacing:.5px}.bp-exp-progress{height:7px;background:#07111f;border-radius:999px;overflow:hidden;margin:10px 0 6px}.bp-exp-progress>span{display:block;height:100%;background:linear-gradient(90deg,#35d2e8,#4f7cff);transition:width .3s ease}.bp-exp-muted{color:#8fa5bf;font-size:10px}.bp-exp-section{margin-top:13px}.bp-exp-section h4{margin:0 0 8px;font-size:10px;letter-spacing:.7px;color:#8fa5bf}.bp-step{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}.bp-step:last-child{border-bottom:0}.bp-step-dot{width:9px;height:9px;border-radius:50%;margin-top:4px;flex:0 0 auto;background:#58677b}.bp-step-dot.ok{background:#38d49a}.bp-step-dot.run{background:#35d2e8;box-shadow:0 0 10px rgba(53,210,232,.7)}.bp-step-dot.wait{background:#ffc857}.bp-step-dot.err{background:#ff6b6b}.bp-step-name{font-weight:800;font-size:11px}.bp-step-meta{font-size:9px;color:#8fa5bf}.bp-card-warn,.bp-card-error{margin-top:8px;padding:10px;border-radius:10px}.bp-card-warn{background:rgba(255,200,87,.08);border:1px solid rgba(255,200,87,.18)}.bp-card-error{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.18)}.bp-card-title{font-weight:900;font-size:11px}.bp-card-text{color:#8fa5bf;font-size:10px;margin-top:3px}.bp-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.bp-exp-empty{padding:22px 10px;text-align:center;color:#8fa5bf;font-size:11px}
-    @media(max-width:600px){#bp-expansion-launcher{right:12px;bottom:12px}#bp-expansion-panel{right:12px;bottom:62px}.bp-exp-row{align-items:stretch;flex-direction:column}.bp-exp-row .bp-btn{width:100%}}
+    html,body{margin:0;width:100%;height:100%;background:#06111e;color:#fff}
+    body{overflow:hidden}
+    #bp-install{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:2147483000;display:none;align-items:center;gap:8px;min-height:44px;border:1px solid rgba(53,210,232,.34);border-radius:13px;padding:0 13px;background:rgba(7,19,33,.96);color:#fff;box-shadow:0 14px 42px rgba(0,0,0,.38);font:800 12px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;backdrop-filter:blur(14px)}
+    #bp-install.show{display:flex}#bp-install .bp-dot{width:8px;height:8px;border-radius:50%;background:#35d2e8;box-shadow:0 0 12px rgba(53,210,232,.72)}
+    #bp-install-dialog{position:fixed;inset:0;z-index:2147483500;display:none;place-items:center;padding:16px;background:rgba(2,8,14,.72);backdrop-filter:blur(10px)}
+    #bp-install-dialog.show{display:grid}.bp-install-card{width:min(460px,100%);max-height:calc(100vh - 32px);overflow:auto;border-radius:18px;border:1px solid rgba(53,210,232,.25);background:#0d1a2b;box-shadow:0 24px 80px rgba(0,0,0,.55);padding:18px;font:500 13px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-sizing:border-box}.bp-install-title{font-size:18px;font-weight:900}.bp-install-sub{margin-top:5px;color:#8fa5bf}.bp-install-steps{margin:14px 0 0;padding-left:20px;color:#d9e5f1}.bp-install-steps li{margin:7px 0}.bp-install-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.bp-install-actions button{min-height:44px;border-radius:11px;padding:0 14px;font:850 12px/1 system-ui;border:0;cursor:pointer}.bp-install-close{background:#122238;color:#fff;border:1px solid rgba(255,255,255,.1)!important}
+    @media(max-width:430px){#bp-install{left:10px;bottom:max(10px,env(safe-area-inset-bottom));min-height:46px}.bp-install-card{padding:16px}.bp-install-actions{flex-direction:column}.bp-install-actions button{width:100%}}
   </style>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
-
-  <button id="bp-expansion-launcher" type="button"><span class="dot"></span>Expansion Engine</button>
-  <aside id="bp-expansion-panel" aria-label="BridgePoint owner expansion control center">
-    <div class="bp-exp-head">
-      <div class="bp-exp-logo">B</div>
-      <div><div class="bp-exp-title">Geographic Expansion Engine</div><div class="bp-exp-sub">Owner-only • build a state and watch it progress</div></div>
-      <button class="bp-exp-close" id="bp-expansion-close" aria-label="Close">×</button>
+  <button id="bp-install" type="button" aria-label="Install BridgePoint Intelligence"><span class="bp-dot" aria-hidden="true"></span><span>Install BridgePoint</span></button>
+  <div id="bp-install-dialog" role="dialog" aria-modal="true" aria-labelledby="bp-install-title">
+    <div class="bp-install-card">
+      <div id="bp-install-title" class="bp-install-title">Install BridgePoint</div>
+      <div id="bp-install-copy" class="bp-install-sub"></div>
+      <ol id="bp-install-steps" class="bp-install-steps"></ol>
+      <div class="bp-install-actions"><button id="bp-install-close" class="bp-install-close" type="button">Done</button></div>
     </div>
-    <div class="bp-exp-body">
-      <div class="bp-exp-private"><b>PRIVATE OWNER CONTROL.</b> Customers cannot see or invoke this panel. BridgePoint verifies your platform-owner account before rendering it.</div>
-      <div class="bp-exp-row">
-        <select id="bp-expansion-state" aria-label="State to build"><option value="">Loading states…</option></select>
-        <button class="bp-btn bp-btn-primary" id="bp-expansion-build" type="button">Build State</button>
-      </div>
-      <div id="bp-expansion-message" class="bp-exp-muted" style="margin-top:8px">Choose a state. The engine can discover different or better datasets by state rather than forcing Connecticut's exact source list.</div>
-      <div id="bp-expansion-run" class="bp-exp-empty">No expansion run selected yet.</div>
-    </div>
-  </aside>
-
+  </div>
   <script>
-  (()=>{
-    const supabaseUrl='https://xdfsjztwgsbmabshzsjw.supabase.co';
-    const anon='sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25';
-    const launcher=document.getElementById('bp-expansion-launcher');
-    const panel=document.getElementById('bp-expansion-panel');
-    const closer=document.getElementById('bp-expansion-close');
-    const stateSelect=document.getElementById('bp-expansion-state');
-    const buildButton=document.getElementById('bp-expansion-build');
-    const message=document.getElementById('bp-expansion-message');
-    const runBox=document.getElementById('bp-expansion-run');
-    let owner=false, activeRunId=null, activeState=null, markets=[], pollTimer=null, checking=false;
-
-    function token(){
-      try{
-        const preferred=localStorage.getItem('sb-xdfsjztwgsbmabshzsjw-auth-token');
-        const candidates=preferred?[preferred]:Object.keys(localStorage).filter(k=>k.startsWith('sb-')&&k.endsWith('-auth-token')).map(k=>localStorage.getItem(k));
-        for(const raw of candidates){
-          if(!raw)continue; const parsed=JSON.parse(raw);
-          const access=parsed?.access_token||parsed?.currentSession?.access_token||parsed?.session?.access_token;
-          if(access)return access;
-        }
-      }catch(_){ }
-      return null;
-    }
-    async function rpc(name,body={}){
-      const t=token(); if(!t)throw new Error('Sign in required');
-      const r=await fetch(`${supabaseUrl}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:anon,Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
-      const data=await r.json().catch(()=>({})); if(!r.ok)throw new Error(data?.message||data?.error||`BridgePoint API ${r.status}`); return data;
-    }
-    async function edge(body){
-      const t=token(); if(!t)throw new Error('Sign in required');
-      const r=await fetch(`${supabaseUrl}/functions/v1/bridgepoint-expansion-worker-v90`,{method:'POST',headers:{apikey:anon,Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
-      const data=await r.json().catch(()=>({})); if(!r.ok||data?.complete===false)throw new Error(data?.error||`Expansion worker ${r.status}`); return data;
-    }
-    const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-    function statusDot(s){s=String(s||'').toUpperCase();if(['SUCCEEDED','SKIPPED'].includes(s))return'ok';if(['RUNNING','QUEUED'].includes(s))return'run';if(['WAITING_APPROVAL','BLOCKED','PENDING'].includes(s))return'wait';if(s==='FAILED')return'err';return''}
-    function stepProgress(steps){if(!steps.length)return 0;const done=steps.filter(s=>['SUCCEEDED','SKIPPED'].includes(String(s.step_status).toUpperCase())).length;return Math.round(done*100/steps.length)}
-    function render(control){
-      if(!control?.found){runBox.className='bp-exp-empty';runBox.innerHTML='No expansion run exists for this state yet.';return}
-      const run=control.run||{},steps=Array.isArray(control.steps)?control.steps:[],approvals=Array.isArray(control.pending_approvals)?control.pending_approvals:[],incidents=Array.isArray(control.open_incidents)?control.open_incidents:[];
-      activeRunId=run.run_id;activeState=run.state_code;const pct=stepProgress(steps);const failed=steps.filter(s=>String(s.step_status).toUpperCase()==='FAILED').length;
-      runBox.className='bp-exp-status';
-      runBox.innerHTML=`<div class="bp-exp-status-top"><div style="flex:1"><div class="bp-exp-state">${esc(run.state_code)} Expansion</div><div class="bp-exp-phase">${esc(run.run_status)} • ${esc(run.current_phase||'STARTING')}</div></div><button class="bp-btn bp-btn-secondary" id="bp-exp-refresh">Refresh</button></div>
-        <div class="bp-exp-progress"><span style="width:${pct}%"></span></div><div class="bp-exp-muted">${pct}% of governed build steps complete • ${approvals.length} approval${approvals.length===1?'':'s'} waiting • ${incidents.length} open incident${incidents.length===1?'':'s'}</div>
-        ${approvals.length?`<div class="bp-exp-section"><h4>YOUR APPROVAL REQUIRED</h4>${approvals.map(a=>`<div class="bp-card-warn"><div class="bp-card-title">${esc(a.title||a.approval_type)}</div><div class="bp-card-text">${esc(a.message||'BridgePoint needs your decision before continuing.')}</div><div class="bp-actions"><button class="bp-btn bp-btn-primary bp-approve" data-id="${esc(a.approval_id)}">Approve & continue</button><button class="bp-btn bp-btn-danger bp-reject" data-id="${esc(a.approval_id)}">Reject</button></div></div>`).join('')}</div>`:''}
-        ${incidents.length?`<div class="bp-exp-section"><h4>ERRORS / INCIDENTS</h4>${incidents.map(i=>`<div class="bp-card-error"><div class="bp-card-title">${esc(i.severity)} • ${esc(i.incident_code)}</div><div class="bp-card-text">${esc(i.message)}</div></div>`).join('')}${failed?`<div class="bp-actions"><button class="bp-btn bp-btn-secondary" id="bp-exp-retry">Retry blocked work</button></div>`:''}</div>`:''}
-        <div class="bp-exp-section"><h4>BUILD PROGRESS</h4>${steps.map(s=>`<div class="bp-step"><span class="bp-step-dot ${statusDot(s.step_status)}"></span><div><div class="bp-step-name">${esc(s.step_name)}</div><div class="bp-step-meta">${esc(s.step_status)}${s.attempt_count?` • attempt ${esc(s.attempt_count)}`:''}${s.last_error?` • ${esc(s.last_error)}`:''}</div></div></div>`).join('')}</div>`;
-      document.getElementById('bp-exp-refresh')?.addEventListener('click',()=>loadControl(activeRunId,activeState));
-      document.querySelectorAll('.bp-approve').forEach(b=>b.addEventListener('click',()=>decide(b.dataset.id,'APPROVED')));
-      document.querySelectorAll('.bp-reject').forEach(b=>b.addEventListener('click',()=>decide(b.dataset.id,'REJECTED')));
-      document.getElementById('bp-exp-retry')?.addEventListener('click',retryRun);
-    }
-    async function loadControl(runId,state){
-      if(!owner)return;try{const c=await rpc('bridgepoint_expansion_control_center_v90',{p_run_id:runId||null,p_state:state||null});render(c)}catch(e){runBox.className='bp-card-error';runBox.textContent=e.message}
-    }
-    async function decide(id,decision){
-      if(decision==='REJECTED'&&!confirm('Reject this required expansion approval? The build will stop safely until you change course.'))return;
-      try{message.textContent=`Saving ${decision.toLowerCase()} decision…`;await rpc('bridgepoint_expansion_approval_v90',{p_approval_id:id,p_decision:decision,p_note:null});message.textContent=decision==='APPROVED'?'Approved. The background expansion engine will continue automatically.':'Rejected. The expansion is safely blocked.';await loadControl(activeRunId,activeState)}catch(e){message.textContent=e.message}
-    }
-    async function retryRun(){try{message.textContent='Re-queuing failed expansion work…';await rpc('bridgepoint_expansion_retry_v90',{p_run_id:activeRunId,p_step_key:null});message.textContent='Retry queued. Background work will continue automatically.';await loadControl(activeRunId,activeState)}catch(e){message.textContent=e.message}}
-    async function build(){const code=stateSelect.value;if(!code)return;buildButton.disabled=true;message.textContent=`Starting ${code} expansion…`;try{const result=await edge({action:'start',state:code,automation_mode:'FULL_AUTO',task_limit:4});activeRunId=result.run_id||result.started?.run_id;activeState=code;message.textContent=`${code} is building. You can close BridgePoint; the background scheduler keeps running and this panel will show approvals/errors when you return.`;render(result.control_center||{});startPolling()}catch(e){message.textContent=e.message}finally{buildButton.disabled=false}}
-    function startPolling(){clearInterval(pollTimer);pollTimer=setInterval(()=>{if(owner&&panel.style.display==='block'&&(activeRunId||stateSelect.value))loadControl(activeRunId,stateSelect.value)},15000)}
-    async function loadMarkets(){try{const d=await rpc('bridgepoint_flutter_geographic_catalog_v77',{});markets=(Array.isArray(d?.markets)?d.markets:[]).slice().sort((a,b)=>String(a.state_name).localeCompare(String(b.state_name)));stateSelect.innerHTML='<option value="">Choose state to build…</option>'+markets.filter(m=>String(m.state_code)!=='CT').map(m=>`<option value="${esc(m.state_code)}">${esc(m.state_name)} (${esc(m.state_code)}) • ${esc(m.data_status||'PLANNED')}</option>`).join('');}catch(e){stateSelect.innerHTML='<option value="">Could not load states</option>';message.textContent=e.message}}
-    async function verifyOwner(){if(checking)return;checking=true;try{if(!token()){owner=false;launcher.style.display='none';panel.style.display='none';return}await rpc('owner_dashboard_v84',{});owner=true;launcher.style.display='block';if(!markets.length)await loadMarkets();startPolling()}catch(_){owner=false;launcher.style.display='none';panel.style.display='none'}finally{checking=false}}
-    launcher.addEventListener('click',()=>{panel.style.display=panel.style.display==='block'?'none':'block';if(panel.style.display==='block'&&stateSelect.value)loadControl(null,stateSelect.value)});
-    closer.addEventListener('click',()=>panel.style.display='none');
-    buildButton.addEventListener('click',build);
-    stateSelect.addEventListener('change',()=>{activeRunId=null;activeState=stateSelect.value;if(activeState)loadControl(null,activeState);else{runBox.className='bp-exp-empty';runBox.textContent='No expansion run selected yet.'}});
-    setInterval(verifyOwner,2500);setTimeout(verifyOwner,700);
-  })();
+    (()=>{
+      const button=document.getElementById('bp-install');
+      const dialog=document.getElementById('bp-install-dialog');
+      const copy=document.getElementById('bp-install-copy');
+      const steps=document.getElementById('bp-install-steps');
+      const close=document.getElementById('bp-install-close');
+      let installPrompt=null;
+      const standalone=()=>window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true;
+      const ios=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+      const showButton=()=>{if(!standalone())button.classList.add('show')};
+      const hideButton=()=>button.classList.remove('show');
+      const guidance=()=>{
+        const data=ios()?{
+          copy:'Safari installs BridgePoint from the Share menu. Your signed-in app opens full-screen from the Home Screen.',
+          steps:['Tap the Share button in Safari.','Choose “Add to Home Screen”.','Confirm “Add”. Open BridgePoint from the new icon.']
+        }:{
+          copy:'Your browser did not expose a one-tap install prompt. You can still install BridgePoint from the browser app/install menu.',
+          steps:['Open the browser menu.','Choose “Install app”, “Install BridgePoint”, or “Add to Home screen”.','Confirm the install and launch BridgePoint from your device.']
+        };
+        copy.textContent=data.copy;steps.replaceChildren(...data.steps.map(text=>{const li=document.createElement('li');li.textContent=text;return li}));dialog.classList.add('show');
+      };
+      addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;showButton()});
+      addEventListener('appinstalled',()=>{installPrompt=null;hideButton();dialog.classList.remove('show')});
+      button.addEventListener('click',async()=>{
+        if(standalone()){hideButton();return}
+        if(installPrompt){const prompt=installPrompt;installPrompt=null;await prompt.prompt();const choice=await prompt.userChoice.catch(()=>null);if(choice?.outcome!=='accepted')showButton();return}
+        guidance();
+      });
+      close.addEventListener('click',()=>dialog.classList.remove('show'));
+      dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.classList.remove('show')});
+      addEventListener('load',()=>{if(!standalone())window.setTimeout(showButton,1200)},{once:true});
+    })();
   </script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
