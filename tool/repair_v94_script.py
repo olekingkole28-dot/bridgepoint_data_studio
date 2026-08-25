@@ -11,11 +11,10 @@ if old in s:
 elif new not in s:
     raise SystemExit('v94 banner matcher repair target not found in either historical or repaired form')
 
-# v776: v94 predates the current national WMS/radar stack. Keep historical
+# v777: v94 predates the current national WMS/radar stack. Keep historical
 # replacements strict when their exact target exists. If formatting/architecture
-# has already moved on, allow only the map-specific historical replacements to
-# no-op when the canonical source still proves all three functional structures:
-# radar state, NOAA WMS, and a U.S. map-control destination.
+# has already moved on, allow only map-specific historical replacements to no-op
+# when canonical source proves radar state + NOAA WMS + a U.S. map destination.
 old_replace='''def replace_once(old: str, new: str, label: str):
     global text
     count = text.count(old)
@@ -50,7 +49,7 @@ def replace_once(old: str, new: str, label: str):
         return
     raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
 '''
-new_replace='''_SUPERSEDED_V94_MAP_LABELS = {
+old_v776='''_SUPERSEDED_V94_MAP_LABELS = {
     'map-radar-state',
     'map-radar-timer',
     'map-opportunity-limit',
@@ -85,6 +84,7 @@ def replace_once(old: str, new: str, label: str):
         return
     raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
 '''
+new_replace=old_v776
 if new_replace not in s:
     if old_v775 in s:
         s=s.replace(old_v775,new_replace,1)
@@ -93,5 +93,28 @@ if new_replace not in s:
     else:
         raise SystemExit('v94 replace_once compatibility target not found')
 
+# The U.S.-weather control was historically patched outside replace_once.
+# Bring that special case under the same structural supersession truth rule.
+old_us='''if text.count(_old_us_weather) == 1:
+    text = text.replace(_old_us_weather, _new_us_weather, 1)
+elif text.count(_new_us_weather) >= 1:
+    print('map-us-weather-button: already applied by a newer canonical source; continuing')
+else:
+    raise SystemExit('map-us-weather-button: neither historical nor current control found')
+'''
+new_us='''if text.count(_old_us_weather) == 1:
+    text = text.replace(_old_us_weather, _new_us_weather, 1)
+elif text.count(_new_us_weather) >= 1:
+    print('map-us-weather-button: already applied by a newer canonical source; continuing')
+elif _canonical_map_truth_present():
+    print('map-us-weather-button: superseded by canonical U.S. intelligence control; continuing')
+else:
+    raise SystemExit('map-us-weather-button: neither historical nor canonical U.S. map control found')
+'''
+if new_us not in s:
+    if old_us not in s:
+        raise SystemExit('v94 special U.S. map-control compatibility target not found')
+    s=s.replace(old_us,new_us,1)
+
 p.write_text(s,encoding='utf-8')
-print('Repaired v94 banner matcher and guarded canonical NOAA map supersession v776')
+print('Repaired v94 banner and canonical NOAA/U.S. map supersession v777')
