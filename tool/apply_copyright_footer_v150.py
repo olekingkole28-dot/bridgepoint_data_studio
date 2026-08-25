@@ -127,8 +127,14 @@ if text == original:
 path.write_text(text, encoding='utf-8')
 print('Applied BridgePoint copyright/legal footer v150/v804')
 
-# v806: normalize only harmless formatting boundaries needed by the historical
+# v807: normalize only harmless formatting boundaries needed by the historical
 # Routes & Offline generator that runs after About BridgePoint.
 repair_path = Path('tool/repair_routes_offline_v806.py')
 repair_source = repair_path.read_text(encoding='utf-8')
 exec(compile(repair_source, str(repair_path), 'exec'), {'__name__': '__main__'})
+
+# v808: prepare the historical training/demo/founder generator for the modern
+# navigation layout before it runs later in the release chain.
+training_repair_path = Path('tool/repair_training_demo_founder_v808.py')
+training_repair_source = training_repair_path.read_text(encoding='utf-8')
+exec(compile(training_repair_source, str(training_repair_path), 'exec'), {'__name__': '__main__'})
