@@ -131,7 +131,24 @@ replace_once(
 """,
 'map-opportunity-export-buttons')
 
+# v799 release-chain compatibility: v105 predates dart format and keys off
+# these two boundaries. Normalize only formatting, not behavior, so its real
+# Growth Center implementation can still apply unchanged.
+_growth_compact="        const SizedBox(height:18),const _EmergencyAdminPanel(),\n"
+_growth_formatted="                const SizedBox(height: 18),\n                const _EmergencyAdminPanel(),\n"
+if _growth_compact not in text:
+    if text.count(_growth_formatted)!=1:
+        raise SystemExit(f'growth-boundary-normalize: expected exactly 1 formatted emergency panel boundary, found {text.count(_growth_formatted)}')
+    text=text.replace(_growth_formatted,_growth_compact,1)
+
+_growth_class_compact="class _EmergencyAdminPanel extends StatefulWidget{"
+_growth_class_formatted="class _EmergencyAdminPanel extends StatefulWidget {"
+if _growth_class_compact not in text:
+    if text.count(_growth_class_formatted)!=1:
+        raise SystemExit(f'growth-class-normalize: expected exactly 1 formatted emergency panel class, found {text.count(_growth_class_formatted)}')
+    text=text.replace(_growth_class_formatted,_growth_class_compact,1)
+
 if text==original:
     raise SystemExit('No export changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied BridgePoint export/print patch v101/v798')
+print('Applied BridgePoint export/print patch v101/v799 with growth compatibility')
