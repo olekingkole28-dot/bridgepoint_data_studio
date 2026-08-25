@@ -100,37 +100,53 @@ def print_dashboard_diagnostics(value: str) -> None:
     if start<0 or end<0:
         print(f'v736 dashboard diagnostics unavailable: start={start} end={end}',file=sys.stderr)
         return
-    segment=value[start:end]
-    rows=brace_depth_by_line(segment)
+    rows=brace_depth_by_line(value[start:end])
     final_depth=rows[-1][1] if rows else 0
     print(f'v736 dashboard diagnostics: lines={len(rows)} final_relative_depth={final_depth}',file=sys.stderr)
-    # Show member-looking lines that are suspiciously deeper than class depth 1, plus
-    # the last 90 lines. This pinpoints where a method/widget stopped closing.
-    suspicious=[]
-    member=re.compile(r'^\s{2}(?:@override|Future<|Future<void>|void |Widget |bool |int |String |List<|Map<|Set<|static |final |late |Timer\?|double )')
-    for number,depth,text in rows:
-        if depth>1 and member.search(text):
-            suspicious.append((number,depth,text))
-    print('v736 suspicious dashboard member-depth lines:',file=sys.stderr)
-    for number,depth,text in suspicious[-60:]:
-        print(f'  D{depth} L{number}: {text[:220]}',file=sys.stderr)
+    zeros=[row for row in rows[:-8] if row[1]<=0]
+    if zeros:
+        print('v736 premature zero/negative dashboard depth:',file=sys.stderr)
+        for number,depth,text in zeros[-30:]:
+            print(f'  D{depth} L{number}: {text[:260]}',file=sys.stderr)
     print('v736 dashboard tail:',file=sys.stderr)
-    for number,depth,text in rows[-90:]:
+    for number,depth,text in rows[-35:]:
         print(f'  D{depth} L{number}: {text[:260]}',file=sys.stderr)
+
+
+def repair_premature_dashboard_close(value: str) -> tuple[str,int]:
+    start=value.find(DASHBOARD)
+    end=value.find(AFTER_DASHBOARD,start+len(DASHBOARD)) if start>=0 else -1
+    if start<0 or end<0:return value,0
+    segment=value[start:end]
+    lines=segment.splitlines(keepends=True)
+    rows=brace_depth_by_line(segment)
+    member=re.compile(r'^\s{2}(?:@override|Future(?:<[^>]+>)?\s|void\s|Widget\s|bool\s|int\s|double\s|String\s|List<|Map<|Set<|static\s|final\s|late\s|Timer\?)')
+    removals=[]
+    for idx,(number,depth,text) in enumerate(rows[:-8]):
+        if depth!=0 or text.strip()!='}':
+            continue
+        next_text=''
+        for j in range(idx+1,min(len(rows),idx+10)):
+            if rows[j][2].strip():
+                next_text=rows[j][2]
+                break
+        if member.search(next_text):
+            removals.append(number-1)
+            break
+    if not removals:return value,0
+    for line_index in reversed(removals):
+        del lines[line_index]
+    repaired=''.join(lines)
+    return value[:start]+repaired+value[end:],len(removals)
 
 
 body = PATH.read_text(encoding='utf-8')
 source = canonical_source()
 
-# Repair only ExperienceBackground itself. Earlier v736 versions restored everything
-# through billing, which accidentally deleted evolved top-level helpers and UI types that
-# later generators intentionally inserted between the logo and billing functions.
 cs, ce = anchored_span(body, EXPERIENCE, BRAND_MARK, 'generated ExperienceBackground')
 ss, se = anchored_span(source, EXPERIENCE, BRAND_MARK, 'canonical ExperienceBackground')
 body = body[:cs] + source[ss:se] + body[ce:]
 
-# Remove V318 access fields and package-map debris that old line-offset patches inserted
-# into the legal acceptance method/widget. These declarations belong to Dashboard only.
 def clean_legal(segment: str) -> str:
     for line in (
         '  bool _accessResolvedV318=false;\n',
@@ -144,15 +160,12 @@ def clean_legal(segment: str) -> str:
 
 body = edit_span(body, LEGAL_STATE, EXPERIENCE, 'legal acceptance', clean_legal)
 
-# Remove a package-list entry that was injected as a statement into billing readiness.
 def clean_billing(segment: str) -> str:
     return segment.replace("    'BridgePoint Company',\n", '')
 
 if BILLING_READY in body and BILLING_BANNER in body:
     body = edit_span(body, BILLING_READY, BILLING_BANNER, 'billing readiness', clean_billing)
 
-# A legacy weather update was injected into the compact-navigation constructor. Delete it
-# and restore the constructor terminator without replacing the evolved Dashboard region.
 compact_weather = re.compile(
     r"(?P<indent>\s*)onMoreTools:_openMoreToolsV248,\s*\n"
     r"\s*if\(mounted\)\{setState\(\(\)\{weatherEntitledV318=true;weatherEffect=kind;"
@@ -164,8 +177,6 @@ body, compact_repairs = compact_weather.subn(
     body,
 )
 
-# Legacy weather/radar offsets also landed inside the persistent property tracker. Repair
-# that small region so Community 3D remains a top-level component.
 def clean_trackers(segment: str) -> str:
     segment = re.sub(
         r"\n\s*if\(weatherEntitledV318\)_OpportunityChip\(label:'WEATHER • \$weatherText',"
@@ -192,22 +203,23 @@ def clean_trackers(segment: str) -> str:
 if TRACKERS in body and COMMUNITY_3D in body:
     body = edit_span(body, TRACKERS, COMMUNITY_3D, 'persistent property trackers', clean_trackers)
 
-# Remove executable V318 helper calls that leaked to file/class scope. The authoritative
-# repair will keep/reinsert the legitimate access call inside server configuration.
 body = re.sub(
     r'(?m)^\s*(?:await\s+|unawaited\s*\(\s*)?_configureAccessV318\(\)\s*\)?\s*;\s*\n?',
     '',
     body,
 )
 
+# The evolved dashboard currently contains one reproducible legacy extra class closure.
+# Remove it only when brace depth proves the class reached depth zero early AND the next
+# nonblank line is syntactically shaped like another Dashboard member. This avoids the
+# unsafe alternative of deleting the final class brace just to satisfy the parser.
+body,premature_repairs=repair_premature_dashboard_close(body)
 PATH.write_text(body, encoding='utf-8')
 
 if not dashboard_anchor_health(body):
     print_dashboard_diagnostics(body)
     raise SystemExit('v736: targeted seam repair did not recover Dashboard anchors; refusing to downgrade evolved Dashboard')
 
-# Always emit depth diagnostics before the v735 parser runs. This is compact enough for
-# CI logs and identifies the exact still-open method if the class remains unbalanced.
 print_dashboard_diagnostics(body)
 subprocess.run([sys.executable, 'tool/repair_generated_release_v735.py'], check=True)
-print(f'BridgePoint v736 repaired targeted legacy seams without deleting evolved helpers/dashboard; compact navigation repairs={compact_repairs}; full v735 contract passed.')
+print(f'BridgePoint v736 repaired targeted legacy seams without deleting evolved helpers/dashboard; compact navigation repairs={compact_repairs}; premature dashboard closures repaired={premature_repairs}; full v735 contract passed.')
