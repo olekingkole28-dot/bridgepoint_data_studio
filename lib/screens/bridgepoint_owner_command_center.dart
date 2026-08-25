@@ -64,8 +64,7 @@ class _BridgePointOwnerCommandCenterState
                 ),
               ],
               selected: <int>{_tab},
-              onSelectionChanged: (value) =>
-                  setState(() => _tab = value.first),
+              onSelectionChanged: (value) => setState(() => _tab = value.first),
             ),
           ),
         ),
@@ -144,10 +143,10 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
       value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
 
   Color _statusColor(String status) => switch (status.toUpperCase()) {
-        'PROVEN_DONE' => BridgePointOwnerCommandCenter._green,
-        'IN_PROGRESS' => BridgePointOwnerCommandCenter._cyan,
-        'FAILED' || 'BLOCKED' => BridgePointOwnerCommandCenter._red,
-        _ => BridgePointOwnerCommandCenter._amber,
+        'PROVEN_DONE' => _BridgePointOwnerCommandCenterState._green,
+        'IN_PROGRESS' => _BridgePointOwnerCommandCenterState._cyan,
+        'FAILED' || 'BLOCKED' => _BridgePointOwnerCommandCenterState._red,
+        _ => _BridgePointOwnerCommandCenterState._amber,
       };
 
   String _prettyStatus(String status) =>
@@ -157,7 +156,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
         width: 142,
         padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(
-          color: BridgePointOwnerCommandCenter._panelSoft,
+          color: _BridgePointOwnerCommandCenterState._panelSoft,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.white.withOpacity(.07)),
         ),
@@ -167,7 +166,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
             Text(
               label,
               style: const TextStyle(
-                color: BridgePointOwnerCommandCenter._muted,
+                color: _BridgePointOwnerCommandCenterState._muted,
                 fontSize: 9,
                 fontWeight: FontWeight.w800,
               ),
@@ -194,12 +193,12 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
       width: 265,
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: BridgePointOwnerCommandCenter._panelSoft,
+        color: _BridgePointOwnerCommandCenterState._panelSoft,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: (healthy
-                  ? BridgePointOwnerCommandCenter._green
-                  : BridgePointOwnerCommandCenter._amber)
+                  ? _BridgePointOwnerCommandCenterState._green
+                  : _BridgePointOwnerCommandCenterState._amber)
               .withOpacity(.25),
         ),
       ),
@@ -211,8 +210,8 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
               Icon(
                 healthy ? Icons.task_alt_rounded : Icons.warning_amber_rounded,
                 color: healthy
-                    ? BridgePointOwnerCommandCenter._green
-                    : BridgePointOwnerCommandCenter._amber,
+                    ? _BridgePointOwnerCommandCenterState._green
+                    : _BridgePointOwnerCommandCenterState._amber,
                 size: 19,
               ),
               const SizedBox(width: 8),
@@ -232,7 +231,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
           Text(
             '$executed executed • $blocked blocked • $runs runs / 8h',
             style: const TextStyle(
-              color: BridgePointOwnerCommandCenter._muted,
+              color: _BridgePointOwnerCommandCenterState._muted,
               fontSize: 9,
               height: 1.35,
             ),
@@ -244,8 +243,8 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                 : 'No execution evidence yet — analysis does not count.',
             style: TextStyle(
               color: healthy
-                  ? BridgePointOwnerCommandCenter._green
-                  : BridgePointOwnerCommandCenter._amber,
+                  ? _BridgePointOwnerCommandCenterState._green
+                  : _BridgePointOwnerCommandCenterState._amber,
               fontSize: 9,
               fontWeight: FontWeight.w700,
             ),
@@ -264,12 +263,12 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
       width: 320,
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: BridgePointOwnerCommandCenter._panelSoft,
+        color: _BridgePointOwnerCommandCenterState._panelSoft,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: (online && current
-                  ? BridgePointOwnerCommandCenter._green
-                  : BridgePointOwnerCommandCenter._amber)
+                  ? _BridgePointOwnerCommandCenterState._green
+                  : _BridgePointOwnerCommandCenterState._amber)
               .withOpacity(.25),
         ),
       ),
@@ -288,7 +287,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
           Text(
             '${node['status'] ?? 'UNKNOWN'} • agent v${version ?? '—'} • ${node['primary_model'] ?? 'model unavailable'}',
             style: const TextStyle(
-              color: BridgePointOwnerCommandCenter._muted,
+              color: _BridgePointOwnerCommandCenterState._muted,
               fontSize: 9,
             ),
           ),
@@ -296,7 +295,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
           Text(
             'Completed ${node['total_completed'] ?? 0} • Failed ${node['total_failed'] ?? 0}',
             style: const TextStyle(
-              color: BridgePointOwnerCommandCenter._muted,
+              color: _BridgePointOwnerCommandCenterState._muted,
               fontSize: 9,
             ),
           ),
@@ -305,7 +304,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
             const Text(
               'UPGRADE REQUIRED: server requires local agent v718.',
               style: TextStyle(
-                color: BridgePointOwnerCommandCenter._amber,
+                color: _BridgePointOwnerCommandCenterState._amber,
                 fontSize: 9,
                 fontWeight: FontWeight.w800,
               ),
@@ -325,7 +324,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
             !snapshot.hasData) {
           return const Center(
             child: CircularProgressIndicator(
-              color: BridgePointOwnerCommandCenter._cyan,
+              color: _BridgePointOwnerCommandCenterState._cyan,
             ),
           );
         }
@@ -336,7 +335,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
               child: Text(
                 snapshot.error.toString(),
                 style: const TextStyle(
-                  color: BridgePointOwnerCommandCenter._amber,
+                  color: _BridgePointOwnerCommandCenterState._amber,
                 ),
               ),
             ),
@@ -377,7 +376,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                         Text(
                           'All master requirements stay visible until independently proven done.',
                           style: TextStyle(
-                            color: BridgePointOwnerCommandCenter._muted,
+                            color: _BridgePointOwnerCommandCenterState._muted,
                             height: 1.45,
                           ),
                         ),
@@ -389,7 +388,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                     onPressed: _refresh,
                     icon: const Icon(
                       Icons.refresh_rounded,
-                      color: BridgePointOwnerCommandCenter._cyan,
+                      color: _BridgePointOwnerCommandCenterState._cyan,
                     ),
                   ),
                 ],
@@ -403,22 +402,22 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                   _metric(
                     'PROVEN DONE',
                     summary['proven_done'] ?? '—',
-                    BridgePointOwnerCommandCenter._green,
+                    _BridgePointOwnerCommandCenterState._green,
                   ),
                   _metric(
                     'OPEN',
                     summary['open'] ?? '—',
-                    BridgePointOwnerCommandCenter._amber,
+                    _BridgePointOwnerCommandCenterState._amber,
                   ),
                   _metric(
                     'IN PROGRESS',
                     summary['in_progress'] ?? '—',
-                    BridgePointOwnerCommandCenter._cyan,
+                    _BridgePointOwnerCommandCenterState._cyan,
                   ),
                   _metric(
                     'COMPLETE',
                     '${summary['completion_percent'] ?? '—'}%',
-                    BridgePointOwnerCommandCenter._green,
+                    _BridgePointOwnerCommandCenterState._green,
                   ),
                 ],
               ),
@@ -426,14 +425,14 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
               Container(
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
-                  color: BridgePointOwnerCommandCenter._panel,
+                  color: _BridgePointOwnerCommandCenterState._panel,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: Colors.white.withOpacity(.07)),
                 ),
                 child: const Text(
                   'Truth rule: only PROVEN DONE counts as finished. Assignment, analysis, execution and IN PROGRESS remain open until independent production evidence passes.',
                   style: TextStyle(
-                    color: BridgePointOwnerCommandCenter._cyan,
+                    color: _BridgePointOwnerCommandCenterState._cyan,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     height: 1.45,
@@ -446,7 +445,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       value: _filter,
-                      dropdownColor: BridgePointOwnerCommandCenter._panel,
+                      dropdownColor: _BridgePointOwnerCommandCenterState._panel,
                       decoration: const InputDecoration(
                         labelText: 'Requirement status',
                         border: OutlineInputBorder(),
@@ -480,7 +479,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                       const Text(
                         'Auto refresh',
                         style: TextStyle(
-                          color: BridgePointOwnerCommandCenter._muted,
+                          color: _BridgePointOwnerCommandCenterState._muted,
                           fontSize: 9,
                         ),
                       ),
@@ -542,10 +541,12 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                     dense: true,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                     leading: Icon(
-                      success ? Icons.task_alt_rounded : Icons.error_outline_rounded,
+                      success
+                          ? Icons.task_alt_rounded
+                          : Icons.error_outline_rounded,
                       color: success
-                          ? BridgePointOwnerCommandCenter._green
-                          : BridgePointOwnerCommandCenter._red,
+                          ? _BridgePointOwnerCommandCenterState._green
+                          : _BridgePointOwnerCommandCenterState._red,
                     ),
                     title: Text(
                       '${run['req_key'] ?? 'Requirement'}',
@@ -558,7 +559,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                     subtitle: Text(
                       '${run['action_group'] ?? 'EXECUTOR'} • ${run['started_at'] ?? ''}',
                       style: const TextStyle(
-                        color: BridgePointOwnerCommandCenter._muted,
+                        color: _BridgePointOwnerCommandCenterState._muted,
                         fontSize: 9,
                       ),
                     ),
@@ -582,13 +583,14 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    color: BridgePointOwnerCommandCenter._panel,
+                    color: _BridgePointOwnerCommandCenterState._panel,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: color.withOpacity(.18)),
                   ),
                   child: ExpansionTile(
                     iconColor: color,
-                    collapsedIconColor: BridgePointOwnerCommandCenter._muted,
+                    collapsedIconColor:
+                        _BridgePointOwnerCommandCenterState._muted,
                     leading: CircleAvatar(
                       radius: 17,
                       backgroundColor: color.withOpacity(.12),
@@ -624,7 +626,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                         child: Text(
                           '${item['requirement'] ?? ''}',
                           style: const TextStyle(
-                            color: BridgePointOwnerCommandCenter._muted,
+                            color: _BridgePointOwnerCommandCenterState._muted,
                             fontSize: 10,
                             height: 1.45,
                           ),
@@ -637,7 +639,8 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                             child: Text(
                               'Primary: ${item['worker_key'] ?? '—'}',
                               style: const TextStyle(
-                                color: BridgePointOwnerCommandCenter._muted,
+                                color:
+                                    _BridgePointOwnerCommandCenterState._muted,
                                 fontSize: 9,
                               ),
                             ),
@@ -647,7 +650,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                                 ? 'Native runs ${item['native_total_runs'] ?? 0}'
                                 : 'AI/review lane',
                             style: const TextStyle(
-                              color: BridgePointOwnerCommandCenter._muted,
+                              color: _BridgePointOwnerCommandCenterState._muted,
                               fontSize: 9,
                             ),
                           ),
@@ -660,7 +663,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                           child: Text(
                             'Latest native execution did not pass. Requirement remains open.',
                             style: TextStyle(
-                              color: BridgePointOwnerCommandCenter._red,
+                              color: _BridgePointOwnerCommandCenterState._red,
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
                             ),
