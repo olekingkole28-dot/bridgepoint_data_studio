@@ -1,0 +1,518 @@
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../bridgepoint_integrations_hub_v790.dart';
+import '../bridgepoint_intelligence_studio_v790.dart';
+import '../screens/bridgepoint_owner_command_center.dart';
+import 'bridgepoint_ai_v2.dart';
+import 'bridgepoint_home_v2.dart';
+import 'bridgepoint_map_weather_v2.dart';
+import 'bridgepoint_operations_workspace_v2.dart';
+import 'bridgepoint_portfolio_risk_v2.dart';
+import 'bridgepoint_products_settings_v2.dart';
+import 'bridgepoint_property_360_v2.dart';
+import 'bridgepoint_public_landing_v2.dart';
+
+class BridgePointV2App extends StatelessWidget {
+  const BridgePointV2App({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'BridgePoint Intelligence',
+      debugShowCheckedModeBanner: false,
+      theme: _theme(),
+      home: const _BridgePointRoot(),
+    );
+  }
+}
+
+ThemeData _theme() {
+  const bg = Color(0xFF06111E);
+  const panel = Color(0xFF0D1A2B);
+  const cyan = Color(0xFF35D2E8);
+  final scheme = ColorScheme.fromSeed(
+    seedColor: cyan,
+    brightness: Brightness.dark,
+    surface: panel,
+  );
+  return ThemeData(
+    brightness: Brightness.dark,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: bg,
+    cardTheme: const CardThemeData(color: panel, margin: EdgeInsets.zero),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF0A1727),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+    navigationBarTheme: const NavigationBarThemeData(
+      height: 68,
+      backgroundColor: Color(0xFF091727),
+      indicatorColor: Color(0x2235D2E8),
+    ),
+    navigationRailTheme: const NavigationRailThemeData(
+      backgroundColor: Color(0xFF091727),
+      indicatorColor: Color(0x2235D2E8),
+      selectedIconTheme: IconThemeData(color: cyan),
+    ),
+    useMaterial3: true,
+  );
+}
+
+class _BridgePointRoot extends StatefulWidget {
+  const _BridgePointRoot();
+
+  @override
+  State<_BridgePointRoot> createState() => _BridgePointRootState();
+}
+
+class _BridgePointRootState extends State<_BridgePointRoot> {
+  bool _showAuth = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session != null) return const _WorkspaceV2();
+        if (_showAuth) {
+          return _AuthPageV2(onBack: () => setState(() => _showAuth = false));
+        }
+        return BridgePointPublicLandingV2(
+          onSignIn: () => setState(() => _showAuth = true),
+        );
+      },
+    );
+  }
+}
+
+class _AuthPageV2 extends StatefulWidget {
+  const _AuthPageV2({required this.onBack});
+  final VoidCallback onBack;
+
+  @override
+  State<_AuthPageV2> createState() => _AuthPageV2State();
+}
+
+class _AuthPageV2State extends State<_AuthPageV2> {
+  final email = TextEditingController();
+  final password = TextEditingController();
+  bool create = false;
+  bool busy = false;
+  bool showPassword = false;
+  String? error;
+
+  @override
+  void dispose() {
+    email.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  Future<void> submit() async {
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      if (create) {
+        await Supabase.instance.client.auth.signUp(
+          email: email.text.trim(),
+          password: password.text,
+        );
+      } else {
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: email.text.trim(),
+          password: password.text,
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topRight,
+            radius: 1.35,
+            colors: [Color(0x2235D2E8), Color(0xFF06111E)],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Card(
+              child: SizedBox(
+                width: 460,
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: 'Back to public site',
+                          onPressed: widget.onBack,
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
+                      ),
+                      const Icon(Icons.hub_rounded, color: Color(0xFF35D2E8), size: 44),
+                      const SizedBox(height: 14),
+                      const Text('BridgePoint Intelligence', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 5),
+                      const Text('Property intelligence operating system', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF8FA5BF))),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded)),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: password,
+                        obscureText: !showPassword,
+                        onSubmitted: (_) => busy ? null : submit(),
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outline_rounded),
+                          suffixIcon: IconButton(
+                            onPressed: () => setState(() => showPassword = !showPassword),
+                            icon: Icon(showPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded),
+                          ),
+                        ),
+                      ),
+                      if (error != null) ...[
+                        const SizedBox(height: 10),
+                        Text(error!, style: const TextStyle(color: Color(0xFFFF7E7E))),
+                      ],
+                      const SizedBox(height: 18),
+                      FilledButton(
+                        onPressed: busy ? null : submit,
+                        child: busy
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : Text(create ? 'Create account' : 'Sign in'),
+                      ),
+                      TextButton(
+                        onPressed: busy ? null : () => setState(() => create = !create),
+                        child: Text(create ? 'Already have an account? Sign in' : 'New to BridgePoint? Create account'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _AreaV2 {
+  home,
+  property,
+  map,
+  operations,
+  portfolio,
+  ai,
+  studio,
+  integrations,
+  products,
+  owner,
+}
+
+class _AreaSpecV2 {
+  const _AreaSpecV2(this.area, this.label, this.icon);
+  final _AreaV2 area;
+  final String label;
+  final IconData icon;
+}
+
+const _baseAreasV2 = <_AreaSpecV2>[
+  _AreaSpecV2(_AreaV2.home, 'Home', Icons.space_dashboard_rounded),
+  _AreaSpecV2(_AreaV2.property, 'Property 360', Icons.home_work_rounded),
+  _AreaSpecV2(_AreaV2.map, 'Map & Weather', Icons.public_rounded),
+  _AreaSpecV2(_AreaV2.operations, 'Operations', Icons.track_changes_rounded),
+  _AreaSpecV2(_AreaV2.portfolio, 'Portfolio & Risk', Icons.account_tree_outlined),
+  _AreaSpecV2(_AreaV2.ai, 'Ask BridgePoint AI', Icons.auto_awesome_rounded),
+  _AreaSpecV2(_AreaV2.studio, 'Intelligence Studio', Icons.schema_rounded),
+  _AreaSpecV2(_AreaV2.integrations, 'Integrations', Icons.cable_rounded),
+  _AreaSpecV2(_AreaV2.products, 'Products & Settings', Icons.workspace_premium_outlined),
+];
+
+class _WorkspaceV2 extends StatefulWidget {
+  const _WorkspaceV2();
+
+  @override
+  State<_WorkspaceV2> createState() => _WorkspaceV2State();
+}
+
+class _WorkspaceV2State extends State<_WorkspaceV2> {
+  _AreaV2 selected = _AreaV2.home;
+  bool owner = false;
+  bool ownerChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOwner();
+  }
+
+  Future<void> _checkOwner() async {
+    try {
+      await Supabase.instance.client.rpc(
+        'bridgepoint_owner_v2_requirements_v832',
+        params: {'p_category': null, 'p_status': null, 'p_limit': 1},
+      );
+      owner = true;
+    } catch (_) {
+      owner = false;
+    }
+    if (mounted) setState(() => ownerChecked = true);
+  }
+
+  List<_AreaSpecV2> get areas => [
+        ..._baseAreasV2,
+        if (owner)
+          const _AreaSpecV2(
+            _AreaV2.owner,
+            'Owner Control',
+            Icons.admin_panel_settings_rounded,
+          ),
+      ];
+
+  void _navigateFromStudio(int oldIndex) {
+    final target = switch (oldIndex) {
+      1 || 4 || 8 => _AreaV2.property,
+      3 => _AreaV2.map,
+      7 => _AreaV2.operations,
+      14 => _AreaV2.integrations,
+      _ => _AreaV2.studio,
+    };
+    setState(() => selected = target);
+  }
+
+  Widget _page() => switch (selected) {
+        _AreaV2.home => const BridgePointHomeV2(),
+        _AreaV2.property => const BridgePointProperty360V2(),
+        _AreaV2.map => const BridgePointMapWeatherV2(),
+        _AreaV2.operations => const BridgePointOperationsWorkspaceV2(),
+        _AreaV2.portfolio => const BridgePointPortfolioRiskV2(),
+        _AreaV2.ai => const BridgePointAiV2(),
+        _AreaV2.studio => BridgePointIntelligenceStudio(onNavigate: _navigateFromStudio, ownerMode: owner),
+        _AreaV2.integrations => const BridgePointIntegrationsHub(),
+        _AreaV2.products => const BridgePointProductsSettingsV2(),
+        _AreaV2.owner => const BridgePointOwnerCommandCenter(),
+      };
+
+  bool get _bounded => selected == _AreaV2.owner;
+
+  void _showMore() {
+    final more = areas.where((x) => !const [_AreaV2.home, _AreaV2.property, _AreaV2.map, _AreaV2.operations].contains(x.area));
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 18),
+          children: [
+            for (final spec in more)
+              ListTile(
+                leading: Icon(spec.icon),
+                title: Text(spec.label),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() => selected = spec.area);
+                },
+              ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout_rounded),
+              title: const Text('Sign out'),
+              onTap: () async {
+                Navigator.pop(context);
+                await Supabase.instance.client.auth.signOut();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!ownerChecked) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final width = MediaQuery.sizeOf(context).width;
+    final compact = width < 820;
+
+    if (compact) {
+      const primary = [_AreaV2.home, _AreaV2.property, _AreaV2.map, _AreaV2.operations];
+      final current = primary.contains(selected) ? primary.indexOf(selected) : 4;
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(_title(selected)),
+          actions: [
+            IconButton(
+              tooltip: 'Ask BridgePoint AI',
+              onPressed: () => setState(() => selected = _AreaV2.ai),
+              icon: const Icon(Icons.auto_awesome_rounded),
+            ),
+          ],
+        ),
+        body: _PageFrameV2(scroll: !_bounded, child: _page()),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: current,
+          onDestinationSelected: (index) {
+            if (index == 4) {
+              _showMore();
+            } else {
+              setState(() => selected = primary[index]);
+            }
+          },
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.space_dashboard_rounded), label: 'Home'),
+            NavigationDestination(icon: Icon(Icons.home_work_rounded), label: 'Property'),
+            NavigationDestination(icon: Icon(Icons.public_rounded), label: 'Map'),
+            NavigationDestination(icon: Icon(Icons.track_changes_rounded), label: 'Work'),
+            NavigationDestination(icon: Icon(Icons.apps_rounded), label: 'More'),
+          ],
+        ),
+      );
+    }
+
+    final specs = areas;
+    final selectedIndex = specs.indexWhere((x) => x.area == selected);
+    return Scaffold(
+      body: Row(
+        children: [
+          NavigationRail(
+            extended: width >= 1220,
+            selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
+            onDestinationSelected: (index) => setState(() => selected = specs[index].area),
+            leading: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Icon(Icons.hub_rounded, color: Color(0xFF35D2E8), size: 30),
+            ),
+            trailing: Expanded(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: IconButton(
+                    tooltip: 'Sign out',
+                    onPressed: () => Supabase.instance.client.auth.signOut(),
+                    icon: const Icon(Icons.logout_rounded),
+                  ),
+                ),
+              ),
+            ),
+            destinations: [
+              for (final spec in specs)
+                NavigationRailDestination(icon: Icon(spec.icon), label: Text(spec.label)),
+            ],
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  height: 68,
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF081625),
+                    border: Border(bottom: BorderSide(color: Color(0x2235D2E8))),
+                  ),
+                  child: Row(children: [
+                    Expanded(child: Text(_title(selected), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
+                    IconButton(
+                      tooltip: 'Ask BridgePoint AI',
+                      onPressed: () => setState(() => selected = _AreaV2.ai),
+                      icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF35D2E8)),
+                    ),
+                    const SizedBox(width: 6),
+                    const _LiveBadgeV2(),
+                  ]),
+                ),
+                Expanded(child: _PageFrameV2(scroll: !_bounded, child: _page())),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _title(_AreaV2 area) => switch (area) {
+      _AreaV2.home => 'BridgePoint Intelligence',
+      _AreaV2.property => 'Property 360',
+      _AreaV2.map => 'Geospatial Intelligence',
+      _AreaV2.operations => 'Operations Workspace',
+      _AreaV2.portfolio => 'Portfolio & Risk',
+      _AreaV2.ai => 'Ask BridgePoint AI',
+      _AreaV2.studio => 'Intelligence Studio',
+      _AreaV2.integrations => 'Integrations & Data Exchange',
+      _AreaV2.products => 'Products & Settings',
+      _AreaV2.owner => 'Owner Control',
+    };
+
+class _PageFrameV2 extends StatelessWidget {
+  const _PageFrameV2({required this.child, this.scroll = true});
+  final Widget child;
+  final bool scroll;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = scroll
+        ? SingleChildScrollView(padding: const EdgeInsets.all(18), child: child)
+        : Padding(padding: const EdgeInsets.all(10), child: SizedBox.expand(child: child));
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.topRight,
+          radius: 1.45,
+          colors: [Color(0x1435D2E8), Color(0xFF06111E)],
+        ),
+      ),
+      child: content,
+    );
+  }
+}
+
+class _LiveBadgeV2 extends StatelessWidget {
+  const _LiveBadgeV2();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF38D49A).withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFF38D49A).withValues(alpha: .2)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.circle, size: 8, color: Color(0xFF38D49A)),
+          SizedBox(width: 6),
+          Text('LIVE BACKEND', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+}
