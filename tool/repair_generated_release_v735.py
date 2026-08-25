@@ -235,15 +235,31 @@ body=replace_between(body,canonical,'// bridgepoint-localization-v711','class _A
 # the classes/helpers between the logo and dashboard again.
 body=replace_block(body,canonical,'class _BridgePointMarkPainter extends CustomPainter','BridgePointMarkPainter')
 
-# Navigation is owned only inside DashboardScreenState. Never search globally for the
-# first navigationItems occurrence: a malformed legacy copy outside the dashboard must
-# be removed, not used as the replacement anchor.
-body=replace_scoped_between(
-    body,canonical,DASHBOARD_STATE,
-    'static const navigationItems = <_NavigationItem>[',
-    '  @override\n  void dispose()',
-    'dashboard navigation + workspace init',
-)
+# Preserve the evolved Dashboard whenever it is already structurally valid. Older repair
+# logic replaced everything from navigation through dispose() with the raw source version,
+# which silently erased newer access, owner, global-search and premium-navigation fields.
+# Fall back to canonical replacement only when generation is still structurally damaged.
+try:
+    ds,de=block_bounds(body,DASHBOARD_STATE)
+    dashboard=body[ds:de]
+    evolved_dashboard_ok=(
+        dashboard.count('static const navigationItems = <_NavigationItem>[')==1
+        and dashboard.count('List<_NavigationItem> get visibleNavigationItems')==1
+        and '  @override\n  void dispose()' in dashboard
+    )
+except ValueError:
+    evolved_dashboard_ok=False
+
+if not evolved_dashboard_ok:
+    body=replace_scoped_between(
+        body,canonical,DASHBOARD_STATE,
+        'static const navigationItems = <_NavigationItem>[',
+        '  @override\n  void dispose()',
+        'dashboard navigation + workspace init',
+    )
+else:
+    print('v735: preserving structurally valid evolved Dashboard navigation/workspace capabilities')
+
 body=remove_declarations_outside_scope(body,'List<_NavigationItem> get visibleNavigationItems',DASHBOARD_STATE)
 body=remove_declarations_outside_scope(body,'static const navigationItems = <_NavigationItem>[',DASHBOARD_STATE)
 
@@ -274,7 +290,7 @@ validate(body,require_resilience=True)
 print('BridgePoint v735 authoritative generated-release repair passed.')
 print(' - auth lifecycle: single canonical initState + secure remembered email/nickname')
 print(' - logo painter: canonical structure restored; no dashboard access code may live inside paint()')
-print(' - navigation: scoped to DashboardScreenState; no global first-match replacement')
+print(' - navigation: evolved Dashboard preserved when structurally valid; canonical fallback only on corruption')
 print(' - national Properties heading: canonical U.S. truth restored')
 print(' - localization: 27-language first-entry selector preserved')
 print(' - resilience: live v320/v321 status + expansion contracts preserved behind language bootstrap')
