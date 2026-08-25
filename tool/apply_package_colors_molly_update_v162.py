@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 path=Path('lib/main.dart')
 text=path.read_text(encoding='utf-8')
@@ -11,47 +12,38 @@ def replace_once(old,new,label):
         raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
     text=text.replace(old,new,1)
 
-replace_once(
-"""const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';
-""",
-"""const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';
-const _bridgePointRelease = String.fromEnvironment('BRIDGEPOINT_RELEASE', defaultValue: 'development');
-""",
-'release-constant')
+# Release marker.
+release_line="const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';\n"
+release_constant="const _bridgePointRelease = String.fromEnvironment('BRIDGEPOINT_RELEASE', defaultValue: 'development');"
+if release_constant not in text:
+    if text.count(release_line)!=1:
+        raise SystemExit('release-constant anchor missing')
+    text=text.replace(release_line,release_line+release_constant+'\n',1)
 
-owner_init_new="""    if(widget.ownerMode)selectedPackage='Owner Full Platform';
+# Workspace restoration/persistence. Accept compact historical and dart-formatted
+# owner initialization without changing the modern owner package name.
+owner_candidates=[
+"""    if(widget.ownerMode)selectedPackage='Owner Full Platform';
     dashboardRequest = _loadDashboard();
-"""
-owner_init_legacy="""    if(widget.ownerMode)selectedPackage='All Intelligence';
+""",
+"""    if(widget.ownerMode)selectedPackage='All Intelligence';
     dashboardRequest = _loadDashboard();
-"""
-owner_init_formatted="""    if (widget.ownerMode) selectedPackage = 'Owner Full Platform';
+""",
+"""    if (widget.ownerMode) selectedPackage = 'Owner Full Platform';
     dashboardRequest = _loadDashboard();
-"""
-if text.count(owner_init_new)==1:
-    owner_init=owner_init_new
-elif text.count(owner_init_legacy)==1:
-    owner_init=owner_init_legacy
-elif text.count(owner_init_formatted)==1:
-    owner_init=owner_init_formatted
-else:
-    raise SystemExit(
-        'workspace-restore-init: expected exactly 1 owner workspace initializer '
-        f'(new={text.count(owner_init_new)}, legacy={text.count(owner_init_legacy)}, formatted={text.count(owner_init_formatted)})'
-    )
-text=text.replace(
-    owner_init,
-    """    if(widget.ownerMode)selectedPackage='Owner Full Platform';
+""",
+]
+if 'unawaited(_restoreWorkspaceState());' not in text:
+    owner_init=next((candidate for candidate in owner_candidates if text.count(candidate)==1),None)
+    if owner_init is None:
+        raise SystemExit('workspace-restore-init: canonical owner workspace initializer not found')
+    text=text.replace(owner_init,
+"""    if(widget.ownerMode)selectedPackage='Owner Full Platform';
     dashboardRequest = _loadDashboard();
     unawaited(_restoreWorkspaceState());
-""",
-    1,
-)
+""",1)
 
-marker="""  Future<void> _recordAppActivity(String eventType, String pageName) async {
-"""
-if text.count(marker)!=1:
-    raise SystemExit('workspace persistence marker missing')
+marker="  Future<void> _recordAppActivity(String eventType, String pageName) async {\n"
 persistence=r'''  Future<void> _restoreWorkspaceState()async{
     try{
       final prefs=SharedPreferencesAsync();
@@ -78,44 +70,45 @@ persistence=r'''  Future<void> _restoreWorkspaceState()async{
   }
 
 '''
-text=text.replace(marker,persistence+marker,1)
+if 'Future<void> _restoreWorkspaceState()' not in text:
+    if text.count(marker)!=1:
+        raise SystemExit('workspace persistence marker missing')
+    text=text.replace(marker,persistence+marker,1)
 
-replace_once(
-"""  void _selectPackage(String value) {
+select_old="""  void _selectPackage(String value) {
     setState(() {
       selectedPackage = value;
       dashboardRequest = _loadDashboard();
     });
   }
-""",
-"""  void _selectPackage(String value) {
+"""
+select_new="""  void _selectPackage(String value) {
     setState(() {
       selectedPackage = value;
       dashboardRequest = _loadDashboard();
     });
     unawaited(_persistWorkspaceState(package:value));
   }
-""",
-'persist-package')
+"""
+if 'unawaited(_persistWorkspaceState(package:value));' not in text:
+    replace_once(select_old,select_new,'persist-package')
 
-replace_once(
-"""    setState(() {
+nav_old="""    setState(() {
       selectedNavigation = index;
       _liveRefreshTick++;
     });
-""",
-"""    setState(() {
+"""
+nav_new="""    setState(() {
       selectedNavigation = index;
       _liveRefreshTick++;
     });
     unawaited(_persistWorkspaceState(navigation:index));
-""",
-'persist-navigation')
-
-package_marker="""class _LivePackageCard extends StatelessWidget {
 """
-if text.count(package_marker)!=1:
-    raise SystemExit('Live package card marker missing')
+if 'unawaited(_persistWorkspaceState(navigation:index));' not in text:
+    replace_once(nav_old,nav_new,'persist-navigation')
+
+# Package accent helper.
+package_marker='class _LivePackageCard extends StatelessWidget {'
 helper=r'''Color _bridgePointPackageAccent(String key,String type){
   final k=key.toLowerCase();
   final t=type.toLowerCase();
@@ -135,80 +128,81 @@ helper=r'''Color _bridgePointPackageAccent(String key,String type){
 }
 
 '''
-text=text.replace(package_marker,helper+package_marker,1)
+if 'Color _bridgePointPackageAccent(' not in text:
+    if text.count(package_marker)!=1:
+        raise SystemExit('Live package card marker missing')
+    text=text.replace(package_marker,helper+package_marker,1)
 
-replace_once(
-"""    final type = '${package['package_type'] ?? 'standard'}';
-    final technology='${package['package_key']??''}'.startsWith('technology_');
+# Apply v162 coloring on top of the CURRENT package card. Do not remove newer
+# server-driven action/delivery state.
+card_start=text.find(package_marker)
+card_end=text.find('\nclass ',card_start+len(package_marker))
+if card_start<0:
+    raise SystemExit('Live package card block missing')
+if card_end<0:
+    card_end=len(text)
+block=text[card_start:card_end]
 
-    return Card(
-      child: InkWell(
-""",
-"""    final type = '${package['package_type'] ?? 'standard'}';
-    final key='${package['package_key']??''}';
-    final technology=key.startsWith('technology_')||type.toLowerCase().contains('technology');
-    final accent=_bridgePointPackageAccent(key,type);
+if 'final accent=_bridgePointPackageAccent(key,type);' not in block:
+    type_pattern=re.compile(r"(?P<indent>[ \t]*)final type\s*=\s*'\$\{package\['package_type'\]\s*\?\?\s*'standard'\}';\n")
+    m=type_pattern.search(block)
+    if m is None:
+        raise SystemExit('package type semantic anchor missing in modern card')
+    indent=m.group('indent')
+    addition=(m.group(0)+
+              f"{indent}final key='${{package['package_key']??''}}';\n"
+              f"{indent}final technology=key.startsWith('technology_')||type.toLowerCase().contains('technology');\n"
+              f"{indent}final accent=_bridgePointPackageAccent(key,type);\n")
+    block=type_pattern.sub(lambda _:addition,block,count=1)
 
-    return Card(
-      color:accent.withOpacity(technology ? .20 : .13),
-      shape:RoundedRectangleBorder(
-        borderRadius:BorderRadius.circular(18),
-        side:BorderSide(color:accent.withOpacity(technology ? .52 : .30),width:technology?1.35:1),
-      ),
-      child: InkWell(
-""",
-'package-card-whole-color')
+# Add card-wide color/outline while retaining every modern child/action.
+if 'color:accent.withOpacity(technology ? .20 : .13),' not in block:
+    card_return=re.compile(r"(?P<indent>[ \t]*)return Card\(\n")
+    m=card_return.search(block)
+    if m is None:
+        raise SystemExit('modern package card return anchor missing')
+    indent=m.group('indent')
+    replacement=(f"{indent}return Card(\n"
+                 f"{indent}  color:accent.withOpacity(technology ? .20 : .13),\n"
+                 f"{indent}  shape:RoundedRectangleBorder(\n"
+                 f"{indent}    borderRadius:BorderRadius.circular(18),\n"
+                 f"{indent}    side:BorderSide(color:accent.withOpacity(technology ? .52 : .30),width:technology?1.35:1),\n"
+                 f"{indent}  ),\n")
+    block=card_return.sub(replacement,block,count=1)
 
-replace_once(
-"""                      color: AppTheme.cyan.withOpacity(.09),
+# Enhance the package icon when the historical icon container is still present;
+# otherwise the whole-card accent above is the canonical visual treatment.
+icon_old="""                      color: AppTheme.cyan.withOpacity(.09),
                       borderRadius: BorderRadius.circular(11),
                     ),
                     child: Icon(
                       _packageIcon('${package['package_key'] ?? ''}'),
                       color: AppTheme.cyan,
-""",
-"""                      color: accent.withOpacity(.16),
+"""
+icon_new="""                      color: accent.withOpacity(.16),
                       borderRadius: BorderRadius.circular(11),
                       border:Border.all(color:accent.withOpacity(.22)),
                     ),
                     child: Icon(
                       _packageIcon('${package['package_key'] ?? ''}'),
                       color: accent,
-""",
-'package-icon-color')
+"""
+if icon_old in block:
+    block=block.replace(icon_old,icon_new,1)
 
-replace_once(
-"""                        Text(
-                          type.replaceAll('_', ' ').toUpperCase(),
-                          style: const TextStyle(
-                            color: AppTheme.textMuted,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: .6,
-                          ),
-                        ),
-""",
-"""                        Text(
-                          technology?'ENTERPRISE TECHNOLOGY':type.replaceAll('_', ' ').toUpperCase(),
-                          style: TextStyle(
-                            color: accent,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: .7,
-                          ),
-                        ),
-""",
-'package-type-color')
-
-replace_once(
-"""                  if (technology)
+# Preserve enterprise technology emphasis if that legacy chip still exists.
+tech_old="""                  if (technology)
                     const _OpportunityChip(label:'ENTERPRISE TECHNOLOGY',color:AppTheme.amber),
-""",
+"""
+if tech_old in block:
+    block=block.replace(tech_old,
 """                  if (technology)
                     const _OpportunityChip(label:'ENTERPRISE TECHNOLOGY',color:Color(0xFFFFC857)),
-""",
-'package-tech-chip-gold')
+""",1)
 
+text=text[:card_start]+block+text[card_end:]
+
+# Build/release identifier in legal footer.
 footer_anchor="""            const Text('•', style: TextStyle(color: AppTheme.textMuted, fontSize: 9)),
             TextButton(
               style: TextButton.styleFrom(
@@ -222,7 +216,10 @@ footer_anchor="""            const Text('•', style: TextStyle(color: AppTheme.
               ),
             ),
 """
-footer_replacement=footer_anchor+"""            const Text('•', style: TextStyle(color: AppTheme.textMuted, fontSize: 9)),
+if 'Running BridgePoint release $_bridgePointRelease' not in text:
+    if footer_anchor not in text:
+        raise SystemExit('footer build marker anchor missing')
+    footer_replacement=footer_anchor+"""            const Text('•', style: TextStyle(color: AppTheme.textMuted, fontSize: 9)),
             Tooltip(
               message:'Running BridgePoint release $_bridgePointRelease',
               child:Text(
@@ -231,11 +228,22 @@ footer_replacement=footer_anchor+"""            const Text('•', style: TextSty
               ),
             ),
 """
-if footer_anchor not in text:
-    raise SystemExit('footer build marker anchor missing')
-text=text.replace(footer_anchor,footer_replacement,1)
+    text=text.replace(footer_anchor,footer_replacement,1)
+
+required=[
+    'unawaited(_restoreWorkspaceState());',
+    'unawaited(_persistWorkspaceState(package:value));',
+    'unawaited(_persistWorkspaceState(navigation:index));',
+    'Color _bridgePointPackageAccent(',
+    'final accent=_bridgePointPackageAccent(key,type);',
+    'color:accent.withOpacity(technology ? .20 : .13),',
+    'Running BridgePoint release $_bridgePointRelease',
+]
+for item in required:
+    if item not in text:
+        raise SystemExit(f'v162/v812 marker missing: {item}')
 
 if text==original:
     raise SystemExit('No package colors/update changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied package colors + workspace persistence + release marker v162/v811')
+print('Applied modern package colors + workspace persistence + release marker v162/v812')
