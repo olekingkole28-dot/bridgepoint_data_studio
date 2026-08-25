@@ -126,10 +126,10 @@ jobs:
                   selected.append(line)
           if not selected:
               selected=analysis[-120:]
-          print('\n'.join(selected[:240]))
+          print('\n'.join(selected[:260]))
 
           source=Path('lib/main.dart').read_text(encoding='utf-8',errors='replace').splitlines()
-          windows=[(560,620),(700,745),(845,900),(1045,1120),(1150,1205),(1380,1430),(1695,1825),(1875,1985)]
+          windows=[(560,620),(845,900),(1070,1205),(1340,1465),(1490,1595),(1660,1745),(1875,2050),(2120,2185),(2320,2425)]
           print('\n=== GENERATED SOURCE WINDOWS ===')
           for lo,hi in windows:
               print(f'--- main.dart {lo}-{hi} ---')
