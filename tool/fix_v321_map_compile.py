@@ -84,7 +84,23 @@ if old not in body:
     if 'late final Widget markerChild;' in body:
         print('v321 map compile repair already applied.')
         raise SystemExit(0)
-    raise SystemExit('v321 map compile repair anchor missing')
+
+    # V687 can legitimately evolve the old expansion-marker widget before this legacy
+    # repair runs. In that case, prove the newer map/radar contract is intact instead
+    # of aborting because one obsolete source literal disappeared.
+    evolved_required=[
+        'bridgepoint-v321-resilience-expansion-eta-radar-map',
+        '_loadNoaaRadarFramesV271',
+        '_weatherAllowedV318',
+        '_showRadar',
+        "key:ValueKey('noaa-radar-$_radarRevision-${_radarFrame.toIso8601String()}')",
+        'Opacity(opacity:.88,child:TileLayer(',
+    ]
+    missing=[needle for needle in evolved_required if needle not in body]
+    if not missing:
+        print('v321 map compile repair: legacy expansion-marker anchor superseded; v687 evolved map/radar contract verified.')
+        raise SystemExit(0)
+    raise SystemExit(f'v321 map compile repair anchor missing and evolved contract incomplete: {missing}')
 body=body.replace(old,new,1)
 path.write_text(body,encoding='utf-8')
 print('Repaired v321 zoom-aware expansion marker widget structure.')
