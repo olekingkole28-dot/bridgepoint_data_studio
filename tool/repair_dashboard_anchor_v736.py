@@ -140,6 +140,109 @@ def repair_premature_dashboard_close(value: str) -> tuple[str,int]:
     return value[:start]+repaired+value[end:],len(removals)
 
 
+def repair_v318_dashboard_injections(value: str) -> tuple[str,dict[str,int]]:
+    start=value.find(DASHBOARD)
+    end=value.find(AFTER_DASHBOARD,start+len(DASHBOARD)) if start>=0 else -1
+    if start<0 or end<0:
+        raise SystemExit('v736: dashboard bounds missing during v318 repair')
+    segment=value[start:end]
+    counts={'navigation':0,'preview':0,'navigate_weather':0,'access_fields':0,'access_helpers':0}
+
+    # V318 patch offsets landed two workspace-restoration statements inside the const
+    # navigation list. Remove them only from the list span; legitimate copies elsewhere
+    # are preserved.
+    nav_start=segment.find(NAV)
+    nav_end=segment.find('  ];',nav_start+len(NAV)) if nav_start>=0 else -1
+    if nav_start>=0 and nav_end>=0:
+        nav=segment[nav_start:nav_end]
+        nav,one=re.subn(r"(?m)^\s*final allowedPackages=_accessResolvedV318\?_availablePackagesV318:packages;\s*\n?",'',nav)
+        nav,two=re.subn(r"(?m)^\s*final nextPackage=widget\.ownerMode\?'All Intelligence':\(savedPackage!=null&&allowedPackages\.contains\(savedPackage\)\?savedPackage:selectedPackage\);\s*\n?",'',nav)
+        counts['navigation']=one+two
+        segment=segment[:nav_start]+nav+segment[nav_end:]
+
+    # Restore the evolved owner preview exit method as one atomic method. A v318 package
+    # argument was injected after the owner check and displaced setState's opening line.
+    preview_pattern=re.compile(
+        r"  void _exitCustomerPreview\(\)\{.*?(?=\n  @override\n  void dispose\(\))",
+        re.S,
+    )
+    preview_replacement="""  void _exitCustomerPreview(){
+    if(!widget.ownerMode)return;
+    setState((){
+      _ownerCustomerPreview=false;
+      selectedNavigation=0;
+      selectedPackage='All Intelligence';
+      dashboardRequest=_loadDashboard();
+    });
+  }
+"""
+    segment,counts['preview']=preview_pattern.subn(preview_replacement,segment,count=1)
+
+    # Weather entitlement belongs to weather surfaces, not as a local declaration inside
+    # navigation. Remove only the reproducible misplaced declaration.
+    segment,counts['navigate_weather']=re.subn(
+        r"(  void _navigateTo\(int index\) \{\n)\s*bool weatherEntitledV318=false;\s*\n",
+        r"\1",
+        segment,
+        count=1,
+    )
+
+    # The v318 field declarations were themselves displaced into LegalAcceptance by the
+    # legacy patch. Put them back in Dashboard exactly once so the server access contract
+    # can update state without weakening entitlement enforcement.
+    field_anchor='  static const packageProductKeysV284 = <String,String>{'
+    fa=segment.find(field_anchor)
+    if fa>=0:
+        fend=segment.find('  };',fa+len(field_anchor))
+        if fend>=0:
+            fend+=len('  };')
+            missing=[]
+            for declaration in (
+                '  bool _accessResolvedV318=false;',
+                '  Set<String> _featuresV318=<String>{};',
+                '  Set<String> _allowedModelKeysV318=<String>{};',
+                '  Set<String> _activePackageKeysV318=<String>{};',
+            ):
+                if declaration not in segment:
+                    missing.append(declaration)
+            if missing:
+                segment=segment[:fend]+'\n\n'+'\n'.join(missing)+segment[fend:]
+                counts['access_fields']=len(missing)
+
+    # Some evolved outputs retained usages but lost these two lightweight access helpers.
+    # They remain fail-closed for feature navigation once the server contract resolves.
+    helper_anchor=segment.find(NAV)
+    helpers=''
+    if not re.search(r'\bbool\s+_hasFeatureV318\s*\(',segment):
+        helpers += """  bool _hasFeatureV318(String feature){
+    if(widget.ownerMode)return true;
+    if(!_accessResolvedV318)return false;
+    return _featuresV318.contains(feature);
+  }
+
+"""
+        counts['access_helpers']+=1
+    if not re.search(r'List<String>\s+get\s+_availablePackagesV318\b',segment):
+        helpers += """  List<String> get _availablePackagesV318 {
+    final candidates=packages;
+    if(widget.ownerMode||!_accessResolvedV318)return candidates;
+    final allowed=candidates.where((label){
+      final packageKey=packageProductKeysV284[label];
+      final modelKey=packageModelKeys[label];
+      return (packageKey!=null&&_activePackageKeysV318.contains(packageKey))||
+          (modelKey!=null&&_allowedModelKeysV318.contains(modelKey));
+    }).toList(growable:false);
+    return allowed.isEmpty?candidates:allowed;
+  }
+
+"""
+        counts['access_helpers']+=1
+    if helpers and helper_anchor>=0:
+        segment=segment[:helper_anchor]+helpers+segment[helper_anchor:]
+
+    return value[:start]+segment+value[end:],counts
+
+
 body = PATH.read_text(encoding='utf-8')
 source = canonical_source()
 
@@ -209,10 +312,7 @@ body = re.sub(
     body,
 )
 
-# The evolved dashboard currently contains one reproducible legacy extra class closure.
-# Remove it only when brace depth proves the class reached depth zero early AND the next
-# nonblank line is syntactically shaped like another Dashboard member. This avoids the
-# unsafe alternative of deleting the final class brace just to satisfy the parser.
+body,v318_repairs=repair_v318_dashboard_injections(body)
 body,premature_repairs=repair_premature_dashboard_close(body)
 PATH.write_text(body, encoding='utf-8')
 
@@ -222,4 +322,4 @@ if not dashboard_anchor_health(body):
 
 print_dashboard_diagnostics(body)
 subprocess.run([sys.executable, 'tool/repair_generated_release_v735.py'], check=True)
-print(f'BridgePoint v736 repaired targeted legacy seams without deleting evolved helpers/dashboard; compact navigation repairs={compact_repairs}; premature dashboard closures repaired={premature_repairs}; full v735 contract passed.')
+print(f'BridgePoint v736 repaired targeted legacy seams without deleting evolved helpers/dashboard; compact navigation repairs={compact_repairs}; v318 repairs={v318_repairs}; premature dashboard closures repaired={premature_repairs}; full v735 contract passed.')
