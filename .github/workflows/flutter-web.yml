@@ -118,6 +118,8 @@ jobs:
         run: python tool/final_release_audit_v305.py
       - name: Apply dynamic account avatar
         run: python tool/apply_dynamic_account_avatar_v444.py
+      - name: Repair final generated Flutter structure
+        run: python tool/repair_dashboard_anchor_v736.py
 
       # Generated-source capture is useful forensic evidence but is not release truth.
       # GitHub can temporarily reject artifact uploads when storage quota is exhausted;
