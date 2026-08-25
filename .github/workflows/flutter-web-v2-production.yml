@@ -81,19 +81,21 @@ jobs:
         run: |
           set -euo pipefail
           cat > web/bridgepoint-v2-release.json <<EOF
-          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","historical_patch_replay":false,"production_candidate":true,"restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true}
+          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","historical_patch_replay":false,"production_candidate":true,"restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true}
           EOF
           flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
           grep -q '<base href="/app/">' build/web/index.html
           grep -q 'Install BridgePoint' build/web/index.html
           ! grep -q 'bp-expansion-launcher' build/web/index.html
           test -s build/web/assets/assets/brand/bridgepoint-mark-v80.svg
+          test -s build/web/assets/fonts/MaterialIcons-Regular.otf
           MAIN_SHA="$(sha256sum build/web/main.dart.js | awk '{print $1}')"
+          ICON_FONT_SHA="$(sha256sum build/web/assets/fonts/MaterialIcons-Regular.otf | awk '{print $1}')"
           cat > build/web/bridgepoint-release.json <<EOF
-          {"version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","public_origin":"https://bridgepointintelligence.online/","architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true}
+          {"version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","public_origin":"https://bridgepointintelligence.online/","architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"material_icon_font_sha256":"${ICON_FONT_SHA}"}
           EOF
           cat > build/web/public-promotion-v682.json <<EOF
-          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","source_repo_private":true,"architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true}
+          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${ICON_FONT_SHA}","source_repo_private":true,"architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true}
           EOF
           touch build/web/.nojekyll
 
@@ -107,20 +109,26 @@ jobs:
           done
           mkdir -p /tmp/v2-delta/assets/assets/brand
           cp build/web/assets/assets/brand/bridgepoint-mark-v80.svg /tmp/v2-delta/assets/assets/brand/
+          if [ -d build/web/assets/fonts ]; then
+            mkdir -p /tmp/v2-delta/assets
+            cp -a build/web/assets/fonts /tmp/v2-delta/assets/
+          fi
           for f in AssetManifest.bin AssetManifest.bin.json FontManifest.json NOTICES.Z; do
             if [ -e "build/web/assets/$f" ]; then
               mkdir -p /tmp/v2-delta/assets
               cp -a "build/web/assets/$f" /tmp/v2-delta/assets/
             fi
           done
+          test -s /tmp/v2-delta/assets/fonts/MaterialIcons-Regular.otf
           tar -C /tmp/v2-delta -czf /tmp/v2-delta.tar.gz .
           base64 -w0 /tmp/v2-delta.tar.gz > /tmp/v2-delta.tar.gz.b64
           split -b 400000 -d -a 3 /tmp/v2-delta.tar.gz.b64 /tmp/v2-handoff/chunk-
           SHA256="$(sha256sum /tmp/v2-delta.tar.gz | awk '{print $1}')"
           BYTES="$(stat -c '%s' /tmp/v2-delta.tar.gz)"
           CHUNKS="$(find /tmp/v2-handoff -type f -name 'chunk-*' | wc -l)"
+          FONT_SHA="$(sha256sum /tmp/v2-delta/assets/fonts/MaterialIcons-Regular.otf | awk '{print $1}')"
           cat > /tmp/v2-handoff/manifest.json <<EOF
-          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"brand_asset_included":true}
+          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"brand_asset_included":true,"material_icon_font_included":true,"material_icon_font_sha256":"${FONT_SHA}"}
           EOF
           cat /tmp/v2-handoff/manifest.json
 
