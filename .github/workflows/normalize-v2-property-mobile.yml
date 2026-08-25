@@ -1,0 +1,121 @@
+name: Normalize V2 Property 360 Mobile
+
+on:
+  push:
+    branches: [bridgepoint-v2-clean]
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    if: ${{ !contains(github.event.head_commit.message, '[property-mobile-normalized]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bridgepoint-v2-clean
+          fetch-depth: 0
+      - name: Normalize checked-in V2 source and test
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path('lib/v2/bridgepoint_property_presentation_v2.dart')
+          source = source_path.read_text(encoding='utf-8')
+
+          old_why = '''        Row(
+          children: [
+            const Expanded(
+              child: Text('Why Now / verified opportunities', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            ),
+            Chip(label: Text('${opportunities.length} verified')),
+          ],
+        ),'''
+          new_why = '''        LayoutBuilder(
+          builder: (context, constraints) {
+            final title = const Text(
+              'Why Now / verified opportunities',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            );
+            final count = Chip(label: Text('${opportunities.length} verified'));
+            if (constraints.maxWidth < 360) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  title,
+                  const SizedBox(height: 6),
+                  Align(alignment: Alignment.centerLeft, child: count),
+                ],
+              );
+            }
+            return Row(children: [Expanded(child: title), const SizedBox(width: 8), count]);
+          },
+        ),'''
+          if old_why not in source:
+            raise SystemExit('Why Now source block not found; refusing blind rewrite')
+          source = source.replace(old_why, new_why, 1)
+
+          old_media = '''            Row(
+              children: [
+                const Icon(Icons.photo_library_outlined, color: _bpCyan),
+                const SizedBox(width: 8),
+                const Expanded(child: Text('Imagery / media history', style: TextStyle(fontWeight: FontWeight.w900))),
+                Chip(label: Text('${items.length} current • ${history.length} history')),
+              ],
+            ),'''
+          new_media = '''            LayoutBuilder(
+              builder: (context, constraints) {
+                final heading = const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.photo_library_outlined, color: _bpCyan),
+                    SizedBox(width: 8),
+                    Flexible(child: Text('Imagery / media history', style: TextStyle(fontWeight: FontWeight.w900))),
+                  ],
+                );
+                final count = Chip(label: Text('${items.length} current • ${history.length} history'));
+                if (constraints.maxWidth < 360) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      heading,
+                      const SizedBox(height: 6),
+                      Align(alignment: Alignment.centerLeft, child: count),
+                    ],
+                  );
+                }
+                return Row(children: [Expanded(child: heading), const SizedBox(width: 8), count]);
+              },
+            ),'''
+          if old_media not in source:
+            raise SystemExit('Media source block not found; refusing blind rewrite')
+          source = source.replace(old_media, new_media, 1)
+          source_path.write_text(source, encoding='utf-8')
+
+          test_path = Path('test/v2_property_presentation_responsive_test.dart')
+          test = test_path.read_text(encoding='utf-8')
+          old_test = '''      expect(find.text('Imagery / media history'), findsOneWidget);
+      expect(find.textContaining('not verified property damage'), findsOneWidget);
+      expect(find.textContaining('never labeled an exact replica'), findsNothing);'''
+          new_test = '''      expect(find.text('Imagery / media history'), findsOneWidget);
+      await tester.tap(find.text('Severe wind exposure'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('not verified property damage'), findsOneWidget);
+      expect(find.textContaining('never labeled an exact replica'), findsNothing);'''
+          if old_test not in test:
+            raise SystemExit('Timeline test block not found; refusing blind rewrite')
+          test = test.replace(old_test, new_test, 1)
+          test_path.write_text(test, encoding='utf-8')
+          PY
+      - name: Commit normalized source
+        run: |
+          if git diff --quiet; then
+            echo "No normalization changes needed."
+            exit 0
+          fi
+          git config user.name "BridgePoint Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add lib/v2/bridgepoint_property_presentation_v2.dart test/v2_property_presentation_responsive_test.dart
+          git commit -m "Fix Property 360 narrow-screen layout [property-mobile-normalized]"
+          git push origin HEAD:bridgepoint-v2-clean
