@@ -5,13 +5,16 @@ import '../bridgepoint_integrations_hub_v790.dart';
 import '../bridgepoint_intelligence_studio_v790.dart';
 import '../screens/bridgepoint_owner_command_center.dart';
 import 'bridgepoint_ai_v2.dart';
+import 'bridgepoint_buildings_v2.dart';
 import 'bridgepoint_calendar_v2.dart';
 import 'bridgepoint_claims_v2.dart';
 import 'bridgepoint_home_v2.dart';
+import 'bridgepoint_investor_v2.dart';
 import 'bridgepoint_map_weather_v2.dart';
 import 'bridgepoint_operations_workspace_v2.dart';
 import 'bridgepoint_portfolio_risk_v2.dart';
 import 'bridgepoint_products_settings_v2.dart';
+import 'bridgepoint_properties_v2.dart';
 import 'bridgepoint_property_360_v2.dart';
 import 'bridgepoint_public_landing_v2.dart';
 
@@ -167,16 +170,31 @@ class _AuthPageV2State extends State<_AuthPageV2> {
                           icon: const Icon(Icons.arrow_back_rounded),
                         ),
                       ),
-                      const Icon(Icons.hub_rounded, color: Color(0xFF35D2E8), size: 44),
+                      const Icon(
+                        Icons.hub_rounded,
+                        color: Color(0xFF35D2E8),
+                        size: 44,
+                      ),
                       const SizedBox(height: 14),
-                      const Text('BridgePoint Intelligence', textAlign: TextAlign.center, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+                      const Text(
+                        'BridgePoint Intelligence',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                      ),
                       const SizedBox(height: 5),
-                      const Text('Property intelligence operating system', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF8FA5BF))),
+                      const Text(
+                        'Property intelligence operating system',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Color(0xFF8FA5BF)),
+                      ),
                       const SizedBox(height: 24),
                       TextField(
                         controller: email,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded)),
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.mail_outline_rounded),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -188,7 +206,11 @@ class _AuthPageV2State extends State<_AuthPageV2> {
                           prefixIcon: const Icon(Icons.lock_outline_rounded),
                           suffixIcon: IconButton(
                             onPressed: () => setState(() => showPassword = !showPassword),
-                            icon: Icon(showPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded),
+                            icon: Icon(
+                              showPassword
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
+                            ),
                           ),
                         ),
                       ),
@@ -200,12 +222,20 @@ class _AuthPageV2State extends State<_AuthPageV2> {
                       FilledButton(
                         onPressed: busy ? null : submit,
                         child: busy
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
                             : Text(create ? 'Create account' : 'Sign in'),
                       ),
                       TextButton(
                         onPressed: busy ? null : () => setState(() => create = !create),
-                        child: Text(create ? 'Already have an account? Sign in' : 'New to BridgePoint? Create account'),
+                        child: Text(
+                          create
+                              ? 'Already have an account? Sign in'
+                              : 'New to BridgePoint? Create account',
+                        ),
                       ),
                     ],
                   ),
@@ -221,8 +251,11 @@ class _AuthPageV2State extends State<_AuthPageV2> {
 
 enum _AreaV2 {
   home,
-  property,
   map,
+  properties,
+  investor,
+  property,
+  buildings,
   operations,
   claims,
   calendar,
@@ -243,8 +276,10 @@ class _AreaSpecV2 {
 
 const _baseAreasV2 = <_AreaSpecV2>[
   _AreaSpecV2(_AreaV2.home, 'Home', Icons.space_dashboard_rounded),
-  _AreaSpecV2(_AreaV2.property, 'Property 360', Icons.home_work_rounded),
   _AreaSpecV2(_AreaV2.map, 'Map & Weather', Icons.public_rounded),
+  _AreaSpecV2(_AreaV2.properties, 'Properties', Icons.holiday_village_rounded),
+  _AreaSpecV2(_AreaV2.investor, 'Investor', Icons.real_estate_agent_rounded),
+  _AreaSpecV2(_AreaV2.property, 'Property 360', Icons.home_work_rounded),
   _AreaSpecV2(_AreaV2.operations, 'Operations', Icons.track_changes_rounded),
   _AreaSpecV2(_AreaV2.claims, 'Claims', Icons.assignment_outlined),
   _AreaSpecV2(_AreaV2.calendar, 'Calendar', Icons.calendar_month_rounded),
@@ -252,7 +287,11 @@ const _baseAreasV2 = <_AreaSpecV2>[
   _AreaSpecV2(_AreaV2.ai, 'Ask BridgePoint AI', Icons.auto_awesome_rounded),
   _AreaSpecV2(_AreaV2.studio, 'Intelligence Studio', Icons.schema_rounded),
   _AreaSpecV2(_AreaV2.integrations, 'Integrations', Icons.cable_rounded),
-  _AreaSpecV2(_AreaV2.products, 'Products & Settings', Icons.workspace_premium_outlined),
+  _AreaSpecV2(
+    _AreaV2.products,
+    'Products & Settings',
+    Icons.workspace_premium_outlined,
+  ),
 ];
 
 class _WorkspaceV2 extends StatefulWidget {
@@ -290,8 +329,14 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
         ..._baseAreasV2,
         if (owner)
           const _AreaSpecV2(
+            _AreaV2.buildings,
+            'Buildings / Twin',
+            Icons.view_in_ar_rounded,
+          ),
+        if (owner)
+          const _AreaSpecV2(
             _AreaV2.owner,
-            'Owner Control',
+            'Owner Backend',
             Icons.admin_panel_settings_rounded,
           ),
       ];
@@ -309,14 +354,20 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
 
   Widget _page() => switch (selected) {
         _AreaV2.home => const BridgePointHomeV2(),
-        _AreaV2.property => const BridgePointProperty360V2(),
         _AreaV2.map => const BridgePointMapWeatherV2(),
+        _AreaV2.properties => const BridgePointPropertiesV2(),
+        _AreaV2.investor => const BridgePointInvestorV2(),
+        _AreaV2.property => const BridgePointProperty360V2(),
+        _AreaV2.buildings => const BridgePointBuildingsV2(),
         _AreaV2.operations => const BridgePointOperationsWorkspaceV2(),
         _AreaV2.claims => const BridgePointClaimsV2(),
         _AreaV2.calendar => const BridgePointCalendarV2(),
         _AreaV2.portfolio => const BridgePointPortfolioRiskV2(),
         _AreaV2.ai => const BridgePointAiV2(),
-        _AreaV2.studio => BridgePointIntelligenceStudio(onNavigate: _navigateFromStudio, ownerMode: owner),
+        _AreaV2.studio => BridgePointIntelligenceStudio(
+            onNavigate: _navigateFromStudio,
+            ownerMode: owner,
+          ),
         _AreaV2.integrations => const BridgePointIntegrationsHub(),
         _AreaV2.products => const BridgePointProductsSettingsV2(),
         _AreaV2.owner => const BridgePointOwnerCommandCenter(),
@@ -325,7 +376,13 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
   bool get _bounded => selected == _AreaV2.owner;
 
   void _showMore() {
-    final more = areas.where((x) => !const [_AreaV2.home, _AreaV2.property, _AreaV2.map, _AreaV2.operations].contains(x.area));
+    const primary = <_AreaV2>[
+      _AreaV2.home,
+      _AreaV2.map,
+      _AreaV2.properties,
+      _AreaV2.investor,
+    ];
+    final more = areas.where((x) => !primary.contains(x.area));
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -368,12 +425,26 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
     final compact = width < 820;
 
     if (compact) {
-      const primary = [_AreaV2.home, _AreaV2.property, _AreaV2.map, _AreaV2.operations];
+      const primary = <_AreaV2>[
+        _AreaV2.home,
+        _AreaV2.map,
+        _AreaV2.properties,
+        _AreaV2.investor,
+      ];
       final current = primary.contains(selected) ? primary.indexOf(selected) : 4;
       return Scaffold(
         appBar: AppBar(
           title: Text(_title(selected)),
           actions: [
+            if (owner)
+              IconButton(
+                tooltip: 'Owner Backend',
+                onPressed: () => setState(() => selected = _AreaV2.owner),
+                icon: const Icon(
+                  Icons.admin_panel_settings_rounded,
+                  color: Color(0xFF35D2E8),
+                ),
+              ),
             IconButton(
               tooltip: 'Ask BridgePoint AI',
               onPressed: () => setState(() => selected = _AreaV2.ai),
@@ -392,11 +463,26 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
             }
           },
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.space_dashboard_rounded), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.home_work_rounded), label: 'Property'),
-            NavigationDestination(icon: Icon(Icons.public_rounded), label: 'Map'),
-            NavigationDestination(icon: Icon(Icons.track_changes_rounded), label: 'Work'),
-            NavigationDestination(icon: Icon(Icons.apps_rounded), label: 'More'),
+            NavigationDestination(
+              icon: Icon(Icons.space_dashboard_rounded),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.public_rounded),
+              label: 'Map',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.holiday_village_rounded),
+              label: 'Properties',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.real_estate_agent_rounded),
+              label: 'Investor',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.apps_rounded),
+              label: 'More',
+            ),
           ],
         ),
       );
@@ -410,10 +496,15 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
           NavigationRail(
             extended: width >= 1220,
             selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
-            onDestinationSelected: (index) => setState(() => selected = specs[index].area),
+            onDestinationSelected: (index) =>
+                setState(() => selected = specs[index].area),
             leading: const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: Icon(Icons.hub_rounded, color: Color(0xFF35D2E8), size: 30),
+              child: Icon(
+                Icons.hub_rounded,
+                color: Color(0xFF35D2E8),
+                size: 30,
+              ),
             ),
             trailing: Expanded(
               child: Align(
@@ -430,7 +521,10 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
             ),
             destinations: [
               for (final spec in specs)
-                NavigationRailDestination(icon: Icon(spec.icon), label: Text(spec.label)),
+                NavigationRailDestination(
+                  icon: Icon(spec.icon),
+                  label: Text(spec.label),
+                ),
             ],
           ),
           Expanded(
@@ -442,20 +536,47 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
                   padding: const EdgeInsets.symmetric(horizontal: 22),
                   decoration: const BoxDecoration(
                     color: Color(0xFF081625),
-                    border: Border(bottom: BorderSide(color: Color(0x2235D2E8))),
-                  ),
-                  child: Row(children: [
-                    Expanded(child: Text(_title(selected), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
-                    TextButton.icon(
-                      onPressed: () => setState(() => selected = _AreaV2.ai),
-                      icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF35D2E8)),
-                      label: const Text('Ask BridgePoint AI'),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0x2235D2E8)),
                     ),
-                    const SizedBox(width: 6),
-                    const _LiveBadgeV2(),
-                  ]),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _title(selected),
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (owner)
+                        TextButton.icon(
+                          onPressed: () => setState(() => selected = _AreaV2.owner),
+                          icon: const Icon(
+                            Icons.admin_panel_settings_rounded,
+                            color: Color(0xFF35D2E8),
+                          ),
+                          label: const Text('Owner Backend'),
+                        ),
+                      const SizedBox(width: 4),
+                      TextButton.icon(
+                        onPressed: () => setState(() => selected = _AreaV2.ai),
+                        icon: const Icon(
+                          Icons.auto_awesome_rounded,
+                          color: Color(0xFF35D2E8),
+                        ),
+                        label: const Text('Ask BridgePoint AI'),
+                      ),
+                      const SizedBox(width: 6),
+                      const _LiveBadgeV2(),
+                    ],
+                  ),
                 ),
-                Expanded(child: _PageFrameV2(scroll: !_bounded, child: _page())),
+                Expanded(
+                  child: _PageFrameV2(scroll: !_bounded, child: _page()),
+                ),
               ],
             ),
           ),
@@ -467,8 +588,11 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
 
 String _title(_AreaV2 area) => switch (area) {
       _AreaV2.home => 'BridgePoint Intelligence',
-      _AreaV2.property => 'Property 360',
       _AreaV2.map => 'Geospatial Intelligence',
+      _AreaV2.properties => 'Properties',
+      _AreaV2.investor => 'BridgePoint Investor',
+      _AreaV2.property => 'Property 360',
+      _AreaV2.buildings => 'Buildings & Digital Twin',
       _AreaV2.operations => 'Operations Workspace',
       _AreaV2.claims => 'Claims Workspace',
       _AreaV2.calendar => 'Calendar & Day Plan',
@@ -477,7 +601,7 @@ String _title(_AreaV2 area) => switch (area) {
       _AreaV2.studio => 'Intelligence Studio',
       _AreaV2.integrations => 'Integrations & Data Exchange',
       _AreaV2.products => 'Products & Settings',
-      _AreaV2.owner => 'Owner Control',
+      _AreaV2.owner => 'Owner Backend',
     };
 
 class _PageFrameV2 extends StatelessWidget {
@@ -488,8 +612,14 @@ class _PageFrameV2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = scroll
-        ? SingleChildScrollView(padding: const EdgeInsets.all(18), child: child)
-        : Padding(padding: const EdgeInsets.all(10), child: SizedBox.expand(child: child));
+        ? SingleChildScrollView(
+            padding: const EdgeInsets.all(18),
+            child: child,
+          )
+        : Padding(
+            padding: const EdgeInsets.all(10),
+            child: SizedBox.expand(child: child),
+          );
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: RadialGradient(
@@ -513,14 +643,19 @@ class _LiveBadgeV2 extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF38D49A).withValues(alpha: .08),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFF38D49A).withValues(alpha: .2)),
+        border: Border.all(
+          color: const Color(0xFF38D49A).withValues(alpha: .2),
+        ),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.circle, size: 8, color: Color(0xFF38D49A)),
           SizedBox(width: 6),
-          Text('LIVE BACKEND', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
+          Text(
+            'LIVE BACKEND',
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
+          ),
         ],
       ),
     );
