@@ -60,15 +60,11 @@ class _BridgePointOwnerSurfaceAuditState
           children: [
             Text(label,
                 style: const TextStyle(
-                    color: _muted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800)),
+                    color: _muted, fontSize: 9, fontWeight: FontWeight.w800)),
             const SizedBox(height: 5),
             Text('$value',
                 style: TextStyle(
-                    color: color,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900)),
+                    color: color, fontSize: 21, fontWeight: FontWeight.w900)),
           ],
         ),
       );
@@ -169,8 +165,7 @@ class _BridgePointOwnerSurfaceAuditState
                 ),
                 child: const Text(
                   'Classification is not the same as customer exposure. Security internals stay internal; automation stays automation. The goal is zero accidental hidden capability, not hundreds of buttons.',
-                  style: TextStyle(
-                      color: _muted, fontSize: 10, height: 1.45),
+                  style: TextStyle(color: _muted, fontSize: 10, height: 1.45),
                 ),
               ),
               const SizedBox(height: 14),
@@ -199,10 +194,10 @@ class _BridgePointOwnerSurfaceAuditState
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'ALL', child: Text('Needs work')),
                         DropdownMenuItem(
-                            value: 'UNCLASSIFIED',
-                            child: Text('Unclassified')),
+                            value: 'ALL', child: Text('Needs work')),
+                        DropdownMenuItem(
+                            value: 'UNCLASSIFIED', child: Text('Unclassified')),
                         DropdownMenuItem(
                             value: 'PARTIAL', child: Text('Partial')),
                       ],

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'bridgepoint_operations_hub.dart';
 import 'bridgepoint_owner_ai_cockpit.dart';
 import 'bridgepoint_owner_global_control.dart';
+import 'bridgepoint_owner_surface_audit_v792.dart';
 
 /// Owner-only command center that makes unfinished work impossible to hide.
 /// Backend RPCs remain authoritative; this UI never promotes a requirement to
@@ -62,6 +63,11 @@ class _BridgePointOwnerCommandCenterState
                   icon: Icon(Icons.build_circle_outlined),
                   label: Text('Operations'),
                 ),
+                ButtonSegment(
+                  value: 4,
+                  icon: Icon(Icons.visibility_outlined),
+                  label: Text('Surfaces'),
+                ),
               ],
               selected: <int>{_tab},
               onSelectionChanged: (value) => setState(() => _tab = value.first),
@@ -73,7 +79,8 @@ class _BridgePointOwnerCommandCenterState
             0 => const _OwnerCompletionLedger(),
             1 => const BridgePointOwnerAiCockpit(),
             2 => const BridgePointOwnerGlobalControl(),
-            _ => const BridgePointOperationsHub(),
+            3 => const BridgePointOperationsHub(),
+            _ => const BridgePointOwnerSurfaceAudit(),
           },
         ),
       ],
@@ -114,7 +121,7 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
       'bridgepoint_owner_master_completion_v768',
       params: <String, dynamic>{
         'p_status': _filter == 'ALL' ? null : _filter,
-        'p_limit': 216,
+        'p_limit': 1000,
       },
     );
     if (result is Map<String, dynamic>) return result;
@@ -451,7 +458,8 @@ class _OwnerCompletionLedgerState extends State<_OwnerCompletionLedger> {
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'ALL', child: Text('All 216')),
+                        DropdownMenuItem(
+                            value: 'ALL', child: Text('All requirements')),
                         DropdownMenuItem(
                           value: 'PROVEN_DONE',
                           child: Text('Proven done'),
