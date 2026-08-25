@@ -114,19 +114,27 @@ jobs:
             python - <<'PY'
           from pathlib import Path
           import re
-          lines=Path('/tmp/analyze.log').read_text(encoding='utf-8',errors='replace').splitlines()
+          analysis=Path('/tmp/analyze.log').read_text(encoding='utf-8',errors='replace').splitlines()
           selected=[]
           patterns=[
               re.compile(r'\berror\b',re.I),
               re.compile(r'lib/main\.dart:\d+:\d+'),
               re.compile(r"isn't defined|is not defined|undefined|expected|duplicate|too many positional|named parameter|method .* defined|getter .* defined|argument type",re.I),
           ]
-          for line in lines:
+          for line in analysis:
               if any(p.search(line) for p in patterns):
                   selected.append(line)
           if not selected:
-              selected=lines[-120:]
+              selected=analysis[-120:]
           print('\n'.join(selected[:240]))
+
+          source=Path('lib/main.dart').read_text(encoding='utf-8',errors='replace').splitlines()
+          windows=[(560,620),(700,745),(845,900),(1045,1120),(1150,1205),(1380,1430),(1695,1825),(1875,1985)]
+          print('\n=== GENERATED SOURCE WINDOWS ===')
+          for lo,hi in windows:
+              print(f'--- main.dart {lo}-{hi} ---')
+              for idx in range(max(1,lo),min(len(source),hi)+1):
+                  print(f'{idx:05d}: {source[idx-1]}')
           PY
           else
             tail -40 /tmp/analyze.log
