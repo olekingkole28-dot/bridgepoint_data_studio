@@ -1,0 +1,263 @@
+name: BridgePoint Mobile Navigation v767
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-mobile-nav-v767
+  cancel-in-progress: false
+
+jobs:
+  patch-mobile-navigation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch compact mobile navigation
+        id: patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+
+          path = Path('lib/main.dart')
+          text = path.read_text(encoding='utf-8')
+          marker = '// bridgepoint-mobile-nav-v767'
+          if marker in text:
+              with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+                  f.write('changed=false\n')
+              print('v767 navigation already present; no source change needed.')
+              raise SystemExit(0)
+
+          start_marker = 'class _CompactNavigation extends StatelessWidget {'
+          end_marker = '\nclass _DailyBriefPage'
+          start = text.find(start_marker)
+          if start < 0:
+              raise SystemExit('Could not find _CompactNavigation start marker.')
+          end = text.find(end_marker, start)
+          if end < 0:
+              raise SystemExit('Could not find _DailyBriefPage boundary after _CompactNavigation.')
+
+          replacement = r'''// bridgepoint-mobile-nav-v767
+class _CompactNavigation extends StatelessWidget {
+  const _CompactNavigation({
+    required this.items,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  final List<_NavigationItem> items;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  Future<void> _showAllDestinations(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppTheme.panel,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        final height = MediaQuery.sizeOf(sheetContext).height;
+        return SizedBox(
+          height: height * .72,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 14, 12, 10),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Everything BridgePoint',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'Choose any workspace destination',
+                            style: TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close navigation',
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: Colors.white.withOpacity(.07)),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(14),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 190,
+                    mainAxisExtent: 82,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    final selected = index == selectedIndex;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(15),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        onSelected(index);
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppTheme.cyan.withOpacity(.13)
+                              : AppTheme.panelSoft.withOpacity(.62),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: selected
+                                ? AppTheme.cyan.withOpacity(.35)
+                                : Colors.white.withOpacity(.07),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              item.icon,
+                              color: selected ? AppTheme.cyan : Colors.white70,
+                              size: 23,
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              item.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: selected ? Colors.white : AppTheme.textMuted,
+                                fontSize: 10,
+                                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryCount = items.length > 4 ? 4 : items.length;
+    final hasMore = items.length > primaryCount;
+    final selectedDestination = selectedIndex < primaryCount
+        ? selectedIndex
+        : (hasMore ? primaryCount : 0);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 3, 10, 8),
+      decoration: BoxDecoration(
+        color: AppTheme.panel.withOpacity(.94),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.22),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: NavigationBar(
+        height: 68,
+        selectedIndex: selectedDestination,
+        backgroundColor: Colors.transparent,
+        indicatorColor: AppTheme.cyan.withOpacity(.15),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        onDestinationSelected: (index) {
+          if (index < primaryCount) {
+            onSelected(index);
+          } else {
+            _showAllDestinations(context);
+          }
+        },
+        destinations: [
+          for (var index = 0; index < primaryCount; index++)
+            NavigationDestination(
+              icon: Icon(items[index].icon, size: 20),
+              selectedIcon: Icon(items[index].icon, color: AppTheme.cyan, size: 21),
+              label: items[index].label,
+              tooltip: items[index].label,
+            ),
+          if (hasMore)
+            NavigationDestination(
+              icon: const Icon(Icons.grid_view_rounded, size: 20),
+              selectedIcon: const Icon(Icons.grid_view_rounded, color: AppTheme.cyan, size: 21),
+              label: selectedIndex >= primaryCount ? items[selectedIndex].label : 'More',
+              tooltip: 'All BridgePoint destinations',
+            ),
+        ],
+      ),
+    );
+  }
+}
+'''
+
+          path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+              f.write('changed=true\n')
+          print('Replaced horizontal ChoiceChip navigation with compact labeled navigation + destination sheet.')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        if: steps.patch.outputs.changed == 'true'
+        with:
+          channel: stable
+          cache: true
+
+      - name: Validate Flutter source
+        if: steps.patch.outputs.changed == 'true'
+        run: |
+          flutter pub get
+          dart format lib/main.dart
+          flutter analyze
+
+      - name: Commit validated navigation repair
+        if: steps.patch.outputs.changed == 'true'
+        run: |
+          git config user.name "bridgepoint-automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add lib/main.dart
+          git commit -m "Fix mobile navigation v767"
+          git push origin HEAD:main
