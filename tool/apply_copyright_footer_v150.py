@@ -126,3 +126,9 @@ if text == original:
     raise SystemExit('No copyright footer changes applied')
 path.write_text(text, encoding='utf-8')
 print('Applied BridgePoint copyright/legal footer v150/v804')
+
+# v806: normalize only harmless formatting boundaries needed by the historical
+# Routes & Offline generator that runs after About BridgePoint.
+repair_path = Path('tool/repair_routes_offline_v806.py')
+repair_source = repair_path.read_text(encoding='utf-8')
+exec(compile(repair_source, str(repair_path), 'exec'), {'__name__': '__main__'})
