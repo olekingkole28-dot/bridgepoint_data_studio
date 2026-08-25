@@ -69,7 +69,6 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
   }
 
   num? _num(dynamic value) => value is num ? value : num.tryParse('$value');
-
   void _refresh() => setState(() => _request = _load());
 
   Future<void> _saveOpportunity(Map<String, dynamic> row) async {
@@ -178,6 +177,58 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
     }
   }
 
+  Future<void> _updateRouteStop(Map<String, dynamic> route, Map<String, dynamic> stop, int stopIndex) async {
+    final routeId = '${route['route_plan_id'] ?? route['id'] ?? ''}';
+    if (routeId.isEmpty || stopIndex < 1) return;
+    var status = '${stop['status'] ?? 'ARRIVED'}'.toUpperCase();
+    const allowed = ['PLANNED','NAVIGATING','ARRIVED','CONTACTED','NOT_HOME','FOLLOW_UP','APPOINTMENT','INSPECTION','SKIP','COMPLETED'];
+    if (!allowed.contains(status)) status = 'ARRIVED';
+    final note = TextEditingController(text: '${stop['last_note'] ?? ''}');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(builder: (context, setLocal) => AlertDialog(
+        title: Text('Update stop $stopIndex'),
+        content: SizedBox(width: 500, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('${stop['address'] ?? stop['opportunity_name'] ?? 'Route stop'}', style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            initialValue: status,
+            decoration: const InputDecoration(labelText: 'Field status'),
+            items: allowed.map((value) => DropdownMenuItem(value: value, child: Text(value.replaceAll('_', ' ')))).toList(),
+            onChanged: (value) => setLocal(() => status = value ?? status),
+          ),
+          const SizedBox(height: 10),
+          TextField(controller: note, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: 'Field note', hintText: 'Contact result, inspection note, follow-up context...')),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton.icon(onPressed: () => Navigator.pop(context, true), icon: const Icon(Icons.task_alt_rounded), label: const Text('Record update')),
+        ],
+      )),
+    );
+    if (ok != true) { note.dispose(); return; }
+    setState(() { _busy = true; _message = null; });
+    try {
+      final raw = await Supabase.instance.client.rpc('bridgepoint_route_stop_update_v154', params: {
+        'p_route_plan_id': routeId,
+        'p_stop_index': stopIndex,
+        'p_status': status,
+        'p_note': note.text.trim().isEmpty ? null : note.text.trim(),
+        'p_source_mode': 'ONLINE',
+      });
+      final result = _map(raw);
+      if (mounted) setState(() {
+        _message = 'Stop $stopIndex recorded as ${result['status'] ?? status}.';
+        _request = _load();
+      });
+    } catch (e) {
+      if (mounted) setState(() => _message = 'Route stop update unavailable: $e');
+    } finally {
+      note.dispose();
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _markRead(Map<String, dynamic> row) async {
     final id = '${row['notification_id'] ?? row['id'] ?? ''}';
     if (id.isEmpty) return;
@@ -212,10 +263,10 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
       child: Padding(
         padding: const EdgeInsets.all(13),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
+          Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 5, children: [
             if (opportunityId.isNotEmpty)
               Checkbox(value: selected, onChanged: _busy ? null : (value) => setState(() => value == true ? _routeSelection.add(opportunityId) : _routeSelection.remove(opportunityId))),
-            Expanded(child: Text('${row['title'] ?? row['full_address'] ?? 'Opportunity'}', style: const TextStyle(fontWeight: FontWeight.w900))),
+            ConstrainedBox(constraints: const BoxConstraints(maxWidth: 620), child: Text('${row['title'] ?? row['full_address'] ?? 'Opportunity'}', style: const TextStyle(fontWeight: FontWeight.w900))),
             if (score != null) Chip(label: Text('Score $score')),
           ]),
           if ('${row['full_address'] ?? ''}'.isNotEmpty) Text('${row['full_address']}', style: const TextStyle(color: _muted, fontSize: 10)),
@@ -240,21 +291,55 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
     );
   }
 
-  Widget _routeCard(Map<String, dynamic> route) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(13),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Expanded(child: Text('${route['route_name'] ?? route['name'] ?? 'Field route'}', style: const TextStyle(fontWeight: FontWeight.w900))),
-          Chip(label: Text('${route['route_status'] ?? route['status'] ?? 'DRAFT'}')),
+  Widget _routeCard(Map<String, dynamic> route) {
+    final stops = _rows(route['stops'], const ['items']);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(13),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 6, children: [
+            ConstrainedBox(constraints: const BoxConstraints(maxWidth: 620), child: Text('${route['route_name'] ?? route['name'] ?? 'Field route'}', style: const TextStyle(fontWeight: FontWeight.w900))),
+            Chip(label: Text('${route['route_status'] ?? route['status'] ?? 'DRAFT'}')),
+          ]),
+          const SizedBox(height: 5),
+          Text('${route['stop_count'] ?? stops.length} stops • ${route['optimization_strategy'] ?? 'BridgePoint route ordering'}', style: const TextStyle(color: _muted)),
+          if (route['scheduled_for'] != null) Text('Scheduled ${route['scheduled_for']}', style: const TextStyle(color: _muted, fontSize: 10)),
+          const SizedBox(height: 9),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            FilledButton.tonalIcon(onPressed: _busy ? null : () => _prepareOffline(route), icon: const Icon(Icons.offline_pin_outlined), label: const Text('Prepare 24h offline pack')),
+          ]),
+          if (stops.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: Text('Field stops (${stops.length})', style: const TextStyle(fontWeight: FontWeight.w800)),
+              children: [
+                for (var i = 0; i < stops.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: const Color(0xFF081625), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x2235D2E8))),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 5, children: [
+                          CircleAvatar(radius: 14, backgroundColor: const Color(0x1835D2E8), child: Text('${i + 1}', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
+                          ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600), child: Text('${stops[i]['address'] ?? stops[i]['opportunity_name'] ?? 'Route stop ${i + 1}'}', style: const TextStyle(fontWeight: FontWeight.w800))),
+                          Chip(label: Text('${stops[i]['status'] ?? 'PLANNED'}')),
+                        ]),
+                        if ('${stops[i]['why_now'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text('${stops[i]['why_now']}', style: const TextStyle(color: _muted, fontSize: 10, height: 1.4))),
+                        if ('${stops[i]['last_note'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text('Last note: ${stops[i]['last_note']}', style: const TextStyle(fontSize: 10))),
+                        const SizedBox(height: 7),
+                        Align(alignment: Alignment.centerLeft, child: FilledButton.tonalIcon(onPressed: _busy ? null : () => _updateRouteStop(route, stops[i], i + 1), icon: const Icon(Icons.edit_location_alt_outlined), label: const Text('Update field status'))),
+                      ]),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ]),
-        const SizedBox(height: 5),
-        Text('${route['stop_count'] ?? _rows(route['stops'], const ['items']).length} stops • ${route['optimization_strategy'] ?? 'BridgePoint route ordering'}', style: const TextStyle(color: _muted)),
-        const SizedBox(height: 9),
-        Align(alignment: Alignment.centerLeft, child: FilledButton.tonalIcon(onPressed: _busy ? null : () => _prepareOffline(route), icon: const Icon(Icons.offline_pin_outlined), label: const Text('Prepare 24h offline pack'))),
-      ]),
-    ),
-  );
+      ),
+    );
+  }
 
   Widget _dataPanel(String title, dynamic value, IconData icon, List<String> keys) {
     final rows = _rows(value, keys);
@@ -293,7 +378,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
           ], selected: {_tab}, onSelectionChanged: (v) => setState(() => _tab = v.first))),
           const SizedBox(height: 12),
           if (_tab == 0) ...[
-            if (_routeSelection.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(10), child: Row(children: [Expanded(child: Text('${_routeSelection.length} selected for field route', style: const TextStyle(fontWeight: FontWeight.w800))), TextButton(onPressed: () => setState(_routeSelection.clear), child: const Text('Clear')), FilledButton.icon(onPressed: _busy ? null : _buildRoute, icon: const Icon(Icons.route_rounded), label: const Text('Build route'))]))),
+            if (_routeSelection.isNotEmpty) Card(child: Padding(padding: const EdgeInsets.all(10), child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 8, children: [Text('${_routeSelection.length} selected for field route', style: const TextStyle(fontWeight: FontWeight.w800)), TextButton(onPressed: () => setState(_routeSelection.clear), child: const Text('Clear')), FilledButton.icon(onPressed: _busy ? null : _buildRoute, icon: const Icon(Icons.route_rounded), label: const Text('Build route'))]))),
             if (_routeSelection.isNotEmpty) const SizedBox(height: 8),
             if (opportunities.isEmpty) _dataPanel('Ranked opportunities / Why Now', at(0), Icons.track_changes_rounded, const ['opportunities']) else ...opportunities.map(_opportunityCard),
             const SizedBox(height: 8),
