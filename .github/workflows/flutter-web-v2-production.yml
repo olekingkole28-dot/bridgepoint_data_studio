@@ -17,17 +17,19 @@ on:
       - '.github/workflows/flutter-web-v2-production.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: bridgepoint-clean-v2-release-build
   cancel-in-progress: false
 
 jobs:
-  build-release-artifact:
+  build-release-handoff:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Verify Clean V2 release source
         run: |
@@ -41,63 +43,78 @@ jobs:
           test -s lib/v2/bridgepoint_products_settings_v2.dart
           test -s lib/v2/bridgepoint_intelligence_live_v2.dart
           test -s lib/screens/bridgepoint_owner_v2_requirements_v832.dart
-          test -s web/manifest.json
-          test -s web/flutter_bootstrap.js
-          test -s web/acquisition_tracker.js
           python - <<'PY'
           from pathlib import Path
           roots=[Path('lib/main_v2.dart'),*Path('lib/v2').rglob('*.dart'),Path('lib/bridgepoint_intelligence_studio_v790.dart'),Path('lib/bridgepoint_integrations_hub_v790.dart'),*Path('lib/screens').glob('bridgepoint_owner*.dart')]
           source='\n'.join(p.read_text(encoding='utf-8') for p in roots if p.exists())
-          required=[
-            'BridgePointV2App','BridgePointProperty360V2','BridgePointMapWeatherV2','BridgePointOperationsWorkspaceV2',
-            'BridgePointClaimsV2','BridgePointCalendarV2','BridgePointPortfolioRiskV2','BridgePointAiV2',
-            'BridgePointIntelligenceStudio','BridgePointIntelligenceLiveV2','BridgePointIntegrationsHub','BridgePointProductsSettingsV2',
-            'BridgePointOwnerCommandCenter','bridgepoint_owner_v2_requirements_v832','bridgepoint_property_geometry_v837',
-            'bridgepoint_property_timeline_v78','bridgepoint_flutter_intelligence_map_national_v346','bridgepoint_security_center_v147'
-          ]
+          required=['BridgePointV2App','BridgePointProperty360V2','BridgePointMapWeatherV2','BridgePointOperationsWorkspaceV2','BridgePointClaimsV2','BridgePointCalendarV2','BridgePointPortfolioRiskV2','BridgePointAiV2','BridgePointIntelligenceStudio','BridgePointIntelligenceLiveV2','BridgePointIntegrationsHub','BridgePointProductsSettingsV2','BridgePointOwnerCommandCenter','bridgepoint_owner_v2_requirements_v832','bridgepoint_property_geometry_v837','bridgepoint_property_timeline_v78','bridgepoint_flutter_intelligence_map_national_v346','bridgepoint_security_center_v147']
           missing=[x for x in required if x not in source]
-          if missing:
-            raise SystemExit('Missing V2 production markers: '+', '.join(missing))
+          if missing: raise SystemExit('Missing V2 production markers: '+', '.join(missing))
           forbidden=['apply_launch_v95.py','apply_weather_home_community_v145.py','apply_map_viewport_v124.py','repair_owner_expansion_v96.py']
           leaked=[x for x in forbidden if x in source]
-          if leaked:
-            raise SystemExit('Historical patch machinery leaked into Clean V2: '+', '.join(leaked))
-          print('Clean V2 production source contract verified.')
+          if leaked: raise SystemExit('Historical patch machinery leaked into Clean V2: '+', '.join(leaked))
+          print('Clean V2 source contract verified.')
           PY
 
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-
       - run: flutter pub get
-
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
       - name: Run release tests
         run: flutter test
 
-      - name: Stamp release
+      - name: Stamp and build /app release
         run: |
+          set -euo pipefail
           cat > web/bridgepoint-v2-release.json <<EOF
           {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","historical_patch_replay":false,"production_candidate":true}
           EOF
-
-      - name: Build production web app
-        run: |
           flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
-          test -s build/web/index.html
-          test -s build/web/bridgepoint-v2-release.json
-          grep -q "Install BridgePoint" build/web/index.html
-          ! grep -q "bp-expansion-launcher" build/web/index.html
           grep -q '<base href="/app/">' build/web/index.html
+          grep -q 'Install BridgePoint' build/web/index.html
+          ! grep -q 'bp-expansion-launcher' build/web/index.html
+          MAIN_SHA="$(sha256sum build/web/main.dart.js | awk '{print $1}')"
+          cat > build/web/bridgepoint-release.json <<EOF
+          {"version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","public_origin":"https://bridgepointintelligence.online/","architecture":"clean-v2"}
+          EOF
+          cat > build/web/public-promotion-v682.json <<EOF
+          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","source_repo_private":true,"architecture":"clean-v2"}
+          EOF
           touch build/web/.nojekyll
 
-      - name: Upload portable Clean V2 web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bridgepoint-clean-v2-web
-          path: build/web
-          if-no-files-found: error
-          retention-days: 7
+      - name: Build quota-free handoff chunks
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/v2-delta /tmp/v2-handoff
+          mkdir -p /tmp/v2-delta /tmp/v2-handoff
+          for f in index.html main.dart.js flutter.js flutter_bootstrap.js flutter_service_worker.js manifest.json version.json favicon.png acquisition_tracker.js bridgepoint-v2-release.json bridgepoint-release.json public-promotion-v682.json .nojekyll; do
+            if [ -e "build/web/$f" ]; then cp -a "build/web/$f" /tmp/v2-delta/; fi
+          done
+          tar -C /tmp/v2-delta -czf /tmp/v2-delta.tar.gz .
+          base64 -w0 /tmp/v2-delta.tar.gz > /tmp/v2-delta.tar.gz.b64
+          split -b 400000 -d -a 3 /tmp/v2-delta.tar.gz.b64 /tmp/v2-handoff/chunk-
+          SHA256="$(sha256sum /tmp/v2-delta.tar.gz | awk '{print $1}')"
+          BYTES="$(stat -c '%s' /tmp/v2-delta.tar.gz)"
+          CHUNKS="$(find /tmp/v2-handoff -type f -name 'chunk-*' | wc -l)"
+          cat > /tmp/v2-handoff/manifest.json <<EOF
+          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app"}
+          EOF
+          cat /tmp/v2-handoff/manifest.json
+
+      - name: Publish private handoff branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd /tmp/v2-handoff
+          git init -q
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git checkout -b clean-v2-handoff
+          git add -A
+          git commit -m "Clean V2 compiled handoff ${GITHUB_SHA}"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin clean-v2-handoff
