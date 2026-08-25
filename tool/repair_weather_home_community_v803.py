@@ -9,6 +9,17 @@ marker = '// bridgepoint-weather-home-community-v803'
 
 if marker in text:
     print('Weather/Home/Community v803 already applied')
+    # The historical workflow will call v145 later. Make that call an audited
+    # no-op in this ephemeral release workspace so it cannot rewind navigation.
+    legacy_path.write_text(
+        "from pathlib import Path\n"
+        "text=Path('lib/main.dart').read_text(encoding='utf-8')\n"
+        "required=['// bridgepoint-weather-home-community-v803','class _WeatherCenterPage','class _MyHomePage','class _CommunityPage']\n"
+        "missing=[x for x in required if x not in text]\n"
+        "if missing: raise SystemExit(f'v145 supersession missing markers: {missing}')\n"
+        "print('Legacy v145 superseded by modern Weather/Home/Community v803')\n",
+        encoding='utf-8',
+    )
     raise SystemExit(0)
 
 # Reuse the proven v145 page implementations, but wire them into the current
@@ -88,4 +99,17 @@ for required in [
 if text == original:
     raise SystemExit('No Weather/Home/Community v803 changes applied')
 main_path.write_text(text, encoding='utf-8')
+
+# The historical workflow calls v145 after v121. Convert that legacy call into
+# a strict marker verifier only for this runner checkout; the repository's
+# source file stays available as the implementation source above.
+legacy_path.write_text(
+    "from pathlib import Path\n"
+    "text=Path('lib/main.dart').read_text(encoding='utf-8')\n"
+    "required=['// bridgepoint-weather-home-community-v803','class _WeatherCenterPage','class _MyHomePage','class _CommunityPage']\n"
+    "missing=[x for x in required if x not in text]\n"
+    "if missing: raise SystemExit(f'v145 supersession missing markers: {missing}')\n"
+    "print('Legacy v145 superseded by modern Weather/Home/Community v803')\n",
+    encoding='utf-8',
+)
 print('Applied modern Weather Center + My Home + Community UI v803')
