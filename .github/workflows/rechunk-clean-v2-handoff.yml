@@ -1,0 +1,63 @@
+name: Rechunk Clean V2 Handoff
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rechunk-clean-v2-handoff.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rechunk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rechunk existing compiled handoff without rebuilding
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/old-handoff /tmp/new-handoff
+          mkdir -p /tmp/old-handoff /tmp/new-handoff
+          git fetch origin clean-v2-handoff:refs/remotes/origin/clean-v2-handoff
+          git archive --format=tar origin/clean-v2-handoff | tar -xf - -C /tmp/old-handoff
+          test -s /tmp/old-handoff/manifest.json
+          cat /tmp/old-handoff/chunk-* | base64 -d > /tmp/v2-delta.tar.gz
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          m=json.loads(Path('/tmp/old-handoff/manifest.json').read_text())
+          a=Path('/tmp/v2-delta.tar.gz').read_bytes()
+          if hashlib.sha256(a).hexdigest()!=m['archive_sha256']:
+              raise SystemExit('Existing handoff SHA mismatch')
+          print('Existing compiled handoff verified before rechunk.')
+          PY
+          base64 -w0 /tmp/v2-delta.tar.gz > /tmp/v2-delta.tar.gz.b64
+          split -b 45000 -d -a 3 /tmp/v2-delta.tar.gz.b64 /tmp/new-handoff/chunk-
+          cp /tmp/old-handoff/manifest.json /tmp/new-handoff/manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp/new-handoff/manifest.json')
+          m=json.loads(p.read_text())
+          m['chunk_count']=len(list(Path('/tmp/new-handoff').glob('chunk-*')))
+          m['chunk_size']=45000
+          m['rechunked_for']='connector-safe-cross-repo-transfer'
+          p.write_text(json.dumps(m,separators=(',',':'))+'\n')
+          print(p.read_text())
+          PY
+          cd /tmp/new-handoff
+          git init -q
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git checkout -b clean-v2-handoff
+          git add -A
+          git commit -m 'Rechunk Clean V2 handoff for verified public transfer'
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin clean-v2-handoff
