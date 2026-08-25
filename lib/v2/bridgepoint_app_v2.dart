@@ -5,6 +5,7 @@ import '../bridgepoint_integrations_hub_v790.dart';
 import '../bridgepoint_intelligence_studio_v790.dart';
 import '../screens/bridgepoint_owner_command_center.dart';
 import 'bridgepoint_ai_v2.dart';
+import 'bridgepoint_calendar_v2.dart';
 import 'bridgepoint_claims_v2.dart';
 import 'bridgepoint_home_v2.dart';
 import 'bridgepoint_map_weather_v2.dart';
@@ -224,6 +225,7 @@ enum _AreaV2 {
   map,
   operations,
   claims,
+  calendar,
   portfolio,
   ai,
   studio,
@@ -245,6 +247,7 @@ const _baseAreasV2 = <_AreaSpecV2>[
   _AreaSpecV2(_AreaV2.map, 'Map & Weather', Icons.public_rounded),
   _AreaSpecV2(_AreaV2.operations, 'Operations', Icons.track_changes_rounded),
   _AreaSpecV2(_AreaV2.claims, 'Claims', Icons.assignment_outlined),
+  _AreaSpecV2(_AreaV2.calendar, 'Calendar', Icons.calendar_month_rounded),
   _AreaSpecV2(_AreaV2.portfolio, 'Portfolio & Risk', Icons.account_tree_outlined),
   _AreaSpecV2(_AreaV2.ai, 'Ask BridgePoint AI', Icons.auto_awesome_rounded),
   _AreaSpecV2(_AreaV2.studio, 'Intelligence Studio', Icons.schema_rounded),
@@ -310,6 +313,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
         _AreaV2.map => const BridgePointMapWeatherV2(),
         _AreaV2.operations => const BridgePointOperationsWorkspaceV2(),
         _AreaV2.claims => const BridgePointClaimsV2(),
+        _AreaV2.calendar => const BridgePointCalendarV2(),
         _AreaV2.portfolio => const BridgePointPortfolioRiskV2(),
         _AreaV2.ai => const BridgePointAiV2(),
         _AreaV2.studio => BridgePointIntelligenceStudio(onNavigate: _navigateFromStudio, ownerMode: owner),
@@ -442,10 +446,10 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
                   ),
                   child: Row(children: [
                     Expanded(child: Text(_title(selected), style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
-                    IconButton(
-                      tooltip: 'Ask BridgePoint AI',
+                    TextButton.icon(
                       onPressed: () => setState(() => selected = _AreaV2.ai),
                       icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF35D2E8)),
+                      label: const Text('Ask BridgePoint AI'),
                     ),
                     const SizedBox(width: 6),
                     const _LiveBadgeV2(),
@@ -467,6 +471,7 @@ String _title(_AreaV2 area) => switch (area) {
       _AreaV2.map => 'Geospatial Intelligence',
       _AreaV2.operations => 'Operations Workspace',
       _AreaV2.claims => 'Claims Workspace',
+      _AreaV2.calendar => 'Calendar & Day Plan',
       _AreaV2.portfolio => 'Portfolio & Risk',
       _AreaV2.ai => 'Ask BridgePoint AI',
       _AreaV2.studio => 'Intelligence Studio',
