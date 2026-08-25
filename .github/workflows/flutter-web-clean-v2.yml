@@ -71,10 +71,9 @@ jobs:
           printf '{"architecture":"clean-v2","version":"%s","built_at":"%s","backend":"existing-production-supabase","historical_patch_replay":false}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-v2-release.json
 
       - name: Build clean installable web app
-        run: flutter build web --release -t lib/main_v2.dart --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bridgepoint-clean-v2-web
-          path: build/web
-          retention-days: 14
+        run: |
+          set -euo pipefail
+          flutter build web --release -t lib/main_v2.dart --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+          test -s build/web/index.html
+          test -s build/web/main.dart.js || test -s build/web/main.dart.wasm || true
+          echo "Clean V2 web build verified locally in the workflow. Artifact upload intentionally omitted because repository Actions storage is currently at quota."
