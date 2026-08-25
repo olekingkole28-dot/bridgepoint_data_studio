@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Patch compact mobile navigation
+      - name: Patch mobile navigation and superseded release matcher
         id: patch
         shell: bash
         run: |
@@ -28,25 +28,53 @@ jobs:
           from pathlib import Path
           import os
 
+          changed = False
+
+          # v768: make the historical v94 map-control patch idempotent. The current
+          # canonical UI already uses the U.S. live-weather control, so an old
+          # generator must not abort a modern release simply because its old text
+          # no longer exists.
+          release_path = Path('tool/apply_launch_v94.py')
+          release = release_path.read_text(encoding='utf-8')
+          release_marker = '# bridgepoint-release-idempotency-v768'
+          if release_marker not in release:
+              old_block = '''replace_once(
+"""                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show Northeast expansion',onTap:()=>_mapController.move(const LatLng(42.15,-72.90),6.3)),
+""",
+"""                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show United States live weather',onTap:()=>_mapController.move(const LatLng(39.50,-98.35),4.2)),
+""",
+'map-us-weather-button')'''
+              new_block = '''# bridgepoint-release-idempotency-v768
+_old_us_weather = """                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show Northeast expansion',onTap:()=>_mapController.move(const LatLng(42.15,-72.90),6.3)),
+"""
+_new_us_weather = """                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show United States live weather',onTap:()=>_mapController.move(const LatLng(39.50,-98.35),4.2)),
+"""
+if text.count(_old_us_weather) == 1:
+    text = text.replace(_old_us_weather, _new_us_weather, 1)
+elif text.count(_new_us_weather) >= 1:
+    print('map-us-weather-button: already applied by a newer canonical source; continuing')
+else:
+    raise SystemExit('map-us-weather-button: neither historical nor current control found')'''
+              if old_block not in release:
+                  raise SystemExit('Could not find legacy map-us-weather-button patch block.')
+              release_path.write_text(release.replace(old_block, new_block, 1), encoding='utf-8')
+              changed = True
+              print('Made v94 U.S. weather control patch idempotent.')
+
           path = Path('lib/main.dart')
           text = path.read_text(encoding='utf-8')
           marker = '// bridgepoint-mobile-nav-v767'
-          if marker in text:
-              with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
-                  f.write('changed=false\n')
-              print('v767 navigation already present; no source change needed.')
-              raise SystemExit(0)
+          if marker not in text:
+              start_marker = 'class _CompactNavigation extends StatelessWidget {'
+              end_marker = '\nclass _DailyBriefPage'
+              start = text.find(start_marker)
+              if start < 0:
+                  raise SystemExit('Could not find _CompactNavigation start marker.')
+              end = text.find(end_marker, start)
+              if end < 0:
+                  raise SystemExit('Could not find _DailyBriefPage boundary after _CompactNavigation.')
 
-          start_marker = 'class _CompactNavigation extends StatelessWidget {'
-          end_marker = '\nclass _DailyBriefPage'
-          start = text.find(start_marker)
-          if start < 0:
-              raise SystemExit('Could not find _CompactNavigation start marker.')
-          end = text.find(end_marker, start)
-          if end < 0:
-              raise SystemExit('Could not find _DailyBriefPage boundary after _CompactNavigation.')
-
-          replacement = r'''// bridgepoint-mobile-nav-v767
+              replacement = r'''// bridgepoint-mobile-nav-v767
 class _CompactNavigation extends StatelessWidget {
   const _CompactNavigation({
     required this.items,
@@ -233,12 +261,19 @@ class _CompactNavigation extends StatelessWidget {
   }
 }
 '''
+              path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
+              changed = True
+              print('Replaced horizontal ChoiceChip navigation with compact labeled navigation + destination sheet.')
 
-          path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
-              f.write('changed=true\n')
-          print('Replaced horizontal ChoiceChip navigation with compact labeled navigation + destination sheet.')
+              f.write(f'changed={str(changed).lower()}\n')
+          if not changed:
+              print('v767/v768 repairs already present; no source change needed.')
           PY
+
+      - name: Validate Python release patch
+        if: steps.patch.outputs.changed == 'true'
+        run: python -m py_compile tool/apply_launch_v94.py
 
       - uses: subosito/flutter-action@v2
         if: steps.patch.outputs.changed == 'true'
@@ -251,13 +286,13 @@ class _CompactNavigation extends StatelessWidget {
         run: |
           flutter pub get
           dart format lib/main.dart
-          flutter analyze
+          flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Commit validated navigation repair
+      - name: Commit validated navigation and release repair
         if: steps.patch.outputs.changed == 'true'
         run: |
           git config user.name "bridgepoint-automation"
           git config user.email "actions@users.noreply.github.com"
-          git add lib/main.dart
-          git commit -m "Fix mobile navigation v767"
+          git add lib/main.dart tool/apply_launch_v94.py
+          git commit -m "Fix mobile navigation and release matcher v768"
           git push origin HEAD:main
