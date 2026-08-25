@@ -1,0 +1,84 @@
+name: BridgePoint Clean V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [bridgepoint-v2-clean]
+  pull_request:
+    branches: [bridgepoint-v2-clean]
+
+concurrency:
+  group: bridgepoint-clean-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify clean architecture contract
+        run: |
+          set -euo pipefail
+          test -s lib/main_v2.dart
+          test -s lib/bridgepoint_intelligence_studio_v790.dart
+          test -s lib/bridgepoint_integrations_hub_v790.dart
+          test -s lib/screens/bridgepoint_owner_command_center.dart
+          if grep -q "python tool/apply_" .github/workflows/flutter-web-clean-v2.yml; then
+            echo "Clean v2 must never replay historical source patches."
+            exit 1
+          fi
+          python - <<'PY'
+          from pathlib import Path
+          source=Path('lib/main_v2.dart').read_text(encoding='utf-8')
+          required=[
+            'bridgepoint_daily_brief_v74',
+            'bridgepoint_public_system_status_v320',
+            'bridgepoint_user_market_context_v320',
+            'bridgepoint_property_suggestions_v192',
+            'bridgepoint_flutter_property_detail_v344',
+            'bridgepoint_capability_library_v831',
+            'BridgePointIntelligenceStudio',
+            'BridgePointIntegrationsHub',
+            'BridgePointOwnerCommandCenter',
+            'radar_base_reflectivity_time/ImageServer/WMSServer',
+            'NOAA MRMS • ~1 KM SOURCE',
+          ]
+          missing=[x for x in required if x not in source]
+          if missing:
+            raise SystemExit('Missing clean v2 contract markers: '+', '.join(missing))
+          print('Clean v2 architecture contract verified.')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Analyze clean app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests when present
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No tests yet."
+          fi
+
+      - name: Stamp clean release
+        run: |
+          printf '{"architecture":"clean-v2","version":"%s","built_at":"%s","backend":"existing-production-supabase","historical_patch_replay":false}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-v2-release.json
+
+      - name: Build clean installable web app
+        run: flutter build web --release -t lib/main_v2.dart --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-clean-v2-web
+          path: build/web
+          retention-days: 14
