@@ -503,56 +503,124 @@ class _DriverRow extends StatelessWidget {
   const _DriverRow({required this.row});
   final Map<String, dynamic> row;
 
+  double _num(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('${value ?? ''}') ?? 0;
+  }
+
+  String _money(dynamic value) {
+    final n = _num(value);
+    if (n.abs() >= 1000000) return '\$${(n / 1000000).toStringAsFixed(n.abs() >= 10000000 ? 1 : 2)}M';
+    if (n.abs() >= 1000) return '\$${(n / 1000).toStringAsFixed(n.abs() >= 100000 ? 0 : 1)}K';
+    return '\$${n.round()}';
+  }
+
+  String _count(dynamic value) {
+    final n = _num(value).round();
+    if (n.abs() >= 1000000) return '${(n / 1000000).toStringAsFixed(n.abs() >= 10000000 ? 1 : 2)}M';
+    if (n.abs() >= 1000) return '${(n / 1000).toStringAsFixed(n.abs() >= 100000 ? 0 : 1)}K';
+    return '$n';
+  }
+
+  String _evidence() {
+    final key = '${row['key'] ?? ''}';
+    switch (key) {
+      case 'production_platform':
+        return '${row['why'] ?? 'Production software, proprietary data contracts and operating-system foundation.'}';
+      case 'property_scale':
+        return '${_count(row['metric'])} canonical properties • ${row['why'] ?? 'Scale contribution is capped so raw-record volume cannot inflate the model without limit.'}';
+      case 'geographic_expansion':
+        return '${_count(row['live_states'])} live • ${_count(row['building_states'])} building jurisdictions';
+      case 'automation':
+        return '${_count(row['active_jobs'])} active jobs • ${_count(row['successful_latest_15m'])} recent successes • ${_count(row['failed_latest_15m'])} failures';
+      case 'intelligence':
+        return '${_count(row['property_scores'])} scores • ${_count(row['patterns'])} patterns • ${_count(row['verified_opportunities'])} verified opportunities';
+      case 'readiness':
+        return '${_count(row['verified'])} of ${_count(row['total'])} locked product requirements verified';
+      case 'accounts':
+        return '${_count(row['accounts'])} customer accounts';
+      case 'trials':
+        return '${_count(row['active_trials'])} active trials';
+      case 'paid_customers':
+        return '${_count(row['active_paid'])} active paying customers';
+      case 'recurring_revenue':
+        return '${_money(row['active_mrr'])} MRR • ${row['multiple'] ?? 'booked revenue contribution'}';
+      case 'trial_pipeline':
+        return '${_money(row['trial_pipeline_mrr'])} trial-pipeline MRR • ${row['why'] ?? 'heavily discounted until converted'}';
+      case 'prospect_pipeline':
+        return '${_count(row['customer_prospects'])} qualified customer prospects';
+      case 'usage':
+        return '${_count(row['monthly_active'])} monthly active customer${_num(row['monthly_active']) == 1 ? '' : 's'}';
+      default:
+        return '${row['why'] ?? 'Verified operating metric contribution'}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final factor = '${row['factor'] ?? 'driver'}'.replaceAll('_', ' ');
-    final impact = '${row['impact'] ?? row['status'] ?? ''}'.replaceAll('_', ' ');
-    final detail = '${row['detail'] ?? row['reason'] ?? row['value'] ?? ''}';
+    final label = '${row['label'] ?? row['key'] ?? 'Valuation driver'}'.replaceAll('_', ' ');
+    final contribution = _num(row['value_usd']);
+    final active = contribution > 0;
+    final color = active
+        ? _BridgePointInvestmentValuationV2State._green
+        : _BridgePointInvestmentValuationV2State._muted;
     return Container(
-      margin: const EdgeInsets.only(bottom: 7),
-      padding: const EdgeInsets.all(11),
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: _BridgePointInvestmentValuationV2State._soft.withValues(alpha: .65),
-        borderRadius: BorderRadius.circular(11),
+        color: _BridgePointInvestmentValuationV2State._soft.withValues(alpha: .68),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: color.withValues(alpha: active ? .18 : .08)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.bolt_rounded,
-            size: 17,
-            color: _BridgePointInvestmentValuationV2State._cyan,
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .11),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(active ? Icons.trending_up_rounded : Icons.remove_rounded, size: 19, color: color),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
                 Text(
-                  factor.toUpperCase(),
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
-                ),
-                if (detail.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    detail,
-                    style: const TextStyle(
-                      color: _BridgePointInvestmentValuationV2State._muted,
-                      fontSize: 11.5,
-                    ),
+                  _evidence(),
+                  style: const TextStyle(
+                    color: _BridgePointInvestmentValuationV2State._muted,
+                    fontSize: 12.5,
+                    height: 1.38,
                   ),
-                ],
+                ),
               ],
             ),
           ),
-          if (impact.isNotEmpty)
-            Text(
-              impact.toUpperCase(),
-              style: const TextStyle(
-                color: _BridgePointInvestmentValuationV2State._green,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w900,
+          const SizedBox(width: 9),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _money(contribution),
+                style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w900),
               ),
-            ),
+              const SizedBox(height: 2),
+              const Text(
+                'MODEL CONTRIBUTION',
+                style: TextStyle(
+                  color: _BridgePointInvestmentValuationV2State._muted,
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -564,27 +632,43 @@ class _BenchmarkRow extends StatelessWidget {
   final Map<String, dynamic> row;
 
   @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 7),
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: _BridgePointInvestmentValuationV2State._soft.withValues(alpha: .6),
-          borderRadius: BorderRadius.circular(11),
-        ),
-        child: Wrap(
-          spacing: 10,
-          runSpacing: 5,
-          children: row.entries
-              .take(12)
-              .map(
-                (e) => Text(
-                  '${e.key.replaceAll('_', ' ')}: ${e.value}',
-                  style: const TextStyle(fontSize: 11.5),
-                ),
-              )
-              .toList(),
-        ),
-      );
+  Widget build(BuildContext context) {
+    final source = '${row['source'] ?? 'Market benchmark'}';
+    final published = '${row['published'] ?? ''}'.trim();
+    final contextText = '${row['context'] ?? ''}'.trim();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: _BridgePointInvestmentValuationV2State._soft.withValues(alpha: .60),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _BridgePointInvestmentValuationV2State._blue.withValues(alpha: .14)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.auto_graph_rounded, color: _BridgePointInvestmentValuationV2State._blue, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(source, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900)),
+                if (published.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text('Published $published', style: const TextStyle(color: _BridgePointInvestmentValuationV2State._muted, fontSize: 11.5)),
+                ],
+                if (contextText.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(contextText, style: const TextStyle(fontSize: 12.5, height: 1.4)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Pill extends StatelessWidget {
