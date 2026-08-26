@@ -17,3 +17,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Deep product regression audit
         run: python .github/scripts/product_release_audit_v852.py
+
+# Triggered for the full hidden-regression sweep.
