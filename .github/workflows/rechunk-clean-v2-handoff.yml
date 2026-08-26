@@ -1,3 +1,4 @@
+# Exact-object retry after scoped Storage insert gate
 name: Publish Restored Clean V2 Release Bridge
 
 on:
@@ -75,6 +76,7 @@ jobs:
           curl --fail-with-body --show-error --silent \
             -X POST \
             -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_PUBLISHABLE_KEY}" \
             -H 'Content-Type: application/gzip' \
             -H 'cache-control: no-cache' \
             --data-binary @/tmp/v2-delta.tar.gz \
