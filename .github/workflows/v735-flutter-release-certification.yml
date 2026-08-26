@@ -76,12 +76,38 @@ jobs:
         run: python tool/apply_auth_nickname_v181b.py
       - name: Add front-first street property media and aerial zoom controls
         run: python tool/apply_property_street_media_v186.py
-      - name: Add multistate property workspace and current-owner UI
-        run: python tool/apply_multistate_owner_ui_v188.py
-      - name: Add premium page accents and expansion ETA/status UI
-        run: python tool/apply_premium_navigation_expansion_v189.py
-      - name: Add animated NOAA weather timeline
-        run: python tool/apply_noaa_weather_loop_v190.py
+      - name: Apply guarded multistate, premium, and NOAA map chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tool/apply_multistate_owner_ui_v188.py
+          python - <<'PY'
+          from pathlib import Path
+          source=Path('lib/main.dart').read_text(encoding='utf-8')
+          if source.count('WMSTileLayerOptions(')<3:
+              raise SystemExit('v188 boundary lost required WMS layers')
+          Path('/tmp/bridgepoint-v188-size').write_text(str(len(source)),encoding='utf-8')
+          print('v188 boundary',{'bytes':len(source),'wms':source.count('WMSTileLayerOptions(')})
+          PY
+          python tool/apply_premium_navigation_expansion_v189.py
+          python - <<'PY'
+          from pathlib import Path
+          source=Path('lib/main.dart').read_text(encoding='utf-8')
+          before=int(Path('/tmp/bridgepoint-v188-size').read_text(encoding='utf-8'))
+          if len(source)<int(before*.8) or source.count('WMSTileLayerOptions(')<3:
+              raise SystemExit(f'v189 boundary destructive: before={before} after={len(source)} wms={source.count("WMSTileLayerOptions(")}')
+          Path('/tmp/bridgepoint-v189-size').write_text(str(len(source)),encoding='utf-8')
+          print('v189 boundary',{'bytes':len(source),'wms':source.count('WMSTileLayerOptions(')})
+          PY
+          python tool/apply_noaa_weather_loop_v190.py
+          python - <<'PY'
+          from pathlib import Path
+          source=Path('lib/main.dart').read_text(encoding='utf-8')
+          before=int(Path('/tmp/bridgepoint-v189-size').read_text(encoding='utf-8'))
+          if len(source)<int(before*.8) or source.count('WMSTileLayerOptions(')<3:
+              raise SystemExit(f'v190 boundary destructive: before={before} after={len(source)} wms={source.count("WMSTileLayerOptions(")}')
+          print('v190 boundary',{'bytes':len(source),'wms':source.count('WMSTileLayerOptions(')})
+          PY
       - name: Make global property search multistate and map recenter location-aware
         run: python tool/apply_global_search_location_v192.py
       - name: Protect customer property details from formula/internal leakage
