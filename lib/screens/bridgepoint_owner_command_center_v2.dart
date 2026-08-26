@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'bridgepoint_integrations_hub_v790.dart';
+import '../bridgepoint_integrations_hub_v790.dart';
 import 'bridgepoint_operations_hub.dart';
 import 'bridgepoint_owner_ai_cockpit.dart';
 import 'bridgepoint_owner_engine_health_v777.dart';
@@ -89,7 +89,7 @@ class _BridgePointOwnerCommandCenterV2State
             4 => const BridgePointOwnerGlobalControl(),
             5 => const BridgePointOperationsHub(),
             6 => const BridgePointOwnerSurfaceAudit(),
-            _ => const BridgePointIntegrationsHubV790(),
+            _ => const BridgePointIntegrationsHub(),
           },
         ),
       ],
