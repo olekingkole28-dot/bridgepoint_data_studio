@@ -1,4 +1,4 @@
-# V852 deterministic repair + release gate — pass 2
+# V853 deterministic product repair + release gate
 name: Run Product Audit Patch V851
 
 on:
@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply deterministic V852 repairs
         run: python .github/scripts/product_release_repair_v852.py
+      - name: Apply V853 checkout repair
+        run: python .github/scripts/package_checkout_patch_v853.py
       - name: Run deep product regression audit
         run: python .github/scripts/product_release_audit_v852.py
       - uses: subosito/flutter-action@v2
@@ -30,12 +32,12 @@ jobs:
         run: flutter test
       - name: Build production web app
         run: flutter build web --release -t lib/main_v2.dart --base-href "/app/"
-      - name: Commit verified V852 repairs
+      - name: Commit verified V853 repairs
         run: |
           set -euo pipefail
           git config user.name 'BridgePoint Product QA'
           git config user.email 'actions@users.noreply.github.com'
           git add lib/
           git diff --cached --quiet && exit 0
-          git commit -m 'Apply verified V852 product repairs'
+          git commit -m 'Apply verified V853 checkout repair'
           git push origin HEAD:main
