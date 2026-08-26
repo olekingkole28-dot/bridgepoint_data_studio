@@ -1,4 +1,4 @@
-# Latest visual release trigger v2
+# Latest visual release trigger v3
 name: Run Latest BridgePoint Visual Release
 
 on:
