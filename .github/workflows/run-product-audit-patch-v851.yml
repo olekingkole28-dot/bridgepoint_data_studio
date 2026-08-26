@@ -1,4 +1,4 @@
-# trigger v2
+# V852 deterministic repair + release gate
 name: Run Product Audit Patch V851
 
 on:
@@ -15,14 +15,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply V851 repairs
-        run: python .github/scripts/product_audit_patch_v851.py
-      - name: Commit V851 repairs
+      - name: Apply deterministic V852 repairs
+        run: python .github/scripts/product_release_repair_v852.py
+      - name: Run deep product regression audit
+        run: python .github/scripts/product_release_audit_v852.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Run release tests
+        run: flutter test
+      - name: Build production web app
+        run: flutter build web --release -t lib/main_v2.dart --base-href "/app/"
+      - name: Commit verified V852 repairs
         run: |
           set -euo pipefail
           git config user.name 'BridgePoint Product QA'
           git config user.email 'actions@users.noreply.github.com'
           git add lib/
           git diff --cached --quiet && exit 0
-          git commit -m 'Apply V851 weather operations calendar repairs'
+          git commit -m 'Apply verified V852 product repairs'
           git push origin HEAD:main
