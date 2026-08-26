@@ -1,4 +1,4 @@
-# trigger v1
+# trigger v2
 name: Fix Source 3D Interaction
 
 on:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch mobile 3D gestures and gate
+      - name: Patch mobile 3D gestures
         shell: python
         run: |
           from pathlib import Path
@@ -31,17 +31,13 @@ jobs:
               raise SystemExit('gesture block not found')
           s=s.replace(old,new,1)
           p.write_text(s)
-
-          g=Path('.github/workflows/source-3d-v843-gate.yml')
-          t=g.read_text()
-          t=t.replace('run: flutter analyze\n','run: flutter analyze --no-fatal-infos --no-fatal-warnings\n')
-          g.write_text(t)
-      - name: Commit fixes
+      - name: Commit Dart fix only
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'BridgePoint 3D QA'
           git config user.email 'actions@users.noreply.github.com'
-          git add lib/v2/bridgepoint_source_surface_model_v2.dart .github/workflows/source-3d-v843-gate.yml
-          git commit -m 'Harden source 3D gestures and validation gate'
+          git add lib/v2/bridgepoint_source_surface_model_v2.dart
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Harden source 3D mobile gestures'
           git push origin HEAD:main
