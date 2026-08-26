@@ -21,11 +21,11 @@ jobs:
         env:
           SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
           SUPABASE_PUBLISHABLE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
-          EXPECTED_SOURCE: 57d43371b41fc34124c56f14a8065cbc0c44676a
-          EXPECTED_SHA: bca6dfd99232b2f773afab05c9fa840da3cab2a5a7260632bca7f245ac7151e2
-          EXPECTED_FONT_SHA: cd21fa0f1e2df7f592d7613a9bf6a273c1022c19e0d4393d3f34f5b481a3ff8b
+          EXPECTED_SOURCE: 07acf9c98d403d00c7ccebb674bbf6ae8a85a9da
+          EXPECTED_SHA: d4cec61a85f19c8f3ee40b75ab5feed7a8ada284d8b5728b894532c5a2c636a8
+          EXPECTED_FONT_SHA: 88446f8efaaddc0939fdc3dfb35ef41ad35f730b5e0715f9d401d3f3ef3d15d0
           EXPECTED_SPACE_SHA: acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72
-          RELEASE_OBJECT: clean-v2-57d43371b41fc34124c56f14a8065cbc0c44676a.tar.gz
+          RELEASE_OBJECT: clean-v2-07acf9c98d403d00c7ccebb674bbf6ae8a85a9da.tar.gz
         shell: bash
         run: |
           set -euo pipefail
@@ -51,7 +51,7 @@ jobs:
               raise SystemExit(f"Archive SHA mismatch: manifest={manifest.get('archive_sha256')} actual={actual} expected={expected_sha}")
           if manifest.get('archive_bytes') != len(archive):
               raise SystemExit(f"Archive byte mismatch: {len(archive)} != {manifest.get('archive_bytes')}")
-          for flag in ['restored_product_surfaces','progressive_national_map','saved_alerts_restored','opportunities_restored','visual_polish_v2','property_dossier_v2','property_visuals_v2','operations_product_ui_v2','fullscreen_property_dossier_v2','material_icon_font_included','space_grotesk_included']:
+          for flag in ['restored_product_surfaces','progressive_national_map','saved_alerts_restored','opportunities_restored','visual_polish_v2','property_dossier_v2','property_visuals_v2','operations_product_ui_v2','fullscreen_property_dossier_v2','engine_health_v777','requirements_contract_v832','material_icon_font_included','space_grotesk_included']:
               if manifest.get(flag) is not True:
                   raise SystemExit(f'{flag} marker missing')
           if manifest.get('brand_font') != 'SpaceGrotesk':
