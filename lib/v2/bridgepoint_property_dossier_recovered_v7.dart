@@ -79,7 +79,8 @@ class _BridgePointPropertyDossierRecoveryV7State
       final text = '${widget.seed[key] ?? ''}'.trim();
       if (text.isNotEmpty && text != 'null') return text;
     }
-    return 'Property ${widget.propertyId.substring(0, math.min(8, widget.propertyId.length))}';
+    final end = widget.propertyId.length < 8 ? widget.propertyId.length : 8;
+    return 'Property ${widget.propertyId.substring(0, end)}';
   }
 
   void _openEvidence() {
