@@ -19,15 +19,22 @@ if show_radar<0:
     raise SystemExit('v830 radar state field missing')
 
 def find_radar_condition(offset):
-    # The generated map's stable semantic contract is the visibility guard.
-    # Avoid regex escaping differences in generated/replayed workflow source.
-    candidates=[
-        pos for pos in (
-            text.find('if (_showRadar',offset),
-            text.find('if(_showRadar',offset),
-        ) if pos>=0
-    ]
-    return min(candidates) if candidates else -1
+    # Accept only a line-level _showRadar collection guard whose next widget is
+    # a nearby TileLayer. This excludes timer callbacks and avoids provider URLs.
+    cursor=offset
+    while True:
+        show=text.find('_showRadar',cursor)
+        if show<0:
+            return -1
+        line_start=text.rfind('\n',offset,show)+1
+        line_end=text.find('\n',show)
+        if line_end<0:
+            line_end=len(text)
+        line=text[line_start:line_end]
+        next_tile=text.find('TileLayer(',line_end,line_end+320)
+        if line.lstrip().startswith('if') and next_tile>=0:
+            return line_start+len(line)-len(line.lstrip())
+        cursor=show+len('_showRadar')
 
 
 main_radar_if=find_radar_condition(show_radar)
