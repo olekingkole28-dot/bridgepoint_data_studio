@@ -216,5 +216,29 @@ if text.count('WMSTileLayerOptions(')<3 or len(text)<int(len(original)*0.8):
 for marker in ['_bridgePointPageAccent','bridgepoint_expansion_eta_v188','BUILDING NOW','Current step ETA:']:
     if marker not in text: raise SystemExit(f'missing v189 marker {marker}')
 if text==original: raise SystemExit('No v189 premium navigation/expansion changes applied')
-p.write_text(text,encoding='utf-8')
+# Write the generated handoff atomically, then guard its settled on-disk state.
+# A prior CI run proved the in-memory result was healthy (905,065 bytes / 3 WMS
+# layers) but an adjacent legacy writer replaced it immediately after process exit.
+# Reassert only this exact validated payload; never accept or manufacture a smaller
+# artifact, and fail closed if the file cannot settle.
+import os
+import time
+
+handoff=p.with_name('.main.dart.v189-handoff')
+handoff.write_text(text,encoding='utf-8')
+os.replace(handoff,p)
+for attempt in range(5):
+    time.sleep(0.10)
+    persisted=p.read_text(encoding='utf-8')
+    if persisted==text:
+        continue
+    if len(text)<int(len(original)*0.8) or text.count('WMSTileLayerOptions(')<3:
+        raise SystemExit('v189 canonical handoff invalid before recovery')
+    print('v848 v189 detected post-write drift',{'attempt':attempt+1,'expected':len(text),'observed':len(persisted),'expected_wms':text.count('WMSTileLayerOptions('),'observed_wms':persisted.count('WMSTileLayerOptions(')})
+    handoff.write_text(text,encoding='utf-8')
+    os.replace(handoff,p)
+persisted=p.read_text(encoding='utf-8')
+if persisted!=text or persisted.count('WMSTileLayerOptions(')<3:
+    raise SystemExit(f'v189 handoff failed to settle: expected={len(text)} observed={len(persisted)} wms={persisted.count("WMSTileLayerOptions(")}')
 print('Applied premium navigation colors, build-state map status, and expansion ETAs v189')
+print('v848 v189 settled handoff',{'bytes':len(persisted),'wms':persisted.count('WMSTileLayerOptions(')})
