@@ -147,6 +147,10 @@ new_steps="""          const SizedBox(height:12),const Text('BUILD PROGRESS',sty
 if old_steps not in text: raise SystemExit('expansion steps UI anchor missing')
 text=text.replace(old_steps,new_steps,1)
 checkpoint('expansion')
+# Preserve the last fully validated premium/navigation/ETA payload. Later map
+# compatibility rewrites are optional and may encounter already-modern surfaces;
+# they must never destroy this valid handoff.
+safe_handoff_text=str(text)
 
 # Intelligence map: visibly advertise markets actively being built.
 old_cov="""        final coverageMarkets=_detailList(coverage['markets']);
@@ -228,7 +232,22 @@ canonical_text=str(text)
 canonical_bytes=canonical_text.encode('utf-8')
 canonical_sha=hashlib.sha256(canonical_bytes).hexdigest()
 if len(canonical_text)<int(len(original)*0.8) or canonical_text.count('WMSTileLayerOptions(')<3:
-    raise SystemExit('v189 canonical handoff invalid before write')
+    fallback=safe_handoff_text
+    fallback_bytes=fallback.encode('utf-8')
+    fallback_valid=(
+        len(fallback)>=int(len(original)*0.8)
+        and fallback.count('WMSTileLayerOptions(')>=3
+        and '_bridgePointPageAccent' in fallback
+        and 'Current step ETA:' in fallback
+    )
+    if not fallback_valid:
+        raise SystemExit('v189 canonical and safe handoffs invalid before write')
+    print('v852 v189 optional map rewrite rejected; restoring validated premium/navigation/ETA handoff',
+          {'rejected_bytes':len(canonical_text),'rejected_wms':canonical_text.count('WMSTileLayerOptions('),
+           'safe_bytes':len(fallback),'safe_wms':fallback.count('WMSTileLayerOptions(')})
+    canonical_text=fallback
+    canonical_bytes=fallback_bytes
+    canonical_sha=hashlib.sha256(canonical_bytes).hexdigest()
 
 handoff=p.with_name('.main.dart.v189-handoff')
 deadline=time.monotonic()+12.0
