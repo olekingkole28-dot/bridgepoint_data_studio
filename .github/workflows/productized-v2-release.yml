@@ -1,4 +1,4 @@
-# productized release trigger v1
+# productized release trigger v2
 name: BridgePoint Productized V2 Release
 
 on:
@@ -32,6 +32,8 @@ jobs:
           test -s lib/v2/bridgepoint_building_geometry_v2.dart
           grep -q "BridgePointPropertyDossierV2" lib/v2/bridgepoint_properties_v2.dart
           grep -q "BridgePointPropertyDossierV2" lib/v2/bridgepoint_investor_v2.dart
+          grep -q "asPage: true" lib/v2/bridgepoint_properties_v2.dart
+          grep -q "asPage: true" lib/v2/bridgepoint_investor_v2.dart
           grep -q "VISUAL INTELLIGENCE" lib/v2/bridgepoint_property_dossier_v2.dart
           grep -q "bridgepoint_property_imagery_history_v169" lib/v2/bridgepoint_property_dossier_v2.dart
           grep -q "bridgepoint_property_photo_contributions_v266" lib/v2/bridgepoint_property_dossier_v2.dart
@@ -41,7 +43,7 @@ jobs:
             echo 'Raw Investor payload dump still reachable' >&2
             exit 1
           fi
-          echo 'Property dossier and productized Operations source contract verified.'
+          echo 'Full-screen property dossier and productized Operations contract verified.'
 
       - name: Bundle Space Grotesk
         shell: bash
@@ -75,7 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           cat > web/bridgepoint-v2-release.json <<EOF
-          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","production_candidate":true,"restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"visual_polish_v2":true,"brand_font":"SpaceGrotesk","property_dossier_v2":true,"property_visuals_v2":true,"operations_product_ui_v2":true}
+          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","production_candidate":true,"restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"visual_polish_v2":true,"brand_font":"SpaceGrotesk","property_dossier_v2":true,"property_visuals_v2":true,"operations_product_ui_v2":true,"fullscreen_property_dossier_v2":true}
           EOF
           flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
           grep -q '<base href="/app/">' build/web/index.html
@@ -89,10 +91,10 @@ jobs:
           ICON_SHA="$(sha256sum build/web/assets/fonts/MaterialIcons-Regular.otf | awk '{print $1}')"
           SPACE_SHA="$(sha256sum "$SPACE_FONT" | awk '{print $1}')"
           cat > build/web/bridgepoint-release.json <<EOF
-          {"version":"${GITHUB_SHA}","architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"visual_polish_v2":true,"brand_font":"SpaceGrotesk","property_dossier_v2":true,"property_visuals_v2":true,"operations_product_ui_v2":true,"material_icon_font_sha256":"${ICON_SHA}","space_grotesk_sha256":"${SPACE_SHA}"}
+          {"version":"${GITHUB_SHA}","architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"visual_polish_v2":true,"brand_font":"SpaceGrotesk","property_dossier_v2":true,"property_visuals_v2":true,"operations_product_ui_v2":true,"fullscreen_property_dossier_v2":true,"material_icon_font_sha256":"${ICON_SHA}","space_grotesk_sha256":"${SPACE_SHA}"}
           EOF
           cat > build/web/public-promotion-v682.json <<EOF
-          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${ICON_SHA}","space_grotesk_sha256":"${SPACE_SHA}","source_repo_private":true,"architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"visual_polish_v2":true,"brand_font":"SpaceGrotesk","property_dossier_v2":true,"property_visuals_v2":true,"operations_product_ui_v2":true}
+          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${ICON_SHA}","space_grotesk_sha256":"${SPACE_SHA}","source_repo_private":true,"architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"visual_polish_v2":true,"brand_font":"SpaceGrotesk","property_dossier_v2":true,"property_visuals_v2":true,"operations_product_ui_v2":true,"fullscreen_property_dossier_v2":true}
           EOF
           touch build/web/.nojekyll
 
@@ -126,7 +128,7 @@ jobs:
           SPACE_FONT="$(find /tmp/v2-delta/assets -type f -name 'SpaceGrotesk.ttf' -print -quit)"
           SPACE_SHA="$(sha256sum "$SPACE_FONT" | awk '{print $1}')"
           cat > /tmp/v2-handoff/manifest.json <<EOF
-          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"visual_polish_v2":true,"property_dossier_v2":true,"property_visuals_v2":true,"operations_product_ui_v2":true,"brand_font":"SpaceGrotesk","material_icon_font_included":true,"material_icon_font_sha256":"${ICON_SHA}","space_grotesk_included":true,"space_grotesk_sha256":"${SPACE_SHA}"}
+          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"visual_polish_v2":true,"property_dossier_v2":true,"property_visuals_v2":true,"operations_product_ui_v2":true,"fullscreen_property_dossier_v2":true,"brand_font":"SpaceGrotesk","material_icon_font_included":true,"material_icon_font_sha256":"${ICON_SHA}","space_grotesk_included":true,"space_grotesk_sha256":"${SPACE_SHA}"}
           EOF
 
       - name: Publish handoff branch
