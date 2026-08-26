@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const sb = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
-const VERSION = 927;
+const VERSION = 933;
 const IMAGE_SAMPLES = "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/getSamples";
 const EPQS = "https://epqs.nationalmap.gov/v1/json";
 const H = { "content-type": "application/json", "cache-control": "no-store" };
@@ -15,16 +15,13 @@ async function authenticated(token: string) {
   const q = await sb.rpc("bridgepoint_expansion_worker_auth_v90", { p_task_token: token });
   return !q.error && q.data === true;
 }
-
 function finiteNumber(v: unknown): number | null {
   const n = typeof v === "number" ? v : Number(String(v ?? "").trim());
   return Number.isFinite(n) ? n : null;
 }
-
 function retryable(message: string) {
   return /(HTTP_(502|503|504)|timed out|timeout|network|fetch failed|connection reset)/i.test(message);
 }
-
 function baseRow(r: any) {
   return {
     property_id: String(r.property_id), longitude: Number(r.longitude), latitude: Number(r.latitude),
@@ -34,27 +31,66 @@ function baseRow(r: any) {
     attributes: {} as Record<string, unknown>,
   };
 }
-
+function imageResolution(target: any, sample: any, attrs: any) {
+  const rx = finiteNumber(attrs?.Resolution_X ?? attrs?.resolution_x);
+  const ry = finiteNumber(attrs?.Resolution_Y ?? attrs?.resolution_y);
+  const rawSample = finiteNumber(sample?.resolution ?? sample?.Resolution);
+  const axes = [rx, ry].filter((n): n is number => n !== null).map((n) => Math.abs(n));
+  if (axes.length && Math.max(...axes) <= 0.01) {
+    const latRad = Number(target.latitude) * Math.PI / 180;
+    const dx = rx === null ? 0 : Math.abs(rx) * 111320 * Math.max(0.01, Math.cos(latRad));
+    const dy = ry === null ? 0 : Math.abs(ry) * 110574;
+    const meters = Math.max(dx, dy);
+    return {
+      meters: meters > 0 ? meters : null,
+      provenance: {
+        resolution_native_x: rx,
+        resolution_native_y: ry,
+        resolution_native_sample: rawSample,
+        resolution_native_unit: "DEGREES",
+        resolution_m_method: "LOCAL_DEGREE_TO_METERS_MAX_AXIS_V933",
+      },
+    };
+  }
+  if (axes.length) {
+    return {
+      meters: Math.max(...axes),
+      provenance: {
+        resolution_native_x: rx,
+        resolution_native_y: ry,
+        resolution_native_sample: rawSample,
+        resolution_native_unit: "METERS_3DEP",
+        resolution_m_method: "USGS_3DEP_SOURCE_AXES_V933",
+      },
+    };
+  }
+  return {
+    meters: rawSample === null ? null : Math.abs(rawSample),
+    provenance: {
+      resolution_native_sample: rawSample,
+      resolution_native_unit: "METERS_EPQS_OR_LINEAR",
+      resolution_m_method: "SERVICE_LINEAR_RESOLUTION_V933",
+    },
+  };
+}
 function assignSample(target: any, sample: any, provenance: Record<string, unknown>) {
   const value = finiteNumber(sample?.value ?? sample?.Elevation ?? sample?.elevation);
   if (value !== null && value >= -12000 && value <= 10000) {
-    target.sample_status = "OK";
-    target.elevation_m = value;
+    target.sample_status = "OK"; target.elevation_m = value;
   } else if (value === null || value === -1000000) {
-    target.sample_status = "NO_DATA";
-    target.elevation_m = null;
+    target.sample_status = "NO_DATA"; target.elevation_m = null;
   } else {
-    target.sample_status = "INVALID";
-    target.elevation_m = null;
+    target.sample_status = "INVALID"; target.elevation_m = null;
   }
-  target.resolution_m = finiteNumber(sample?.resolution ?? sample?.Resolution ?? sample?.attributes?.Resolution_X ?? sample?.attributes?.resolution);
-  target.raster_id = finiteNumber(sample?.rasterId ?? sample?.RasterId ?? sample?.raster_id);
   const attrs = sample?.attributes && typeof sample.attributes === "object" ? sample.attributes : {};
+  const resolution = imageResolution(target, sample, attrs);
+  target.resolution_m = resolution.meters;
+  target.raster_id = finiteNumber(sample?.rasterId ?? sample?.RasterId ?? sample?.raster_id);
   target.dataset_id = attrs.Dataset_ID == null ? null : String(attrs.Dataset_ID);
   target.product_name = attrs.ProductName == null ? null : String(attrs.ProductName);
   target.vertical_datum = attrs.VerticalDatum == null ? null : String(attrs.VerticalDatum);
   target.acquisition_date = attrs.AcquisitionDate == null ? null : String(attrs.AcquisitionDate);
-  target.attributes = { ...attrs, ...provenance };
+  target.attributes = { ...attrs, ...resolution.provenance, ...provenance, resolution_truth_version: 933 };
 }
 
 async function imageSamples(rows: any[]) {
@@ -66,7 +102,6 @@ async function imageSamples(rows: any[]) {
   params.set("interpolation", "RSP_BilinearInterpolation");
   params.set("outFields", "Dataset_ID,ProductName,VerticalDatum,AcquisitionDate,Source,Resolution_X,Resolution_Y,pubdate,title");
   params.set("f", "json");
-
   let last = "USGS image request failed";
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -89,7 +124,6 @@ async function imageSamples(rows: any[]) {
   }
   throw new Error(last);
 }
-
 async function epqsOne(row: any) {
   const url = new URL(EPQS);
   url.searchParams.set("x", String(Number(row.longitude)));
@@ -97,26 +131,17 @@ async function epqsOne(row: any) {
   url.searchParams.set("wkid", "4326");
   url.searchParams.set("units", "Meters");
   url.searchParams.set("includeDate", "true");
-
   let last = "USGS EPQS request failed";
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(url, {
-        headers: { "accept": "application/json", "user-agent": "BridgePointIntelligence/1.0", "cache-control": "no-cache" },
-        signal: AbortSignal.timeout(10000),
-      });
+      const res = await fetch(url, { headers: { "accept": "application/json", "user-agent": "BridgePointIntelligence/1.0", "cache-control": "no-cache" }, signal: AbortSignal.timeout(10000) });
       const text = await res.text();
       if (!res.ok) throw new Error(`USGS_EPQS_HTTP_${res.status}:${text.slice(0,250)}`);
       let p: any;
       try { p = JSON.parse(text); } catch { throw new Error(`USGS_EPQS_NON_JSON:${text.slice(0,250)}`); }
       if (p?.error) throw new Error(`USGS_EPQS_ERROR:${JSON.stringify(p.error).slice(0,400)}`);
       const legacy = p?.USGS_Elevation_Point_Query_Service?.Elevation_Query || p?.Elevation_Query || {};
-      return {
-        value: p?.value ?? p?.elevation ?? legacy?.Elevation,
-        rasterId: p?.rasterId ?? p?.rasterID ?? legacy?.RasterId,
-        resolution: p?.resolution ?? legacy?.Resolution,
-        attributes: { ...(p?.attributes && typeof p.attributes === "object" ? p.attributes : {}), EPQS_Date: p?.date ?? p?.Date ?? legacy?.Data_Source ?? null },
-      };
+      return { value: p?.value ?? p?.elevation ?? legacy?.Elevation, rasterId: p?.rasterId ?? p?.rasterID ?? legacy?.RasterId, resolution: p?.resolution ?? legacy?.Resolution, attributes: { ...(p?.attributes && typeof p.attributes === "object" ? p.attributes : {}), EPQS_Date: p?.date ?? p?.Date ?? legacy?.Data_Source ?? null, resolution_native_unit: "METERS_EPQS" } };
     } catch (e) {
       last = String((e as any)?.message || e);
       if (!retryable(last) || attempt === 3) throw new Error(last);
@@ -125,17 +150,9 @@ async function epqsOne(row: any) {
   }
   throw new Error(last);
 }
-
 async function mapLimited<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
-  const out = new Array<R>(items.length);
-  let next = 0;
-  async function runner() {
-    while (true) {
-      const i = next++;
-      if (i >= items.length) return;
-      out[i] = await fn(items[i], i);
-    }
-  }
+  const out = new Array<R>(items.length); let next = 0;
+  async function runner() { while (true) { const i = next++; if (i >= items.length) return; out[i] = await fn(items[i], i); } }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => runner()));
   return out;
 }
@@ -146,61 +163,37 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const token = String(body.task_token || req.headers.get("x-bridgepoint-token") || "");
     if (!(await authenticated(token))) return new Response(JSON.stringify({ complete: false, version: VERSION, error: "invalid task token" }), { status: 401, headers: H });
-
     const batchSize = Math.max(1, Math.min(Number(body.batch_size || 40), 100));
     const claim = await sb.rpc("bridgepoint_3dep_claim_v927", { p_task_token: token, p_batch_size: batchSize });
     if (claim.error) throw claim.error;
     const job = claim.data || {};
     if (!job.claimed) return new Response(JSON.stringify({ complete: true, version: VERSION, claimed: false, reason: job.reason || "NO_WORK" }), { status: 200, headers: H });
-
-    const state = String(job.state_code || "");
-    const lease = String(job.lease_token || "");
-    const rows = Array.isArray(job.rows) ? job.rows : [];
+    const state = String(job.state_code || ""), lease = String(job.lease_token || ""), rows = Array.isArray(job.rows) ? job.rows : [];
     if (!state || !lease || !rows.length) throw new Error("invalid claim payload");
-
     try {
-      const out = rows.map(baseRow);
-      let imageChunksOk = 0, imageChunksFailed = 0, imageSamplesUsed = 0, epqsFallbacks = 0;
-      const fallbackIndexes = new Set<number>();
-
+      const out = rows.map(baseRow); let imageChunksOk = 0, imageChunksFailed = 0, imageSamplesUsed = 0, epqsFallbacks = 0; const fallbackIndexes = new Set<number>();
       for (let start = 0; start < rows.length; start += IMAGE_CHUNK) {
         const chunk = rows.slice(start, start + IMAGE_CHUNK);
         try {
-          const samples = await imageSamples(chunk);
-          imageChunksOk++;
+          const samples = await imageSamples(chunk); imageChunksOk++;
           const ids = samples.map((s: any) => Number(s?.locationId)).filter((n: number) => Number.isInteger(n));
           const oneBased = ids.length > 0 && Math.min(...ids) >= 1 && Math.max(...ids) <= chunk.length && !ids.includes(0);
           const touched = new Set<number>();
           for (let i = 0; i < samples.length; i++) {
-            const s: any = samples[i] || {};
-            const rawId = Number(s.locationId);
-            let local = Number.isInteger(rawId) ? rawId - (oneBased ? 1 : 0) : i;
-            if (local < 0 || local >= chunk.length) local = i < chunk.length ? i : -1;
-            if (local < 0) continue;
-            const global = start + local;
-            assignSample(out[global], s, { query_path: "3DEP_IMAGESERVER_GETSAMPLES", image_chunk_size: chunk.length });
-            touched.add(local);
-            imageSamplesUsed++;
+            const s: any = samples[i] || {}; const rawId = Number(s.locationId); let local = Number.isInteger(rawId) ? rawId - (oneBased ? 1 : 0) : i;
+            if (local < 0 || local >= chunk.length) local = i < chunk.length ? i : -1; if (local < 0) continue;
+            const global = start + local; assignSample(out[global], s, { query_path: "3DEP_IMAGESERVER_GETSAMPLES", image_chunk_size: chunk.length }); touched.add(local); imageSamplesUsed++;
           }
           for (let local = 0; local < chunk.length; local++) if (!touched.has(local)) fallbackIndexes.add(start + local);
-        } catch (_) {
-          imageChunksFailed++;
-          for (let local = 0; local < chunk.length; local++) fallbackIndexes.add(start + local);
-        }
+        } catch (_) { imageChunksFailed++; for (let local = 0; local < chunk.length; local++) fallbackIndexes.add(start + local); }
       }
-
       const indexes = [...fallbackIndexes].sort((a, b) => a - b);
       if (indexes.length) {
         const fallbackResults = await mapLimited(indexes, EPQS_CONCURRENCY, async (idx) => ({ idx, sample: await epqsOne(rows[idx]) }));
-        for (const { idx, sample } of fallbackResults) {
-          assignSample(out[idx], sample, { query_path: "EPQS_FALLBACK", fallback_from: "3DEP_IMAGESERVER_GETSAMPLES" });
-          epqsFallbacks++;
-        }
+        for (const { idx, sample } of fallbackResults) { assignSample(out[idx], sample, { query_path: "EPQS_FALLBACK", fallback_from: "3DEP_IMAGESERVER_GETSAMPLES" }); epqsFallbacks++; }
       }
-
       const saved = await sb.rpc("bridgepoint_3dep_persist_v927", { p_task_token: token, p_state_code: state, p_lease_token: lease, p_samples: out });
       if (saved.error) throw saved.error;
-
       const accepted = out.filter((x: any) => x.sample_status === "OK").length;
       return new Response(JSON.stringify({ complete: true, version: VERSION, claimed: true, state_code: state, requested: rows.length, accepted, image_chunks_ok: imageChunksOk, image_chunks_failed: imageChunksFailed, image_samples_used: imageSamplesUsed, epqs_fallbacks: epqsFallbacks, persisted: saved.data }), { status: 200, headers: H });
     } catch (e) {
