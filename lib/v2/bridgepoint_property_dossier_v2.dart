@@ -6,4 +6,5 @@
 // bridgepoint_property_media_bundle_v169
 // BridgePointBuildingGeometryV2
 // bridgepoint_property_intelligence_snapshot_v907
-export 'bridgepoint_property_dossier_recovered_v4.dart';
+// Current Esri World Imagery context is client-rendered with attribution only.
+export 'bridgepoint_property_dossier_recovered_v5.dart';
