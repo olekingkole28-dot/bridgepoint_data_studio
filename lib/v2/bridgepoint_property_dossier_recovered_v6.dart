@@ -6,10 +6,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'bridgepoint_building_geometry_v2.dart';
 import 'bridgepoint_property_dossier_recovered_v5.dart' as recovered_v5;
 
-/// Recovery V6 consolidates BridgePoint physical + intelligence capability into
-/// a single Property Twin surface. The backend contract always returns the best
-/// lawful/verified context available now and queues missing enrichment instead
-/// of ending the customer flow at a generic "no data" state.
+/// Unified BridgePoint Property Twin recovery surface.
+///
+/// V6 keeps the proven V5 dossier underneath, adds one clear Property Twin
+/// entry point, and exposes the best currently available physical context while
+/// automatically queuing missing enrichment through the V918 backend contract.
 class BridgePointPropertyDossierV2 extends StatefulWidget {
   const BridgePointPropertyDossierV2({
     super.key,
@@ -30,9 +31,6 @@ class BridgePointPropertyDossierV2 extends StatefulWidget {
 class _BridgePointPropertyDossierRecoveryV6State
     extends State<BridgePointPropertyDossierV2> {
   static const _cyan = Color(0xFF48E1FF);
-  static const _amber = Color(0xFFFFC95E);
-  static const _muted = Color(0xFFB5C6D9);
-  static const _green = Color(0xFF78E6A7);
 
   late Future<Map<String, dynamic>> _twin;
 
@@ -53,24 +51,24 @@ class _BridgePointPropertyDossierRecoveryV6State
   Map<String, dynamic> _map(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
-    return const {};
+    return const <String, dynamic>{};
   }
 
   Future<Map<String, dynamic>> _loadTwin() async {
     try {
       final raw = await Supabase.instance.client.rpc(
         'bridgepoint_property_twin_v918',
-        params: {'p_property_id': widget.propertyId},
+        params: <String, dynamic>{'p_property_id': widget.propertyId},
       );
       return _map(raw);
     } catch (_) {
-      return const {};
+      return const <String, dynamic>{};
     }
   }
 
   Future<void> _refreshTwin() async {
     final next = _loadTwin();
-    setState(() => _twin = next);
+    if (mounted) setState(() => _twin = next);
     await next;
   }
 
@@ -89,10 +87,8 @@ class _BridgePointPropertyDossierRecoveryV6State
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final twin = snapshot.data ?? const <String, dynamic>{};
               return _TwinSheet(
-                propertyId: widget.propertyId,
-                twin: twin,
+                twin: snapshot.data ?? const <String, dynamic>{},
                 onRefresh: _refreshTwin,
               );
             },
@@ -106,7 +102,7 @@ class _BridgePointPropertyDossierRecoveryV6State
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
-      children: [
+      children: <Widget>[
         recovered_v5.BridgePointPropertyDossierV2(
           propertyId: widget.propertyId,
           seed: widget.seed,
@@ -155,13 +151,8 @@ class _BridgePointPropertyDossierRecoveryV6State
 }
 
 class _TwinSheet extends StatelessWidget {
-  const _TwinSheet({
-    required this.propertyId,
-    required this.twin,
-    required this.onRefresh,
-  });
+  const _TwinSheet({required this.twin, required this.onRefresh});
 
-  final String propertyId;
   final Map<String, dynamic> twin;
   final Future<void> Function() onRefresh;
 
@@ -173,7 +164,7 @@ class _TwinSheet extends StatelessWidget {
   Map<String, dynamic> _map(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
-    return const {};
+    return const <String, dynamic>{};
   }
 
   bool _bool(Map<String, dynamic> map, String key) => map[key] == true;
@@ -185,66 +176,21 @@ class _TwinSheet extends StatelessWidget {
     final site = _map(twin['site_3d']);
     final geometry = _map(twin['geometry']);
     final media = _map(twin['media']);
-    final intel = _map(twin['intelligence']);
-    final siteMode = '${site['site_mode'] ?? ''}';
-    final structureMode = '${site['structure_mode'] ?? ''}';
-
-    Widget capability(
-      String label,
-      IconData icon,
-      bool available, {
-      bool upgrading = false,
-      String? detail,
-    }) {
-      final color = available ? _green : upgrading ? _amber : _muted;
-      final state = available
-          ? 'Available now'
-          : upgrading
-              ? 'Upgrade queued'
-              : 'Best context only';
-      return Container(
-        width: 154,
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: const Color(0xFF071321),
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: color.withValues(alpha: .34)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 7),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 3),
-            Text(state, style: TextStyle(color: color, fontSize: 11.5)),
-            if (detail != null && detail.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                detail,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: _muted, fontSize: 10.5),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
+    final intelligence = _map(twin['intelligence']);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+      children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
           child: Row(
-            children: [
+            children: <Widget>[
               const Icon(Icons.hub_rounded, color: _cyan),
               const SizedBox(width: 9),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  children: <Widget>[
                     Text(
                       'BridgePoint Property Twin',
                       style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
@@ -262,6 +208,7 @@ class _TwinSheet extends StatelessWidget {
                 icon: const Icon(Icons.refresh_rounded, color: _cyan),
               ),
               IconButton(
+                tooltip: 'Close',
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close_rounded),
               ),
@@ -271,46 +218,47 @@ class _TwinSheet extends StatelessWidget {
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(14, 6, 14, 24),
-            children: [
+            children: <Widget>[
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: [
-                  capability(
-                    'Front',
-                    Icons.home_rounded,
-                    _bool(caps, 'front_imagery'),
+                children: <Widget>[
+                  _CapabilityCard(
+                    label: 'Front',
+                    icon: Icons.home_rounded,
+                    available: _bool(caps, 'front_imagery'),
                     upgrading: _bool(queued, 'front_imagery'),
                   ),
-                  capability(
-                    'Current aerial',
-                    Icons.satellite_alt_rounded,
-                    _bool(caps, 'aerial'),
+                  _CapabilityCard(
+                    label: 'Current aerial',
+                    icon: Icons.satellite_alt_rounded,
+                    available: _bool(caps, 'aerial'),
                   ),
-                  capability(
-                    'Aerial history',
-                    Icons.history_rounded,
-                    _bool(caps, 'historical_aerial'),
+                  _CapabilityCard(
+                    label: 'Aerial history',
+                    icon: Icons.history_rounded,
+                    available: _bool(caps, 'historical_aerial'),
                   ),
-                  capability(
-                    'Site 3D',
-                    Icons.location_city_rounded,
-                    _bool(caps, 'site_3d'),
+                  _CapabilityCard(
+                    label: 'Site 3D',
+                    icon: Icons.location_city_rounded,
+                    available: _bool(caps, 'site_3d'),
                     upgrading: _bool(queued, 'building_geometry'),
-                    detail: siteMode,
+                    detail: '${site['site_mode'] ?? ''}',
                   ),
-                  capability(
-                    'Structure 3D',
-                    Icons.view_in_ar_rounded,
-                    _bool(caps, 'structure_3d'),
+                  _CapabilityCard(
+                    label: 'Structure 3D',
+                    icon: Icons.view_in_ar_rounded,
+                    available: _bool(caps, 'structure_3d'),
                     upgrading: _bool(queued, 'building_geometry'),
-                    detail: structureMode,
+                    detail: '${site['structure_mode'] ?? ''}',
                   ),
-                  capability(
-                    'Intelligence',
-                    Icons.insights_rounded,
-                    intel.isNotEmpty,
-                    detail: '${intel['tier'] ?? intel['score_tier'] ?? ''}',
+                  _CapabilityCard(
+                    label: 'Intelligence',
+                    icon: Icons.insights_rounded,
+                    available: intelligence.isNotEmpty,
+                    detail:
+                        '${intelligence['tier'] ?? intelligence['score_tier'] ?? ''}',
                   ),
                 ],
               ),
@@ -319,14 +267,16 @@ class _TwinSheet extends StatelessWidget {
                 icon: Icons.travel_explore_rounded,
                 title: 'Walk the site context',
                 subtitle:
-                    'Navigate the focal property and nearby source-backed buildings. Height estimates are labeled when a measured/source height is not available.',
+                    'Orbit or move across the focal property and nearby source-backed buildings. Any display-only height estimate stays labeled.',
                 enabled: site['site_context_available'] == true,
                 queued: _bool(queued, 'building_geometry'),
                 onTap: site['site_context_available'] == true
                     ? () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => Scaffold(
-                              appBar: AppBar(title: const Text('Property Twin • Site 3D')),
+                              appBar: AppBar(
+                                title: const Text('Property Twin • Site 3D'),
+                              ),
                               body: SafeArea(child: _SiteTwinViewer(site: site)),
                             ),
                           ),
@@ -338,18 +288,22 @@ class _TwinSheet extends StatelessWidget {
                 icon: Icons.view_in_ar_rounded,
                 title: 'Open structure model',
                 subtitle:
-                    'Use the highest-fidelity source surfaces available; otherwise use the source footprint with an explicitly schematic massing height.',
+                    'Use the highest-fidelity source surfaces available; otherwise use the source footprint with explicitly schematic massing.',
                 enabled: geometry.isNotEmpty,
                 queued: _bool(queued, 'building_geometry'),
                 onTap: geometry.isNotEmpty
                     ? () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => Scaffold(
-                              appBar: AppBar(title: const Text('Property Twin • Structure')),
+                              appBar: AppBar(
+                                title: const Text('Property Twin • Structure'),
+                              ),
                               body: SafeArea(
                                 child: SingleChildScrollView(
                                   padding: const EdgeInsets.all(12),
-                                  child: BridgePointBuildingGeometryV2(payload: geometry),
+                                  child: BridgePointBuildingGeometryV2(
+                                    payload: geometry,
+                                  ),
                                 ),
                               ),
                             ),
@@ -362,24 +316,13 @@ class _TwinSheet extends StatelessWidget {
                 icon: Icons.photo_library_outlined,
                 title: 'Physical media evidence',
                 subtitle:
-                    'Front/street, current aerial reference and dated historical imagery remain separate evidence classes so visual context is never misrepresented as proof of condition.',
+                    'Street/front, current aerial, and dated historical imagery stay separate evidence classes so a picture never silently becomes a condition claim.',
                 enabled: media.isNotEmpty,
                 queued: _bool(queued, 'front_imagery'),
                 onTap: null,
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF071321),
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(color: _amber.withValues(alpha: .30)),
-                ),
-                child: Text(
-                  _truthText(site, queued),
-                  style: const TextStyle(color: _amber, fontSize: 11.6, height: 1.45),
-                ),
-              ),
+              _TruthBox(text: _truthText(site, queued)),
             ],
           ),
         ),
@@ -401,8 +344,68 @@ class _TwinSheet extends StatelessWidget {
           ? 'BridgePoint is showing the best currently verified physical-property context for this record.'
           : notice;
     }
-    return 'BridgePoint is actively upgrading ${upgrades.join(', ')} for this property. '
-        '${notice.isEmpty ? 'The current view remains usable and clearly labels any estimated visualization layer.' : notice}';
+    final base = notice.isEmpty
+        ? 'The current view remains usable and clearly labels any estimated visualization layer.'
+        : notice;
+    return 'BridgePoint is actively upgrading ${upgrades.join(', ')} for this property. $base';
+  }
+}
+
+class _CapabilityCard extends StatelessWidget {
+  const _CapabilityCard({
+    required this.label,
+    required this.icon,
+    required this.available,
+    this.upgrading = false,
+    this.detail,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool available;
+  final bool upgrading;
+  final String? detail;
+
+  static const _green = Color(0xFF78E6A7);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
+
+  @override
+  Widget build(BuildContext context) {
+    final color = available ? _green : upgrading ? _amber : _muted;
+    final state = available
+        ? 'Available now'
+        : upgrading
+            ? 'Upgrade queued'
+            : 'Best context only';
+    return Container(
+      width: 154,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: const Color(0xFF071321),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: color.withValues(alpha: .34)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 7),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 3),
+          Text(state, style: TextStyle(color: color, fontSize: 11.5)),
+          if (detail != null && detail!.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 4),
+            Text(
+              detail!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: _muted, fontSize: 10.5),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -440,18 +443,22 @@ class _TwinActionCard extends StatelessWidget {
           border: Border.all(color: Colors.white.withValues(alpha: .10)),
         ),
         child: Row(
-          children: [
+          children: <Widget>[
             Icon(icon, color: enabled ? _cyan : queued ? _amber : _muted),
             const SizedBox(width: 11),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: <Widget>[
                   Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: _muted, fontSize: 11.2, height: 1.35),
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 11.2,
+                      height: 1.35,
+                    ),
                   ),
                 ],
               ),
@@ -465,6 +472,33 @@ class _TwinActionCard extends StatelessWidget {
                 label: Text('Queued', style: TextStyle(fontSize: 10.5)),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TruthBox extends StatelessWidget {
+  const _TruthBox({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF071321),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(
+          color: const Color(0xFFFFC95E).withValues(alpha: .30),
+        ),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xFFFFC95E),
+          fontSize: 11.6,
+          height: 1.45,
         ),
       ),
     );
@@ -493,44 +527,51 @@ class _SiteTwinViewerState extends State<_SiteTwinViewer> {
 
   List<Map<String, dynamic>> get _buildings {
     final raw = widget.site['buildings'];
-    if (raw is! List) return const [];
-    return raw.whereType<Map>().map((x) => Map<String, dynamic>.from(x)).toList();
+    if (raw is! List) return const <Map<String, dynamic>>[];
+    return raw
+        .whereType<Map>()
+        .map((x) => Map<String, dynamic>.from(x))
+        .toList();
   }
 
-  void _reset() => setState(() {
-        _yaw = -.55;
-        _pitch = .58;
-        _zoom = 1;
-        _travel = Offset.zero;
-      });
+  void _reset() {
+    setState(() {
+      _yaw = -.55;
+      _pitch = .58;
+      _zoom = 1;
+      _travel = Offset.zero;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final buildings = _buildings;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+      children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
           child: Row(
-            children: [
+            children: <Widget>[
               Expanded(
                 child: SegmentedButton<bool>(
                   showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(
+                  segments: const <ButtonSegment<bool>>[
+                    ButtonSegment<bool>(
                       value: false,
                       icon: Icon(Icons.threed_rotation_rounded, size: 16),
                       label: Text('Orbit'),
                     ),
-                    ButtonSegment(
+                    ButtonSegment<bool>(
                       value: true,
                       icon: Icon(Icons.directions_walk_rounded, size: 16),
                       label: Text('Walk site'),
                     ),
                   ],
-                  selected: {_walkMode},
-                  onSelectionChanged: (v) => setState(() => _walkMode = v.first),
+                  selected: <bool>{_walkMode},
+                  onSelectionChanged: (values) {
+                    setState(() => _walkMode = values.first);
+                  },
                 ),
               ),
               const SizedBox(width: 8),
@@ -548,7 +589,7 @@ class _SiteTwinViewerState extends State<_SiteTwinViewer> {
                   child: Padding(
                     padding: EdgeInsets.all(24),
                     child: Text(
-                      'Site context is geolocated and the building-geometry upgrade is queued. The scene will gain structures automatically as a verified/open geometry source lands.',
+                      'Site context is geolocated and the building-geometry upgrade is queued. The scene gains structures automatically as verified/open geometry sources land.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: _muted, height: 1.45),
                     ),
@@ -557,16 +598,20 @@ class _SiteTwinViewerState extends State<_SiteTwinViewer> {
               : GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onScaleStart: (_) => _gestureZoom = _zoom,
-                  onScaleUpdate: (d) {
+                  onScaleUpdate: (details) {
                     setState(() {
                       if (_walkMode) {
-                        _travel += d.focalPointDelta;
+                        _travel += details.focalPointDelta;
                       } else {
-                        _yaw += d.focalPointDelta.dx * .010;
-                        _pitch = (_pitch - d.focalPointDelta.dy * .005).clamp(.18, 1.25);
+                        _yaw += details.focalPointDelta.dx * .010;
+                        _pitch = (_pitch - details.focalPointDelta.dy * .005)
+                            .clamp(.18, 1.25)
+                            .toDouble();
                       }
-                      if (d.pointerCount > 1) {
-                        _zoom = (_gestureZoom * d.scale).clamp(.45, 4.0);
+                      if (details.pointerCount > 1) {
+                        _zoom = (_gestureZoom * details.scale)
+                            .clamp(.45, 4.0)
+                            .toDouble();
                       }
                     });
                   },
@@ -575,7 +620,10 @@ class _SiteTwinViewerState extends State<_SiteTwinViewer> {
                       gradient: RadialGradient(
                         center: Alignment(.12, -.25),
                         radius: 1.35,
-                        colors: [Color(0xFF112A43), Color(0xFF030A12)],
+                        colors: <Color>[
+                          Color(0xFF112A43),
+                          Color(0xFF030A12),
+                        ],
                       ),
                     ),
                     child: CustomPaint(
@@ -596,7 +644,7 @@ class _SiteTwinViewerState extends State<_SiteTwinViewer> {
           color: const Color(0xFF071321),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               const Icon(Icons.verified_outlined, color: _amber, size: 18),
               const SizedBox(width: 7),
               Expanded(
@@ -604,7 +652,11 @@ class _SiteTwinViewerState extends State<_SiteTwinViewer> {
                   '${widget.site['building_count'] ?? buildings.length} buildings • '
                   '${widget.site['structure_mode'] ?? 'site context'} • '
                   '${widget.site['truth_notice'] ?? 'Source geometry is preferred; any display-only height estimate is labeled.'}',
-                  style: const TextStyle(color: _amber, fontSize: 10.8, height: 1.35),
+                  style: const TextStyle(
+                    color: _amber,
+                    fontSize: 10.8,
+                    height: 1.35,
+                  ),
                 ),
               ),
             ],
@@ -630,8 +682,13 @@ class _SiteTwinPainter extends CustomPainter {
   final double zoom;
   final Offset travel;
 
+  static double? _double(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('${value ?? ''}');
+  }
+
   List<List<Offset>> _rings(dynamic geometry) {
-    if (geometry is! Map) return const [];
+    if (geometry is! Map) return const <List<Offset>>[];
     final g = Map<String, dynamic>.from(geometry);
     final type = '${g['type'] ?? ''}';
     final coords = g['coordinates'];
@@ -641,8 +698,16 @@ class _SiteTwinPainter extends CustomPainter {
       if (ring is! List) return;
       final points = <Offset>[];
       for (final p in ring) {
-        if (p is List && p.length >= 2 && p[0] is num && p[1] is num) {
-          points.add(Offset((p[0] as num).toDouble(), (p[1] as num).toDouble()));
+        if (p is List &&
+            p.length >= 2 &&
+            p[0] is num &&
+            p[1] is num) {
+          points.add(
+            Offset(
+              (p[0] as num).toDouble(),
+              (p[1] as num).toDouble(),
+            ),
+          );
         }
       }
       if (points.length >= 3) out.add(points);
@@ -661,41 +726,54 @@ class _SiteTwinPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final items = <_SceneBuilding>[];
-    final all = <Offset>[];
-    for (final b in buildings) {
-      for (final ring in _rings(b['geometry'])) {
-        all.addAll(ring);
-        final h = _asDouble(b['render_height_m']) ?? 8.5;
-        items.add(_SceneBuilding(
-          ring: ring,
-          height: h.clamp(2.0, 180.0),
-          target: b['is_target'] == true,
-          estimated: '${b['height_source'] ?? ''}' == 'ESTIMATED_VISUALIZATION_ONLY',
-        ));
+    final allPoints = <Offset>[];
+
+    for (final building in buildings) {
+      for (final ring in _rings(building['geometry'])) {
+        allPoints.addAll(ring);
+        final h = _double(building['render_height_m']) ?? 8.5;
+        items.add(
+          _SceneBuilding(
+            ring: ring,
+            height: h.clamp(2.0, 180.0).toDouble(),
+            target: building['is_target'] == true,
+            estimated:
+                '${building['height_source'] ?? ''}' ==
+                    'ESTIMATED_VISUALIZATION_ONLY',
+          ),
+        );
       }
     }
-    if (all.isEmpty) return;
 
-    var minX = all.first.dx, maxX = all.first.dx, minY = all.first.dy, maxY = all.first.dy;
-    for (final p in all.skip(1)) {
-      minX = math.min(minX, p.dx);
-      maxX = math.max(maxX, p.dx);
-      minY = math.min(minY, p.dy);
-      maxY = math.max(maxY, p.dy);
+    if (allPoints.isEmpty) return;
+
+    var minX = allPoints.first.dx;
+    var maxX = allPoints.first.dx;
+    var minY = allPoints.first.dy;
+    var maxY = allPoints.first.dy;
+    for (final point in allPoints.skip(1)) {
+      minX = math.min(minX, point.dx);
+      maxX = math.max(maxX, point.dx);
+      minY = math.min(minY, point.dy);
+      maxY = math.max(maxY, point.dy);
     }
+
     final cx = (minX + maxX) / 2;
     final cy = (minY + maxY) / 2;
     final span = math.max((maxX - minX).abs(), (maxY - minY).abs());
-    final scale = span <= 0 ? 1.0 : (math.min(size.width, size.height) * .70 / span) * zoom;
-    final cosY = math.cos(yaw), sinY = math.sin(yaw);
+    final scale = span <= 0
+        ? 1.0
+        : (math.min(size.width, size.height) * .70 / span) * zoom;
+    final cosYaw = math.cos(yaw);
+    final sinYaw = math.sin(yaw);
     final pitchScale = .28 + math.cos(pitch).abs() * .62;
     final center = size.center(Offset.zero) + travel;
 
-    Offset project(Offset p, [double z = 0]) {
-      final x = (p.dx - cx) * scale;
-      final y = -(p.dy - cy) * scale;
-      final rx = x * cosY - y * sinY;
-      final ry = x * sinY + y * cosY;
+    Offset project(Offset point, [double z = 0]) {
+      final x = (point.dx - cx) * scale;
+      final y = -(point.dy - cy) * scale;
+      final rx = x * cosYaw - y * sinYaw;
+      final ry = x * sinYaw + y * cosYaw;
       return center + Offset(rx, ry * pitchScale - z * (2.1 + pitch * 1.2));
     }
 
@@ -704,30 +782,46 @@ class _SiteTwinPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     for (var i = -6; i <= 6; i++) {
-      canvas.drawLine(Offset(0, center.dy + i * 34), Offset(size.width, center.dy + i * 34), grid);
-      canvas.drawLine(Offset(center.dx + i * 44, 0), Offset(center.dx + i * 44, size.height), grid);
+      canvas.drawLine(
+        Offset(0, center.dy + i * 34),
+        Offset(size.width, center.dy + i * 34),
+        grid,
+      );
+      canvas.drawLine(
+        Offset(center.dx + i * 44, 0),
+        Offset(center.dx + i * 44, size.height),
+        grid,
+      );
     }
 
     items.sort((a, b) {
-      final ay = a.ring.fold<double>(0, (s, p) => s + p.dy) / a.ring.length;
-      final by = b.ring.fold<double>(0, (s, p) => s + p.dy) / b.ring.length;
+      final ay = a.ring.fold<double>(0, (sum, p) => sum + p.dy) /
+          a.ring.length;
+      final by = b.ring.fold<double>(0, (sum, p) => sum + p.dy) /
+          b.ring.length;
       return by.compareTo(ay);
     });
 
     for (final item in items) {
       final base = item.ring.map((p) => project(p)).toList();
       final top = item.ring.map((p) => project(p, item.height)).toList();
+      final wallColor = item.target
+          ? const Color(0xFF48E1FF)
+          : const Color(0xFF587492);
+      final roofColor = item.target
+          ? const Color(0xFF48E1FF)
+          : const Color(0xFF8DB3D4);
+      final edgeColor = item.target
+          ? const Color(0xFF7AEAFF)
+          : Colors.white;
       final wall = Paint()
-        ..color = (item.target ? const Color(0xFF48E1FF) : const Color(0xFF587492))
-            .withValues(alpha: item.target ? .38 : .24)
+        ..color = wallColor.withValues(alpha: item.target ? .38 : .24)
         ..style = PaintingStyle.fill;
       final roof = Paint()
-        ..color = (item.target ? const Color(0xFF48E1FF) : const Color(0xFF8DB3D4))
-            .withValues(alpha: item.estimated ? .48 : .72)
+        ..color = roofColor.withValues(alpha: item.estimated ? .48 : .72)
         ..style = PaintingStyle.fill;
       final edge = Paint()
-        ..color = (item.target ? const Color(0xFF7AEAFF) : Colors.white)
-            .withValues(alpha: item.target ? .90 : .28)
+        ..color = edgeColor.withValues(alpha: item.target ? .90 : .28)
         ..style = PaintingStyle.stroke
         ..strokeWidth = item.target ? 1.8 : .8;
 
@@ -741,31 +835,35 @@ class _SiteTwinPainter extends CustomPainter {
           ..close();
         canvas.drawPath(side, wall);
       }
+
       final roofPath = Path()..moveTo(top.first.dx, top.first.dy);
-      for (final p in top.skip(1)) roofPath.lineTo(p.dx, p.dy);
+      for (final point in top.skip(1)) {
+        roofPath.lineTo(point.dx, point.dy);
+      }
       roofPath.close();
       canvas.drawPath(roofPath, roof);
       canvas.drawPath(roofPath, edge);
+
       if (item.target) {
-        final centroid = top.reduce((a, b) => a + b) / top.length.toDouble();
-        final marker = Paint()..color = const Color(0xFF48E1FF);
-        canvas.drawCircle(centroid, 5.5, marker);
+        final sum = top.reduce((a, b) => a + b);
+        final centroid = sum / top.length.toDouble();
+        canvas.drawCircle(
+          centroid,
+          5.5,
+          Paint()..color = const Color(0xFF48E1FF),
+        );
       }
     }
   }
 
-  double? _asDouble(dynamic v) {
-    if (v is num) return v.toDouble();
-    return double.tryParse('${v ?? ''}');
-  }
-
   @override
-  bool shouldRepaint(covariant _SiteTwinPainter oldDelegate) =>
-      oldDelegate.yaw != yaw ||
-      oldDelegate.pitch != pitch ||
-      oldDelegate.zoom != zoom ||
-      oldDelegate.travel != travel ||
-      oldDelegate.buildings != buildings;
+  bool shouldRepaint(covariant _SiteTwinPainter oldDelegate) {
+    return oldDelegate.yaw != yaw ||
+        oldDelegate.pitch != pitch ||
+        oldDelegate.zoom != zoom ||
+        oldDelegate.travel != travel ||
+        oldDelegate.buildings != buildings;
+  }
 }
 
 class _SceneBuilding {
@@ -775,6 +873,7 @@ class _SceneBuilding {
     required this.target,
     required this.estimated,
   });
+
   final List<Offset> ring;
   final double height;
   final bool target;
