@@ -9,5 +9,5 @@
 // BridgePointBuildingGeometryV2
 // bridgepoint_property_intelligence_snapshot_v907
 // Current Esri World Imagery context is client-rendered with attribution only.
-// Recovery V6 is isolated to podcast-product-recovery-v3 until validation passes.
-export 'bridgepoint_property_dossier_recovered_v6.dart';
+// Recovery V7 is isolated to podcast-product-recovery-v3 until validation passes.
+export 'bridgepoint_property_dossier_recovered_v7.dart';
