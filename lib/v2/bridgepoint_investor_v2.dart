@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'bridgepoint_property_dossier_v2.dart';
+
 class BridgePointInvestorV2 extends StatefulWidget {
   const BridgePointInvestorV2({super.key});
 
@@ -611,41 +613,15 @@ class _InvestorCard extends StatelessWidget {
   }
 
   void _open(BuildContext context) {
+    final propertyId = '${row['property_id'] ?? ''}'.trim();
+    if (propertyId.isEmpty) return;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: FractionallySizedBox(
-          heightFactor: .78,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 22),
-            child: ListView(
-              children: [
-                Text(
-                  '${row['full_address'] ?? row['municipality'] ?? 'Investor opportunity'}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                for (final entry in row.entries)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Text(
-                      '${entry.key.replaceAll('_', ' ')}: ${entry.value}',
-                      style: const TextStyle(
-                        color: _BridgePointInvestorV2State._muted,
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+      builder: (context) => BridgePointPropertyDossierV2(
+        propertyId: propertyId,
+        seed: row,
       ),
     );
   }

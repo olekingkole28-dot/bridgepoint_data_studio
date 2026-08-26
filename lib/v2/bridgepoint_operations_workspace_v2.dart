@@ -269,7 +269,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
             ConstrainedBox(constraints: const BoxConstraints(maxWidth: 620), child: Text('${row['title'] ?? row['full_address'] ?? 'Opportunity'}', style: const TextStyle(fontWeight: FontWeight.w900))),
             if (score != null) Chip(label: Text('Score $score')),
           ]),
-          if ('${row['full_address'] ?? ''}'.isNotEmpty) Text('${row['full_address']}', style: const TextStyle(color: _muted, fontSize: 10)),
+          if ('${row['full_address'] ?? ''}'.isNotEmpty) Text('${row['full_address']}', style: const TextStyle(color: _muted, fontSize: 12.5, fontWeight: FontWeight.w600)),
           const SizedBox(height: 7),
           Text('${row['explanation'] ?? 'No explanation returned.'}', style: const TextStyle(height: 1.45)),
           if ('${row['recommended_action'] ?? ''}'.isNotEmpty) ...[
@@ -285,7 +285,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
             OutlinedButton(onPressed: _busy ? null : () => _feedback(row, 'NO_DAMAGE'), child: const Text('No damage')),
           ]),
           const SizedBox(height: 7),
-          Text('${row['direct_source_count'] ?? 0} direct sources • ${row['independent_evidence_families'] ?? row['evidence_families'] ?? 'evidence families unavailable'}', style: const TextStyle(color: _muted, fontSize: 9)),
+          Text('${row['direct_source_count'] ?? 0} direct sources • ${row['independent_evidence_families'] ?? row['evidence_families'] ?? 'evidence families unavailable'}', style: const TextStyle(color: _muted, fontSize: 12.5, fontWeight: FontWeight.w600)),
         ]),
       ),
     );
@@ -303,7 +303,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
           ]),
           const SizedBox(height: 5),
           Text('${route['stop_count'] ?? stops.length} stops • ${route['optimization_strategy'] ?? 'BridgePoint route ordering'}', style: const TextStyle(color: _muted)),
-          if (route['scheduled_for'] != null) Text('Scheduled ${route['scheduled_for']}', style: const TextStyle(color: _muted, fontSize: 10)),
+          if (route['scheduled_for'] != null) Text('Scheduled ${route['scheduled_for']}', style: const TextStyle(color: _muted, fontSize: 12.5, fontWeight: FontWeight.w600)),
           const SizedBox(height: 9),
           Wrap(spacing: 8, runSpacing: 8, children: [
             FilledButton.tonalIcon(onPressed: _busy ? null : () => _prepareOffline(route), icon: const Icon(Icons.offline_pin_outlined), label: const Text('Prepare 24h offline pack')),
@@ -425,9 +425,123 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
 class _CompactMap extends StatelessWidget {
   const _CompactMap(this.value);
   final Map<String, dynamic> value;
+
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
+
+  String _clean(dynamic value) {
+    final text = '${value ?? ''}'.trim();
+    if (text.isEmpty || text.toLowerCase() == 'null') return '';
+    return text.replaceAll('_', ' ');
+  }
+
+  String _title() {
+    for (final key in const ['title','signal_name','model_name','display_name','route_name','name','source_name','provider']) {
+      final v = _clean(value[key]);
+      if (v.isNotEmpty) return v;
+    }
+    return 'BridgePoint intelligence';
+  }
+
+  String _subtitle() {
+    for (final key in const ['description','customer_outcome','best_for','full_address','privacy','note','message']) {
+      final v = _clean(value[key]);
+      if (v.isNotEmpty) return v;
+    }
+    return 'Live BridgePoint workspace data';
+  }
+
+  List<MapEntry<String, dynamic>> _details() {
+    const preferred = [
+      'status','state_code','municipality','county','severity','strength','confidence',
+      'source_count','evidence_count','signal_family','model_category','target_entity_type',
+      'strict_queue_status','strict_qualified_count','member_role','active','joined_at',
+      'stop_count','route_status','scheduled_for','health_status','freshness_status',
+      'total_records_ingested','last_successful_import_at','your_pending_count'
+    ];
+    final out = <MapEntry<String,dynamic>>[];
+    for (final key in preferred) {
+      final v = value[key];
+      if (v == null || _clean(v).isEmpty || v is Map || v is List) continue;
+      out.add(MapEntry(key,v));
+    }
+    return out.take(8).toList();
+  }
+
+  String _label(String key) => key
+      .replaceAll('_',' ')
+      .split(' ')
+      .where((x) => x.isNotEmpty)
+      .map((x) => '${x[0].toUpperCase()}${x.substring(1)}')
+      .join(' ');
+
+  Color _accent() {
+    final status = _clean(value['status'] ?? value['health_status'] ?? value['strict_queue_status']).toLowerCase();
+    if (status.contains('fail') || status.contains('error') || status.contains('critical')) return _amber;
+    if (status.contains('live') || status.contains('healthy') || status.contains('active')) return _green;
+    if (value['severity'] is num && (value['severity'] as num) >= 70) return _amber;
+    return _cyan;
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (value.isEmpty) return const Text('No data returned.', style: TextStyle(color: Color(0xFFB5C6D9)));
-    return Container(width: double.infinity, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF081625), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x2235D2E8))), child: Wrap(spacing: 10, runSpacing: 6, children: value.entries.take(24).map((e) { final raw='${e.value}'; final text=raw.length>220?'${raw.substring(0,220)}…':raw; return ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: Text('${e.key.replaceAll('_',' ')}: $text', style: const TextStyle(fontSize: 11.5, height: 1.35))); }).toList()));
+    if (value.isEmpty || value['available'] == false) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0E2035),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.white.withValues(alpha: .08)),
+        ),
+        child: const Row(children: [
+          Icon(Icons.hourglass_empty_rounded, color: _cyan),
+          SizedBox(width: 11),
+          Expanded(child: Text('This workspace section is still building or has no customer-facing results yet.', style: TextStyle(color: _muted, fontWeight: FontWeight.w600))),
+        ]),
+      );
+    }
+    final accent = _accent();
+    final details = _details();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [accent.withValues(alpha: .10), const Color(0xFF0E2035)]),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: .22)),
+        boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 14, offset: Offset(0,6))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(color: accent.withValues(alpha: .14), borderRadius: BorderRadius.circular(12)),
+            child: Icon(Icons.insights_rounded, color: accent),
+          ),
+          const SizedBox(width: 11),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(_title(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            Text(_subtitle(), maxLines: 4, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _muted, height: 1.4, fontWeight: FontWeight.w600)),
+          ])),
+        ]),
+        if (details.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final e in details)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(color: const Color(0xFF081625), borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: .08))),
+                child: Text('${_label(e.key)}: ${_clean(e.value)}', style: TextStyle(color: e.key.contains('status') ? accent : _muted, fontSize: 12.5, fontWeight: FontWeight.w800)),
+              ),
+          ]),
+        ],
+      ]),
+    );
   }
 }

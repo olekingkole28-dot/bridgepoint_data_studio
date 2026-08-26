@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'bridgepoint_property_dossier_v2.dart';
+
 class BridgePointPropertiesV2 extends StatefulWidget {
   const BridgePointPropertiesV2({super.key});
 
@@ -144,7 +146,7 @@ class _BridgePointPropertiesV2State extends State<BridgePointPropertiesV2> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) => _PropertyDetailSheet(property: property),
+      builder: (context) => BridgePointPropertyDossierV2(propertyId: id, seed: property),
     );
   }
 
