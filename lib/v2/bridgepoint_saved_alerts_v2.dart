@@ -33,7 +33,7 @@ class _BridgePointSavedAlertsV2State extends State<BridgePointSavedAlertsV2> {
     try {
       return await Supabase.instance.client.rpc(name, params: params);
     } catch (e) {
-      return {'available': false, 'error': '$e', 'rpc': name};
+      return const <String, dynamic>{'available': false};
     }
   }
 
@@ -41,7 +41,7 @@ class _BridgePointSavedAlertsV2State extends State<BridgePointSavedAlertsV2> {
     try {
       return await Supabase.instance.client.schema('api').rpc(name, params: params);
     } catch (e) {
-      return {'available': false, 'error': '$e', 'rpc': 'api.$name'};
+      return const <String, dynamic>{'available': false};
     }
   }
 

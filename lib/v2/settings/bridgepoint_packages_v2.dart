@@ -144,8 +144,8 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
         setState(() => _message =
             'Stripe checkout opened for ${package['package_name'] ?? key}.');
       }
-    } catch (e) {
-      if (mounted) setState(() => _message = 'Checkout unavailable: $e');
+    } catch (_) {
+      if (mounted) setState(() => _message = 'Checkout is temporarily unavailable. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -171,8 +171,8 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
         setState(() => _message =
             '${result['message'] ?? 'Activation request submitted.'}');
       }
-    } catch (e) {
-      if (mounted) setState(() => _message = 'Could not request activation: $e');
+    } catch (_) {
+      if (mounted) setState(() => _message = 'Could not submit this activation request right now. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -446,7 +446,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
             ],
             const SizedBox(height: 12),
             if (snapshot.hasError)
-              Text('Package catalog unavailable: ${snapshot.error}')
+              const Text('Package catalog is temporarily unavailable. Please refresh and try again.')
             else if (packages.isEmpty)
               const Card(
                 child: Padding(

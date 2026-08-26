@@ -58,7 +58,7 @@ class _BridgePointHomeLiveV2State extends State<BridgePointHomeLiveV2> {
     try {
       return await Supabase.instance.client.rpc(rpc, params: params);
     } catch (e) {
-      return {'available': false, 'rpc': rpc, 'error': '$e'};
+      return const <String, dynamic>{'available': false};
     }
   }
 

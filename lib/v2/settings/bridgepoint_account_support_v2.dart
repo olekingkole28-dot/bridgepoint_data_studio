@@ -45,7 +45,7 @@ class _BridgePointAccountSupportV2State
     try {
       return await Supabase.instance.client.rpc(rpc);
     } catch (e) {
-      return {'available': false, 'rpc': rpc, 'error': '$e'};
+      return const <String, dynamic>{'available': false};
     }
   }
 

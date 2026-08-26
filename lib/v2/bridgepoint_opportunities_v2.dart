@@ -40,7 +40,7 @@ class _BridgePointOpportunitiesV2State
     try {
       return await Supabase.instance.client.rpc(rpc, params: params);
     } catch (e) {
-      return {'available': false, 'error': '$e', 'rpc': rpc};
+      return const <String, dynamic>{'available': false};
     }
   }
 
