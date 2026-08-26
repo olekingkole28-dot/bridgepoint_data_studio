@@ -2,6 +2,9 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'bridgepoint_source_surface_model_v2.dart';
 
 class BridgePointBuildingGeometryV2 extends StatefulWidget {
   const BridgePointBuildingGeometryV2({super.key, required this.payload});
@@ -16,6 +19,47 @@ class BridgePointBuildingGeometryV2 extends StatefulWidget {
 class _BridgePointBuildingGeometryV2State
     extends State<BridgePointBuildingGeometryV2> {
   bool _massing = true;
+  Map<String, dynamic> _source3d = const {};
+  bool _source3dLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSource3d();
+  }
+
+  @override
+  void didUpdateWidget(covariant BridgePointBuildingGeometryV2 oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if ('${oldWidget.payload['property_id'] ?? ''}' != '${widget.payload['property_id'] ?? ''}') {
+      _source3d = const {};
+      _loadSource3d();
+    }
+  }
+
+  Future<void> _loadSource3d() async {
+    final id = '${widget.payload['property_id'] ?? ''}'.trim();
+    if (id.isEmpty || _source3dLoading) return;
+    if (mounted) setState(() => _source3dLoading = true);
+    try {
+      final raw = await Supabase.instance.client.rpc(
+        'bridgepoint_property_source_3d_v843',
+        params: {'p_property_id': id},
+      );
+      if (!mounted) return;
+      setState(() {
+        _source3d = raw is Map<String, dynamic>
+            ? raw
+            : raw is Map
+                ? Map<String, dynamic>.from(raw)
+                : const {};
+      });
+    } catch (_) {
+      // Detailed source 3D is additive. The verified footprint/massing fallback below remains available.
+    } finally {
+      if (mounted) setState(() => _source3dLoading = false);
+    }
+  }
 
   static const _cyan = Color(0xFF48E1FF);
   static const _muted = Color(0xFFB5C6D9);
@@ -108,6 +152,19 @@ class _BridgePointBuildingGeometryV2State
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _header(!locked && rows.isNotEmpty),
+            if (_source3dLoading) ...[
+              const SizedBox(height: 10),
+              const LinearProgressIndicator(minHeight: 2),
+            ],
+            if (_source3d['available'] == true) ...[
+              const SizedBox(height: 12),
+              BridgePointSourceSurfaceModelV2(payload: _source3d),
+              const SizedBox(height: 12),
+              const Text(
+                'Footprint / schematic fallback',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+              ),
+            ],
             const SizedBox(height: 12),
             if (locked)
               const _EmptyGeometry(
