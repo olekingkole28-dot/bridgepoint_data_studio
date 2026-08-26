@@ -1,7 +1,7 @@
 -- BridgePoint Intelligence V930
--- Align USGS 3DEP with the governed source_registry class contract.
--- Official-provider provenance belongs in metadata; source_class must use the
--- existing BridgePoint eligibility vocabulary. Also records the EPQS fallback.
+-- Idempotent hardening of the governed USGS 3DEP source contract.
+-- V927 now starts from the same valid contract on fresh installs; V930 remains
+-- in migration history to mirror the production repair and preserve idempotency.
 
 create or replace function public.bridgepoint_3dep_persist_v927(
   p_task_token text,
