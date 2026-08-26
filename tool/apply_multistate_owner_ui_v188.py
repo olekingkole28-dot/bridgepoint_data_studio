@@ -5,9 +5,17 @@ text=path.read_text(encoding='utf-8')
 original=text
 
 start=text.find('class _PropertiesPage extends StatefulWidget')
-end=text.find('class _PropertyListCard extends StatelessWidget',start)
-if start<0 or end<0:
+property_card=text.find('class _PropertyListCard extends StatelessWidget',start)
+map_page=text.find('class _IntelligenceMapPage extends StatefulWidget',start)
+if start<0 or property_card<0:
     raise SystemExit('Properties page anchors missing')
+# Modern generated source places Intelligence Map between PropertiesPage and
+# _PropertyListCard. Stop at the first top-level successor so the multistate
+# replacement cannot delete map/radar classes.
+end=map_page if map_page>start and map_page<property_card else property_card
+removed=text[start:end]
+if 'class _IntelligenceMapPage' in removed or 'WMSTileLayerOptions(' in removed:
+    raise SystemExit('v188 unsafe PropertiesPage boundary would remove Intelligence Map')
 
 page=r'''class _PropertiesPage extends StatefulWidget {
   const _PropertiesPage();
