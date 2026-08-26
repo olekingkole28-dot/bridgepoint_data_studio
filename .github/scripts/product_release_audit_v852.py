@@ -44,6 +44,17 @@ for marker in ['_AreaV2.home', '_AreaV2.map', '_AreaV2.properties', '_AreaV2.inv
 check("'Property Investor'" in app, 'Property Investor label missing from app shell')
 check("'Investment / Worth'" in app, 'Owner Investment / Worth destination missing')
 
+# ---- Checkout contract ----
+packages = text('lib/v2/settings/bridgepoint_packages_v2.dart')
+check("Future<void> _buy(Map<String, dynamic> package, String interval)" in packages,
+      'Packages must pass an explicit billing interval into checkout')
+check("body: {'package_key': key, 'interval': interval}" in packages,
+      'Checkout invocation must use the selected interval')
+check("_buy(p, 'month')" in packages and "_buy(p, 'year')" in packages,
+      'Customer packages must expose both monthly and annual checkout when annual pricing exists')
+check("'interval': 'month'" not in packages,
+      'Packages must not silently hardcode every checkout to monthly')
+
 # ---- No old hard-coded formula shell regression ----
 home = text('lib/v2/bridgepoint_home_live_v2.dart') if (ROOT/'lib/v2/bridgepoint_home_live_v2.dart').exists() else ''
 landing = text('lib/v2/bridgepoint_public_landing_v2.dart')
@@ -107,4 +118,4 @@ if errors:
     for err in errors:
         print(f' - {err}')
     sys.exit(1)
-print('PASS: weather, 3D/twin, navigation, customer-surface hygiene, and restored-surface contracts')
+print('PASS: weather, 3D/twin, navigation, checkout, customer-surface hygiene, and restored-surface contracts')
