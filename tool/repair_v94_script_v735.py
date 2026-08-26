@@ -47,6 +47,58 @@ if old_us_guard in s:
 elif new_us_guard not in s:
     raise SystemExit('v94 U.S. control compatibility guard not found')
 
+
+# v843: current main replaced the historical inline _OwnerExpansionPanel with the
+# modular owner-only V2 command center. Teach v94 to verify that canonical surface
+# instead of requiring the removed _EmergencyAdminPanel insertion anchor.
+old_owner_guard="""marker = "class _EmergencyAdminPanel extends StatefulWidget{"
+if text.count(marker) != 1:
+    raise SystemExit('owner-expansion-class-marker not found exactly once')
+owner_class = r\'\'\'
+"""
+new_owner_guard="""marker = "class _EmergencyAdminPanel extends StatefulWidget{"
+marker_count = text.count(marker)
+owner_global = Path('lib/screens/bridgepoint_owner_global_control.dart')
+owner_v2 = Path('lib/screens/bridgepoint_owner_command_center_v2.dart')
+canonical_owner_global = False
+if owner_global.exists() and owner_v2.exists():
+    global_source = owner_global.read_text(encoding='utf-8')
+    v2_source = owner_v2.read_text(encoding='utf-8')
+    canonical_owner_global = all((
+        'class BridgePointOwnerGlobalControl' in global_source,
+        'bridgepoint_owner_global_command_v675' in global_source,
+        "'START_US_ALL'" in global_source,
+        "'START_WORLD_DISCOVERY'" in global_source,
+        "'START_JURISDICTION'" in global_source,
+        'These actions queue discovery/build work. They never bypass validation or customer-readiness gates.' in global_source,
+        "import 'bridgepoint_owner_global_control.dart';" in v2_source,
+        'const BridgePointOwnerGlobalControl()' in v2_source,
+    ))
+if marker_count > 1:
+    raise SystemExit(f'owner-expansion-class-marker duplicated: {marker_count}')
+if marker_count == 0 and not canonical_owner_global:
+    raise SystemExit('owner expansion control missing: neither legacy panel anchor nor canonical owner global control verified')
+if marker_count == 0:
+    print('owner-expansion-class-marker: canonical owner-only V2 global control verified; legacy insertion skipped')
+owner_class = r\'\'\'
+"""
+if old_owner_guard in s:
+    s=s.replace(old_owner_guard,new_owner_guard,1)
+elif new_owner_guard not in s:
+    raise SystemExit('v94 owner class guard compatibility target not found')
+
+old_owner_insert="""text = text.replace(marker, owner_class + marker, 1)
+"""
+new_owner_insert="""if marker_count == 1:
+    text = text.replace(marker, owner_class + marker, 1)
+else:
+    print('owner-expansion-class-insert: modular owner-only control already wired; no legacy class inserted')
+"""
+if old_owner_insert in s:
+    s=s.replace(old_owner_insert,new_owner_insert,1)
+elif new_owner_insert not in s:
+    raise SystemExit('v94 owner class insertion compatibility target not found')
+
 p.write_text(s,encoding='utf-8')
 print('Repaired v94 historical generator for current canonical source')
 
