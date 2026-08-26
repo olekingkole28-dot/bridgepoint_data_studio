@@ -1,0 +1,19 @@
+name: Product Release Audit V852
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/product-release-audit-v852.yml'
+      - '.github/scripts/product_release_audit_v852.py'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deep product regression audit
+        run: python .github/scripts/product_release_audit_v852.py
