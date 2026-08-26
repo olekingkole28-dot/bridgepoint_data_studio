@@ -1,4 +1,4 @@
-# Latest visual release trigger v1
+# Latest visual release trigger v2
 name: Run Latest BridgePoint Visual Release
 
 on:
@@ -17,4 +17,4 @@ jobs:
       - name: Build latest visual source
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run visual-release-v2.yml --ref main
+        run: gh workflow run visual-release-v2.yml --ref main --repo olekingkole28-dot/bridgepoint_data_studio
