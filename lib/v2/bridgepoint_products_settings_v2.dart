@@ -19,7 +19,7 @@ class _BridgePointProductsSettingsV2State
     extends State<BridgePointProductsSettingsV2> {
   int _tab = 0;
 
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   Widget _page() => switch (_tab) {
         0 => const BridgePointPackagesV2(),
@@ -96,13 +96,13 @@ class _BridgePointProductsSettingsV2State
 class _AboutBridgePointV2 extends StatelessWidget {
   const _AboutBridgePointV2();
 
-  static const _panel = Color(0xFF0D1A2B);
-  static const _panelSoft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _panel = Color(0xFF0E2035);
+  static const _panelSoft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
 
   Future<void> _open(Uri uri) => launchUrl(uri, mode: LaunchMode.platformDefault);
 
@@ -239,7 +239,7 @@ class _AboutBridgePointV2 extends StatelessWidget {
           decoration: BoxDecoration(
             color: _panelSoft.withValues(alpha: .72),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: .06)),
+            border: Border.all(color: Colors.white.withValues(alpha: .10)),
           ),
           child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +271,7 @@ class _AboutCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: _AboutBridgePointV2._panel,
           borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: Colors.white.withValues(alpha: .07)),
+          border: Border.all(color: Colors.white.withValues(alpha: .12)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,7 +285,7 @@ class _AboutCard extends StatelessWidget {
             const SizedBox(height: 13),
             Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
             const SizedBox(height: 5),
-            Text(text, style: const TextStyle(color: _AboutBridgePointV2._muted, fontSize: 11, height: 1.45)),
+            Text(text, style: const TextStyle(color: _AboutBridgePointV2._muted, fontSize: 13, height: 1.45)),
           ],
         ),
       );

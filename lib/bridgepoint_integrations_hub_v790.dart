@@ -16,12 +16,12 @@ class _BridgePointIntegrationsHubState
   String _ecosystem = 'ALL';
   String? _busyConnector;
 
-  static const _panel = Color(0xFF0D1A2B);
-  static const _panelSoft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _panel = Color(0xFF0E2035);
+  static const _panelSoft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
 
   @override
   void initState() {
@@ -229,7 +229,7 @@ class _BridgePointIntegrationsHubState
                     child: Text(
                       'Truth rule: “Connected” is reserved for verified credentials plus a successful governed exchange. Sandbox, partner-required, blocked and interest-only states stay visibly different.',
                       style:
-                          TextStyle(color: _muted, fontSize: 11, height: 1.45),
+                          TextStyle(color: _muted, fontSize: 13, height: 1.45),
                     ),
                   ),
                 ],
@@ -380,7 +380,7 @@ class _BridgePointIntegrationsHubState
                 _statusLabel(status),
                 style: TextStyle(
                   color: color,
-                  fontSize: 9,
+                  fontSize: 11.5,
                   fontWeight: FontWeight.w900,
                   letterSpacing: .4,
                 ),
@@ -389,7 +389,7 @@ class _BridgePointIntegrationsHubState
             const SizedBox(height: 11),
             Text(
               'BridgePoint export: ${row['canonical_export_enabled'] == true ? 'available' : 'not enabled'} • Native write: ${row['native_write_enabled'] == true ? 'enabled' : 'disabled until verified'}',
-              style: const TextStyle(color: _muted, fontSize: 10, height: 1.4),
+              style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.4),
             ),
             if (objects.isNotEmpty) ...[
               const SizedBox(height: 10),

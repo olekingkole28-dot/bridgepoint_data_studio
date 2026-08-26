@@ -17,12 +17,12 @@ class BridgePointMapWeatherV2 extends StatefulWidget {
 class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
   final MapController _mapController = MapController();
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
   static const _panel = Color(0xFF071321);
   static const _propertyLoadMinZoom = 6.35;
   static const _stateLabelMaxZoom = 6.15;
@@ -488,7 +488,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 22),
             child: ListView(
               children: [
-                Text(kind.toUpperCase(), style: const TextStyle(color: _cyan, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                Text(kind.toUpperCase(), style: const TextStyle(color: _cyan, fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                 const SizedBox(height: 5),
                 Text(title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 14),
@@ -497,15 +497,15 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                     margin: const EdgeInsets.only(bottom: 7),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D1A2B),
+                      color: const Color(0xFF0E2035),
                       borderRadius: BorderRadius.circular(11),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(item.key.toUpperCase(), style: const TextStyle(color: _muted, fontSize: 7.5, fontWeight: FontWeight.w900)),
+                        Text(item.key.toUpperCase(), style: const TextStyle(color: _muted, fontSize: 12.5, fontWeight: FontWeight.w900)),
                         const SizedBox(height: 3),
-                        Text(item.value, style: const TextStyle(fontSize: 11, height: 1.35)),
+                        Text(item.value, style: const TextStyle(fontSize: 13, height: 1.35)),
                       ],
                     ),
                   ),
@@ -545,7 +545,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(code, style: TextStyle(color: color, fontSize: 9.5, fontWeight: FontWeight.w900)),
+                  Text(code, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 1),
                   Text('P $p  S $s  O $o', maxLines: 1, style: const TextStyle(color: Colors.white, fontSize: 6.3, fontWeight: FontWeight.w800)),
                 ],
@@ -661,7 +661,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('BRIDGEPOINT MAP', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900)),
+              const Text('BRIDGEPOINT MAP', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900)),
               const SizedBox(height: 5),
               _legendDot(_blue, 'State P / S / O'),
               _legendDot(Colors.white, 'Property'),
@@ -736,7 +736,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
         ],
         if (_locationMessage != null) ...[
           const SizedBox(height: 4),
-          Text(_locationMessage!, style: const TextStyle(color: _muted, fontSize: 9.5)),
+          Text(_locationMessage!, style: const TextStyle(color: _muted, fontSize: 11.5)),
         ],
         const SizedBox(height: 10),
         Wrap(
@@ -854,7 +854,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                     color: const Color(0xEE071321),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                      child: Text('ZOOM ${_zoom.toStringAsFixed(1)}', style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900)),
+                      child: Text('ZOOM ${_zoom.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900)),
                     ),
                   ),
                 ),
@@ -869,7 +869,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                         padding: const EdgeInsets.all(9),
                         child: Text(
                           'Each state marker shows P = properties, S = active signals, O = scored opportunities. Tap a state or zoom in to load individual property-level points.',
-                          style: const TextStyle(color: _muted, fontSize: 9, height: 1.35),
+                          style: const TextStyle(color: _muted, fontSize: 11.5, height: 1.35),
                         ),
                       ),
                     ),
@@ -901,7 +901,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                         padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
                         child: Row(
                           children: [
-                            const Text('NOAA • 4H', style: TextStyle(color: _cyan, fontSize: 8.5, fontWeight: FontWeight.w900)),
+                            const Text('NOAA • 4H', style: TextStyle(color: _cyan, fontSize: 13, fontWeight: FontWeight.w900)),
                             const SizedBox(width: 7),
                             Expanded(
                               child: Slider(
@@ -915,7 +915,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                                 }),
                               ),
                             ),
-                            Text(_clock(_radarTime), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
+                            Text(_clock(_radarTime), style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900)),
                           ],
                         ),
                       ),
@@ -928,7 +928,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
         const SizedBox(height: 9),
         const Text(
           'Map truth: BridgePoint shows only geocoded property rows and verified intelligence returned by the live backend. A state can have parcel coverage before its opportunity scoring reaches full parity.',
-          style: TextStyle(color: _muted, fontSize: 9.5, height: 1.4),
+          style: TextStyle(color: _muted, fontSize: 11.5, height: 1.4),
         ),
       ],
     );
@@ -945,14 +945,14 @@ class _MapMetric extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: .07),
+          color: color.withValues(alpha: .12),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: color.withValues(alpha: .16)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFF8FA5BF), fontSize: 7.4, fontWeight: FontWeight.w900)),
+            Text(label, style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 7.4, fontWeight: FontWeight.w900)),
             const SizedBox(width: 6),
             Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11)),
           ],

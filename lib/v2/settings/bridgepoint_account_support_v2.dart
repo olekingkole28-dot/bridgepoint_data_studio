@@ -13,14 +13,14 @@ class BridgePointAccountSupportV2 extends StatefulWidget {
 
 class _BridgePointAccountSupportV2State
     extends State<BridgePointAccountSupportV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   int tab = 0;
   late Future<List<dynamic>> request;
@@ -167,7 +167,7 @@ class _BridgePointAccountSupportV2State
               decoration: BoxDecoration(
                 color: _panel,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: .07)),
+                border: Border.all(color: Colors.white.withValues(alpha: .12)),
               ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -318,7 +318,7 @@ class _PurchasesPanel extends StatelessWidget {
                               const SizedBox(height: 3),
                               Text(
                                 '${row['status'] ?? 'unknown'} • ${row['purchase_mode'] ?? 'IMMEDIATE'} • access ${row['has_access'] == true ? 'on' : 'pending/off'}',
-                                style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 9.5),
+                                style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 11.5),
                               ),
                             ],
                           ),
@@ -376,7 +376,7 @@ class _TeamPanel extends StatelessWidget {
                 const SizedBox(height: 6),
                 const Text(
                   'Team invitations and role changes remain entitlement-controlled. Company owners/managers can manage shared workspace access where enabled.',
-                  style: TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 9.5, height: 1.4),
+                  style: TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 11.5, height: 1.4),
                 ),
               ],
             ),
@@ -496,7 +496,7 @@ class _Panel extends StatelessWidget {
         decoration: BoxDecoration(
           color: _BridgePointAccountSupportV2State._panel,
           borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: Colors.white.withValues(alpha: .07)),
+          border: Border.all(color: Colors.white.withValues(alpha: .12)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -511,7 +511,7 @@ class _Panel extends StatelessWidget {
                     children: [
                       Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                       const SizedBox(height: 2),
-                      Text(subtitle, style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 9.5)),
+                      Text(subtitle, style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 11.5)),
                     ],
                   ),
                 ),
@@ -537,9 +537,9 @@ class _KeyValue extends StatelessWidget {
           children: [
             SizedBox(
               width: 150,
-              child: Text(label, style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 9.5)),
+              child: Text(label, style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 11.5)),
             ),
-            Expanded(child: Text(value, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700))),
+            Expanded(child: Text(value, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700))),
           ],
         ),
       );
@@ -553,11 +553,11 @@ class _Faq extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ExpansionTile(
         tilePadding: EdgeInsets.zero,
-        title: Text(question, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+        title: Text(question, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: Text(answer, style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 10, height: 1.45)),
+            child: Text(answer, style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 12.5, height: 1.45)),
           ),
         ],
       );

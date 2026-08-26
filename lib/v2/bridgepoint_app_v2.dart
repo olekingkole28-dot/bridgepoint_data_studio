@@ -34,41 +34,332 @@ class BridgePointV2App extends StatelessWidget {
       title: 'BridgePoint Intelligence',
       debugShowCheckedModeBanner: false,
       theme: _theme(),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        final scale = media.size.width < 820 ? 1.06 : 1.04;
+        return MediaQuery(
+          data: media.copyWith(textScaler: TextScaler.linear(scale)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const _BridgePointRoot(),
     );
   }
 }
 
 ThemeData _theme() {
-  const bg = Color(0xFF06111E);
-  const panel = Color(0xFF0D1A2B);
-  const cyan = Color(0xFF35D2E8);
-  final scheme = ColorScheme.fromSeed(
-    seedColor: cyan,
-    brightness: Brightness.dark,
+  const bg = Color(0xFF040B14);
+  const panel = Color(0xFF0E2035);
+  const panelRaised = Color(0xFF16324E);
+  const cyan = Color(0xFF48E1FF);
+  const blue = Color(0xFF6C83FF);
+  const green = Color(0xFF45E6A6);
+  const amber = Color(0xFFFFC95E);
+  const muted = Color(0xFFB5C6D9);
+  const ink = Color(0xFFF5F8FC);
+
+  final scheme = const ColorScheme.dark(
+    primary: cyan,
+    onPrimary: Color(0xFF021018),
+    secondary: blue,
+    onSecondary: Colors.white,
+    tertiary: amber,
+    onTertiary: Color(0xFF1A1200),
     surface: panel,
+    onSurface: ink,
+    error: Color(0xFFFF7474),
+    onError: Color(0xFF250000),
   );
+
+  final baseText = ThemeData(
+    brightness: Brightness.dark,
+    useMaterial3: true,
+  ).textTheme.apply(
+        fontFamily: 'BridgePointGrotesk',
+        bodyColor: ink,
+        displayColor: Colors.white,
+      );
+
+  final textTheme = baseText.copyWith(
+    displayLarge: baseText.displayLarge?.copyWith(
+      fontSize: 46,
+      fontWeight: FontWeight.w900,
+      height: 1.02,
+      letterSpacing: -1.4,
+    ),
+    displayMedium: baseText.displayMedium?.copyWith(
+      fontSize: 38,
+      fontWeight: FontWeight.w900,
+      height: 1.04,
+      letterSpacing: -1.0,
+    ),
+    headlineLarge: baseText.headlineLarge?.copyWith(
+      fontSize: 32,
+      fontWeight: FontWeight.w900,
+      height: 1.08,
+      letterSpacing: -.5,
+    ),
+    headlineMedium: baseText.headlineMedium?.copyWith(
+      fontSize: 28,
+      fontWeight: FontWeight.w900,
+      height: 1.1,
+    ),
+    titleLarge: baseText.titleLarge?.copyWith(
+      fontSize: 21,
+      fontWeight: FontWeight.w900,
+      height: 1.18,
+    ),
+    titleMedium: baseText.titleMedium?.copyWith(
+      fontSize: 17,
+      fontWeight: FontWeight.w800,
+      height: 1.25,
+    ),
+    titleSmall: baseText.titleSmall?.copyWith(
+      fontSize: 14,
+      fontWeight: FontWeight.w800,
+    ),
+    bodyLarge: baseText.bodyLarge?.copyWith(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      height: 1.5,
+    ),
+    bodyMedium: baseText.bodyMedium?.copyWith(
+      fontSize: 14.5,
+      fontWeight: FontWeight.w600,
+      height: 1.45,
+    ),
+    bodySmall: baseText.bodySmall?.copyWith(
+      fontSize: 12.5,
+      fontWeight: FontWeight.w600,
+      color: muted,
+      height: 1.4,
+    ),
+    labelLarge: baseText.labelLarge?.copyWith(
+      fontSize: 13.5,
+      fontWeight: FontWeight.w900,
+      letterSpacing: .1,
+    ),
+    labelMedium: baseText.labelMedium?.copyWith(
+      fontSize: 12,
+      fontWeight: FontWeight.w800,
+      letterSpacing: .2,
+    ),
+    labelSmall: baseText.labelSmall?.copyWith(
+      fontSize: 11,
+      fontWeight: FontWeight.w800,
+      letterSpacing: .25,
+    ),
+  );
+
   return ThemeData(
     brightness: Brightness.dark,
+    useMaterial3: true,
+    fontFamily: 'BridgePointGrotesk',
     colorScheme: scheme,
+    textTheme: textTheme,
     scaffoldBackgroundColor: bg,
-    cardTheme: const CardThemeData(color: panel, margin: EdgeInsets.zero),
+    canvasColor: bg,
+    cardColor: panel,
+    iconTheme: const IconThemeData(color: Color(0xFFDDE8F4), size: 23),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xF209192A),
+      foregroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontFamily: 'BridgePointGrotesk',
+        color: Colors.white,
+        fontSize: 20,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -.2,
+      ),
+      iconTheme: IconThemeData(color: Color(0xFFDDE8F4), size: 24),
+    ),
+    cardTheme: CardThemeData(
+      color: panel,
+      surfaceTintColor: Colors.transparent,
+      margin: EdgeInsets.zero,
+      elevation: 1,
+      shadowColor: const Color(0x66000000),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: cyan.withValues(alpha: .14)),
+      ),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF0A1727),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      fillColor: const Color(0xFF0B1B2D),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      labelStyle: const TextStyle(
+        color: Color(0xFFC2D2E3),
+        fontSize: 13.5,
+        fontWeight: FontWeight.w800,
+      ),
+      hintStyle: TextStyle(
+        color: muted.withValues(alpha: .82),
+        fontSize: 13.5,
+        fontWeight: FontWeight.w600,
+      ),
+      prefixIconColor: cyan,
+      suffixIconColor: const Color(0xFFDDE8F4),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: cyan.withValues(alpha: .16)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: cyan.withValues(alpha: .14)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: cyan, width: 1.8),
+      ),
     ),
-    navigationBarTheme: const NavigationBarThemeData(
-      height: 68,
-      backgroundColor: Color(0xFF091727),
-      indicatorColor: Color(0x2235D2E8),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 50),
+        backgroundColor: cyan,
+        foregroundColor: const Color(0xFF031018),
+        textStyle: const TextStyle(
+          fontFamily: 'BridgePointGrotesk',
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+      ),
     ),
-    navigationRailTheme: const NavigationRailThemeData(
-      backgroundColor: Color(0xFF091727),
-      indicatorColor: Color(0x2235D2E8),
-      selectedIconTheme: IconThemeData(color: cyan),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 50),
+        foregroundColor: const Color(0xFFF5F8FC),
+        side: BorderSide(color: blue.withValues(alpha: .65), width: 1.2),
+        textStyle: const TextStyle(
+          fontFamily: 'BridgePointGrotesk',
+          fontSize: 13.5,
+          fontWeight: FontWeight.w900,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
+      ),
     ),
-    useMaterial3: true,
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: cyan,
+        textStyle: const TextStyle(
+          fontFamily: 'BridgePointGrotesk',
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: panelRaised.withValues(alpha: .78),
+      selectedColor: blue.withValues(alpha: .22),
+      side: BorderSide(color: cyan.withValues(alpha: .16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      labelStyle: const TextStyle(
+        color: Color(0xFFF1F6FB),
+        fontSize: 12.5,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+    listTileTheme: const ListTileThemeData(
+      iconColor: Color(0xFF8FEFFF),
+      textColor: Colors.white,
+      titleTextStyle: TextStyle(
+        fontFamily: 'BridgePointGrotesk',
+        color: Colors.white,
+        fontSize: 14.5,
+        fontWeight: FontWeight.w800,
+      ),
+      subtitleTextStyle: TextStyle(
+        fontFamily: 'BridgePointGrotesk',
+        color: muted,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+      ),
+      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      height: 74,
+      backgroundColor: const Color(0xF209192A),
+      indicatorColor: blue.withValues(alpha: .22),
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+        final selected = states.contains(WidgetState.selected);
+        return TextStyle(
+          fontFamily: 'BridgePointGrotesk',
+          color: selected ? Colors.white : muted,
+          fontSize: selected ? 12.5 : 12,
+          fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+        );
+      }),
+      iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          color: selected ? cyan : muted,
+          size: selected ? 25 : 23,
+        );
+      }),
+    ),
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: const Color(0xF209192A),
+      indicatorColor: blue.withValues(alpha: .20),
+      selectedIconTheme: const IconThemeData(color: cyan, size: 25),
+      unselectedIconTheme: const IconThemeData(color: muted, size: 22),
+      selectedLabelTextStyle: const TextStyle(
+        fontFamily: 'BridgePointGrotesk',
+        color: Colors.white,
+        fontSize: 13,
+        fontWeight: FontWeight.w900,
+      ),
+      unselectedLabelTextStyle: const TextStyle(
+        fontFamily: 'BridgePointGrotesk',
+        color: muted,
+        fontSize: 12.5,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    dividerTheme: DividerThemeData(
+      color: cyan.withValues(alpha: .12),
+      thickness: 1,
+      space: 20,
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: Color(0xFF0B1B2D),
+      surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      dragHandleColor: Color(0xFF6C83FF),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: const Color(0xFF0B1B2D),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: panelRaised,
+      contentTextStyle: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w700,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      behavior: SnackBarBehavior.floating,
+    ),
+    tooltipTheme: TooltipThemeData(
+      textStyle: const TextStyle(
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF10243B),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: cyan.withValues(alpha: .18)),
+      ),
+    ),
   );
 }
 
@@ -191,7 +482,7 @@ class _AuthPageV2State extends State<_AuthPageV2> {
                   const Text(
                     'Property intelligence operating system',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF8FA5BF)),
+                    style: TextStyle(color: Color(0xFFB5C6D9)),
                   ),
                   const SizedBox(height: 24),
                   TextField(
@@ -587,7 +878,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
                 onPressed: () => setState(() => selected = _AreaV2.owner),
                 icon: const Icon(
                   Icons.admin_panel_settings_rounded,
-                  color: Color(0xFF35D2E8),
+                  color: Color(0xFF48E1FF),
                 ),
               ),
             IconButton(
@@ -677,12 +968,12 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  height: 70,
+                  height: 76,
                   padding: const EdgeInsets.symmetric(horizontal: 18),
                   decoration: const BoxDecoration(
-                    color: Color(0xE8091727),
+                    color: Color(0xF209192A),
                     border: Border(
-                      bottom: BorderSide(color: Color(0x2235D2E8)),
+                      bottom: BorderSide(color: Color(0x3348E1FF)),
                     ),
                   ),
                   child: Row(
@@ -706,8 +997,8 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
                             const Text(
                               'BRIDGEPOINT INTELLIGENCE',
                               style: TextStyle(
-                                color: Color(0xFF35D2E8),
-                                fontSize: 7.5,
+                                color: Color(0xFF48E1FF),
+                                fontSize: 12.5,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 1.5,
                               ),
@@ -748,7 +1039,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
                               setState(() => selected = _AreaV2.investment),
                           icon: const Icon(
                             Icons.show_chart_rounded,
-                            color: Color(0xFF38D49A),
+                            color: Color(0xFF45E6A6),
                           ),
                           label: const Text('Worth'),
                         ),
@@ -757,7 +1048,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
                           onPressed: () => setState(() => selected = _AreaV2.owner),
                           icon: const Icon(
                             Icons.admin_panel_settings_rounded,
-                            color: Color(0xFF35D2E8),
+                            color: Color(0xFF48E1FF),
                           ),
                           label: const Text('Owner Backend'),
                         ),
@@ -766,7 +1057,7 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
                         onPressed: () => setState(() => selected = _AreaV2.ai),
                         icon: const Icon(
                           Icons.auto_awesome_rounded,
-                          color: Color(0xFF35D2E8),
+                          color: Color(0xFF48E1FF),
                         ),
                         label: const Text('Ask AI'),
                       ),
@@ -831,10 +1122,15 @@ class _PageFrameV2 extends StatelessWidget {
           );
     return DecoratedBox(
       decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment.topRight,
-          radius: 1.45,
-          colors: [Color(0x1835D2E8), Color(0xFF06111E)],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0x2448E1FF),
+            Color(0x181E4FA6),
+            Color(0x18281950),
+            Color(0xFF040B14),
+          ],
         ),
       ),
       child: BridgePointMotionBackgroundV2(child: content),
@@ -850,20 +1146,20 @@ class _LiveBadgeV2 extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF38D49A).withValues(alpha: .08),
+        color: const Color(0xFF45E6A6).withValues(alpha: .08),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: const Color(0xFF38D49A).withValues(alpha: .2),
+          color: const Color(0xFF45E6A6).withValues(alpha: .2),
         ),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.circle, size: 8, color: Color(0xFF38D49A)),
+          Icon(Icons.circle, size: 8, color: Color(0xFF45E6A6)),
           SizedBox(width: 6),
           Text(
             'LIVE BACKEND',
-            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
           ),
         ],
       ),

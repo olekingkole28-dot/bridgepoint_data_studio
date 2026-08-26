@@ -9,12 +9,12 @@ class BridgePointPropertiesV2 extends StatefulWidget {
 }
 
 class _BridgePointPropertiesV2State extends State<BridgePointPropertiesV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _panel = Color(0xFF0E2035);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
 
   final _search = TextEditingController();
   final _municipality = TextEditingController();
@@ -404,7 +404,7 @@ class _PropertyCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: _BridgePointPropertiesV2State._panel,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: .07)),
+          border: Border.all(color: Colors.white.withValues(alpha: .12)),
         ),
         child: LayoutBuilder(
           builder: (context, c) {
@@ -432,7 +432,7 @@ class _PropertyCard extends StatelessWidget {
                         display,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                        style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -441,7 +441,7 @@ class _PropertyCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: _BridgePointPropertiesV2State._muted,
-                          fontSize: 10,
+                          fontSize: 12.5,
                         ),
                       ),
                       if (signal.trim().isNotEmpty) ...[
@@ -450,7 +450,7 @@ class _PropertyCard extends StatelessWidget {
                           signal,
                           style: const TextStyle(
                             color: _BridgePointPropertiesV2State._green,
-                            fontSize: 10,
+                            fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -566,7 +566,7 @@ class _PropertyDetailSheetState extends State<_PropertyDetailSheet> {
                   'Property intelligence • timeline • building geometry • digital twin',
                   style: TextStyle(
                     color: _BridgePointPropertiesV2State._muted,
-                    fontSize: 10,
+                    fontSize: 12.5,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -642,7 +642,7 @@ class _PayloadBlock extends StatelessWidget {
         decoration: BoxDecoration(
           color: _BridgePointPropertiesV2State._panel,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: .06)),
+          border: Border.all(color: Colors.white.withValues(alpha: .10)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,7 +696,7 @@ class _CompactPayload extends StatelessWidget {
                   '${e.key.toString().replaceAll('_', ' ')}: ${e.value}',
                   style: const TextStyle(
                     color: _BridgePointPropertiesV2State._muted,
-                    fontSize: 10,
+                    fontSize: 12.5,
                     height: 1.35,
                   ),
                 ),
@@ -708,7 +708,7 @@ class _CompactPayload extends StatelessWidget {
                 title: Text(
                   e.key.toString().replaceAll('_', ' '),
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -726,7 +726,7 @@ class _CompactPayload extends StatelessWidget {
       '$payload',
       style: const TextStyle(
         color: _BridgePointPropertiesV2State._muted,
-        fontSize: 10,
+        fontSize: 12.5,
       ),
     );
   }
@@ -749,7 +749,7 @@ class _Tag extends StatelessWidget {
           label,
           style: TextStyle(
             color: color,
-            fontSize: 8,
+            fontSize: 12.5,
             fontWeight: FontWeight.w900,
           ),
         ),

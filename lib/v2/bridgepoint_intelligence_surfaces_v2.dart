@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-const _bpPanel = Color(0xFF0D1A2B);
-const _bpSoft = Color(0xFF122238);
-const _bpCyan = Color(0xFF35D2E8);
-const _bpBlue = Color(0xFF4F7CFF);
-const _bpGreen = Color(0xFF38D49A);
-const _bpAmber = Color(0xFFFFC857);
+const _bpPanel = Color(0xFF0E2035);
+const _bpSoft = Color(0xFF16324E);
+const _bpCyan = Color(0xFF48E1FF);
+const _bpBlue = Color(0xFF6C83FF);
+const _bpGreen = Color(0xFF45E6A6);
+const _bpAmber = Color(0xFFFFC95E);
 const _bpRed = Color(0xFFFF6B6B);
-const _bpMuted = Color(0xFF8FA5BF);
+const _bpMuted = Color(0xFFB5C6D9);
 
 List<Map<String, dynamic>> _bpRows(dynamic value, List<String> keys) {
   if (value is List) {
@@ -478,14 +478,14 @@ class _SmallMetric extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: .07),
+          color: color.withValues(alpha: .12),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withValues(alpha: .18)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: const TextStyle(color: _bpMuted, fontSize: 8, fontWeight: FontWeight.w900)),
+            Text(label, style: const TextStyle(color: _bpMuted, fontSize: 12.5, fontWeight: FontWeight.w900)),
             const SizedBox(width: 7),
             Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900)),
           ],
@@ -527,7 +527,7 @@ class _DataRowCard extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Text(
                       '${e.key.replaceAll('_', ' ')}: ${e.value}',
-                      style: const TextStyle(color: _bpMuted, fontSize: 10, height: 1.4),
+                      style: const TextStyle(color: _bpMuted, fontSize: 12.5, height: 1.4),
                     ),
                   ),
               ],
@@ -568,7 +568,7 @@ class _DataRowCard extends StatelessWidget {
                   children: [
                     Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 3),
-                    Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _bpMuted, fontSize: 9.5)),
+                    Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _bpMuted, fontSize: 11.5)),
                   ],
                 ),
               ),
@@ -587,7 +587,7 @@ class _ErrorBox extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _bpRed.withValues(alpha: .06),
+          color: _bpRed.withValues(alpha: .10),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _bpRed.withValues(alpha: .20)),
         ),

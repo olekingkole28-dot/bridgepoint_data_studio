@@ -36,7 +36,7 @@ class BridgePointBrandLockupV2 extends StatelessWidget {
                 Text(
                   'BRIDGEPOINT',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.1,
                   ),
@@ -44,8 +44,8 @@ class BridgePointBrandLockupV2 extends StatelessWidget {
                 Text(
                   'INTELLIGENCE',
                   style: TextStyle(
-                    color: Color(0xFF35D2E8),
-                    fontSize: 8,
+                    color: Color(0xFF48E1FF),
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.8,
                   ),
@@ -142,6 +142,40 @@ class _BridgePointNetworkPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final glowRectA = Rect.fromCircle(
+      center: Offset(size.width * .16, size.height * .12),
+      radius: size.shortestSide * .38,
+    );
+    final glowRectB = Rect.fromCircle(
+      center: Offset(size.width * .84, size.height * .18),
+      radius: size.shortestSide * .34,
+    );
+    final glowRectC = Rect.fromCircle(
+      center: Offset(size.width * .62, size.height * .82),
+      radius: size.shortestSide * .30,
+    );
+    canvas.drawCircle(
+      glowRectA.center,
+      glowRectA.width / 2,
+      Paint()..shader = const RadialGradient(
+        colors: [Color(0x1748E1FF), Colors.transparent],
+      ).createShader(glowRectA),
+    );
+    canvas.drawCircle(
+      glowRectB.center,
+      glowRectB.width / 2,
+      Paint()..shader = const RadialGradient(
+        colors: [Color(0x126C83FF), Colors.transparent],
+      ).createShader(glowRectB),
+    );
+    canvas.drawCircle(
+      glowRectC.center,
+      glowRectC.width / 2,
+      Paint()..shader = const RadialGradient(
+        colors: [Color(0x118B5CF6), Colors.transparent],
+      ).createShader(glowRectC),
+    );
+
     final phase = progress * math.pi * 2;
     final points = <Offset>[];
     for (var i = 0; i < _nodes.length; i++) {
@@ -153,13 +187,13 @@ class _BridgePointNetworkPainter extends CustomPainter {
 
     final linePaint = Paint()
       ..strokeWidth = 1
-      ..color = const Color(0xFF35D2E8).withValues(alpha: .055);
+      ..color = const Color(0xFF48E1FF).withValues(alpha: .055);
     for (var i = 0; i < points.length; i++) {
       for (var j = i + 1; j < points.length; j++) {
         final distance = (points[i] - points[j]).distance;
         if (distance < size.shortestSide * .28) {
           final alpha = (1 - distance / (size.shortestSide * .28)) * .09;
-          linePaint.color = const Color(0xFF4F7CFF).withValues(alpha: alpha);
+          linePaint.color = const Color(0xFF6C83FF).withValues(alpha: alpha);
           canvas.drawLine(points[i], points[j], linePaint);
         }
       }
@@ -168,11 +202,11 @@ class _BridgePointNetworkPainter extends CustomPainter {
     for (var i = 0; i < points.length; i++) {
       final pulse = (math.sin(phase * 1.6 + i) + 1) / 2;
       final glow = Paint()
-        ..color = (i % 3 == 0 ? const Color(0xFF35D2E8) : const Color(0xFF4F7CFF))
+        ..color = (i % 3 == 0 ? const Color(0xFF48E1FF) : const Color(0xFF6C83FF))
             .withValues(alpha: .035 + pulse * .035);
       canvas.drawCircle(points[i], 11 + pulse * 7, glow);
       final dot = Paint()
-        ..color = (i % 3 == 0 ? const Color(0xFF35D2E8) : const Color(0xFF4F7CFF))
+        ..color = (i % 3 == 0 ? const Color(0xFF48E1FF) : const Color(0xFF6C83FF))
             .withValues(alpha: .18 + pulse * .18);
       canvas.drawCircle(points[i], 1.8 + pulse, dot);
     }
@@ -181,7 +215,7 @@ class _BridgePointNetworkPainter extends CustomPainter {
       ..shader = LinearGradient(
         colors: [
           Colors.transparent,
-          const Color(0xFF35D2E8).withValues(alpha: .035),
+          const Color(0xFF48E1FF).withValues(alpha: .035),
           Colors.transparent,
         ],
       ).createShader(

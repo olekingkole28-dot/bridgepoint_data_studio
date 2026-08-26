@@ -10,13 +10,13 @@ class BridgePointGlobalSearchV2 extends StatefulWidget {
 }
 
 class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
 
   final _query = TextEditingController();
   bool _busy = false;
@@ -191,7 +191,7 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
             decoration: BoxDecoration(
               color: _panel,
               borderRadius: BorderRadius.circular(17),
-              border: Border.all(color: Colors.white.withValues(alpha: .06)),
+              border: Border.all(color: Colors.white.withValues(alpha: .10)),
             ),
             child: const Row(
               children: [
@@ -247,7 +247,7 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
                               '${row['municipality'] ?? row['city'] ?? ''} ${row['state_code'] ?? ''} • ${row['parcel_number'] ?? 'No parcel'} • ${row['property_type'] ?? 'Property'}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: _muted, fontSize: 9.5),
+                              style: const TextStyle(color: _muted, fontSize: 11.5),
                             ),
                           ],
                         ),
@@ -280,15 +280,15 @@ class _PayloadPanel extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: const Color(0xFF0D1A2B),
+          color: const Color(0xFF0E2035),
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withValues(alpha: .06)),
+          border: Border.all(color: Colors.white.withValues(alpha: .10)),
         ),
         child: ExpansionTile(
           initiallyExpanded: title == 'Property intelligence',
           tilePadding: EdgeInsets.zero,
           childrenPadding: EdgeInsets.zero,
-          leading: Icon(icon, color: const Color(0xFF35D2E8)),
+          leading: Icon(icon, color: const Color(0xFF48E1FF)),
           title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
           children: [
             Align(alignment: Alignment.centerLeft, child: _Payload(payload: payload)),
@@ -315,7 +315,7 @@ class _Payload extends StatelessWidget {
                 dense: true,
                 title: Text(
                   '${entry.key}'.replaceAll('_', ' '),
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
                 ),
                 children: [
                   Padding(
@@ -329,7 +329,7 @@ class _Payload extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 5),
                 child: Text(
                   '${entry.key}'.replaceAll('_', ' ') + ': ${entry.value}',
-                  style: const TextStyle(color: Color(0xFF8FA5BF), fontSize: 9.5, height: 1.35),
+                  style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 11.5, height: 1.35),
                 ),
               ),
         ],
@@ -347,6 +347,6 @@ class _Payload extends StatelessWidget {
         ],
       );
     }
-    return Text('$payload', style: const TextStyle(color: Color(0xFF8FA5BF), fontSize: 9.5));
+    return Text('$payload', style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 11.5));
   }
 }

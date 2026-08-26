@@ -17,11 +17,11 @@ class _BridgePointOwnerV2RequirementsState
   String _category = 'ALL';
   String _query = '';
 
-  static const _panel = Color(0xFF0D1A2B);
-  static const _muted = Color(0xFF8FA5BF);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _panel = Color(0xFF0E2035);
+  static const _muted = Color(0xFFB5C6D9);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
 
   @override
@@ -117,7 +117,7 @@ class _BridgePointOwnerV2RequirementsState
                     : 'Partial evidence exists, but it is not sufficient for strict completion yet.',
             style: TextStyle(
               color: status == 'PROVEN_DONE' ? _green : _muted,
-              fontSize: 9.5,
+              fontSize: 11.5,
               height: 1.4,
             ),
           ),
@@ -149,7 +149,7 @@ class _BridgePointOwnerV2RequirementsState
                       _clean(entry.key).toUpperCase(),
                       style: const TextStyle(
                         color: _cyan,
-                        fontSize: 8,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -158,7 +158,7 @@ class _BridgePointOwnerV2RequirementsState
                       '${entry.value}',
                       style: const TextStyle(
                         color: _muted,
-                        fontSize: 9.5,
+                        fontSize: 11.5,
                         height: 1.4,
                       ),
                     ),
@@ -170,7 +170,7 @@ class _BridgePointOwnerV2RequirementsState
           'Requirement key: ${row['source_key']}\nLast synchronized: ${row['updated_at'] ?? 'unknown'}',
           style: const TextStyle(
             color: _muted,
-            fontSize: 8,
+            fontSize: 12.5,
             fontFamily: 'monospace',
             height: 1.45,
           ),
@@ -208,7 +208,7 @@ class _BridgePointOwnerV2RequirementsState
           _clean(status),
           style: TextStyle(
             color: color,
-            fontSize: 8.5,
+            fontSize: 13,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -428,7 +428,7 @@ class _Metric extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 8,
+              fontSize: 12.5,
               fontWeight: FontWeight.w900,
             ),
           ),

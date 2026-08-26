@@ -20,8 +20,8 @@ class _BridgePointPackageFitV2State extends State<BridgePointPackageFitV2> {
   final Set<String> _capabilities = {'opportunity scoring', 'weather impact'};
   Map<String, dynamic> _fit = const {};
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
 
   static const _audiences = [
     'roofing / exterior contractor','restoration / mitigation','home services contractor','public adjuster / claims professional','property investor / acquisitions','commercial real estate / property management','developer / builder','homeowner','solar / energy','insurer / risk / analytics','institutional investor / analytics','government / infrastructure','software / data / platform','other'
@@ -210,7 +210,7 @@ class _BridgePointPackageFitV2State extends State<BridgePointPackageFitV2> {
         const SizedBox(height: 4),
         const Text(
           'Replayable onboarding that recommends a package from your actual work—not a mandatory gate that traps you before using the app.',
-          style: TextStyle(color: _muted, fontSize: 10, height: 1.45),
+          style: TextStyle(color: _muted, fontSize: 12.5, height: 1.45),
         ),
         if (_busy) ...[
           const SizedBox(height: 8),

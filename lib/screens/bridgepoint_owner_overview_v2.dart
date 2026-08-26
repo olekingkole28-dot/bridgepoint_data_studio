@@ -9,14 +9,14 @@ class BridgePointOwnerOverviewV2 extends StatefulWidget {
 }
 
 class _BridgePointOwnerOverviewV2State extends State<BridgePointOwnerOverviewV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   late Future<List<dynamic>> _request;
 
@@ -209,7 +209,7 @@ class _BridgePointOwnerOverviewV2State extends State<BridgePointOwnerOverviewV2>
                                     const SizedBox(height: 2),
                                     Text('${row['country_code'] ?? ''}${row['region_code'] != null ? ' • ${row['region_code']}' : ''} • ${row['build_status'] ?? row['request_status'] ?? 'unknown'}', style: const TextStyle(color: _muted, fontSize: 10)),
                                   ])),
-                                  Text('${row['verified_capabilities'] ?? 0}/${row['required_capabilities'] ?? 0}', style: const TextStyle(color: _green, fontSize: 10, fontWeight: FontWeight.w900)),
+                                  Text('${row['verified_capabilities'] ?? 0}/${row['required_capabilities'] ?? 0}', style: const TextStyle(color: _green, fontSize: 12.5, fontWeight: FontWeight.w900)),
                                   const SizedBox(width: 6),
                                   const Icon(Icons.chevron_right_rounded, color: _muted),
                                 ]),
@@ -243,7 +243,7 @@ class _BridgePointOwnerOverviewV2State extends State<BridgePointOwnerOverviewV2>
                                     const SizedBox(height: 2),
                                     Text('${row['state_code'] ?? row['geographic_scope'] ?? 'national'} • ${row['source_category'] ?? ''} • ${row['health_status'] ?? 'unknown'}', style: const TextStyle(color: _muted, fontSize: 10)),
                                   ])),
-                                  Text(_number(row['total_records_ingested']), style: const TextStyle(color: _cyan, fontSize: 10, fontWeight: FontWeight.w900)),
+                                  Text(_number(row['total_records_ingested']), style: const TextStyle(color: _cyan, fontSize: 12.5, fontWeight: FontWeight.w900)),
                                   const SizedBox(width: 6),
                                   const Icon(Icons.chevron_right_rounded, color: _muted),
                                 ]),
@@ -289,11 +289,11 @@ class _OwnerMetricCard extends StatelessWidget {
               const Icon(Icons.open_in_new_rounded, color: _BridgePointOwnerOverviewV2State._muted, size: 15),
             ]),
             const SizedBox(height: 13),
-            Text(data.label, style: const TextStyle(color: _BridgePointOwnerOverviewV2State._muted, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .8)),
+            Text(data.label, style: const TextStyle(color: _BridgePointOwnerOverviewV2State._muted, fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: .8)),
             const SizedBox(height: 4),
             Text(data.value, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
             const SizedBox(height: 5),
-            Text(data.detail, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _BridgePointOwnerOverviewV2State._muted, fontSize: 10, height: 1.35)),
+            Text(data.detail, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _BridgePointOwnerOverviewV2State._muted, fontSize: 12.5, height: 1.35)),
           ]),
         ),
       );
@@ -309,7 +309,7 @@ class _OwnerSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(17),
-        decoration: BoxDecoration(color: _BridgePointOwnerOverviewV2State._panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withValues(alpha: .07))),
+        decoration: BoxDecoration(color: _BridgePointOwnerOverviewV2State._panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withValues(alpha: .12))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Icon(icon, color: _BridgePointOwnerOverviewV2State._cyan),

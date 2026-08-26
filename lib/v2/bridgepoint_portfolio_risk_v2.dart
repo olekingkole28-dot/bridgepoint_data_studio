@@ -17,8 +17,8 @@ class _BridgePointPortfolioRiskV2State extends State<BridgePointPortfolioRiskV2>
   bool _busy = false;
   String? _error;
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
 
   @override
   void initState() {
@@ -111,7 +111,7 @@ class _BridgePointPortfolioRiskV2State extends State<BridgePointPortfolioRiskV2>
                 child: Container(
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(color: const Color(0xFF081625), borderRadius: BorderRadius.circular(9), border: Border.all(color: const Color(0x2235D2E8))),
-                  child: Text('${e.key.replaceAll('_', ' ')}: $text', style: const TextStyle(fontSize: 9, height: 1.35)),
+                  child: Text('${e.key.replaceAll('_', ' ')}: $text', style: const TextStyle(fontSize: 11.5, height: 1.35)),
                 ),
               );
             }).toList()),
@@ -153,7 +153,7 @@ class _BridgePointPortfolioRiskV2State extends State<BridgePointPortfolioRiskV2>
             ]);
           }),
           const SizedBox(height: 10),
-          const Card(child: Padding(padding: EdgeInsets.all(14), child: Text('Risk estimates and scenarios must remain explainable and source-backed. Long-horizon climate projections are model scenarios, not guarantees. BridgePoint should show uncertainty, horizon, scenario, source date and evidence quality wherever a risk score is used.', style: TextStyle(color: _muted, fontSize: 10, height: 1.45)))),
+          const Card(child: Padding(padding: EdgeInsets.all(14), child: Text('Risk estimates and scenarios must remain explainable and source-backed. Long-horizon climate projections are model scenarios, not guarantees. BridgePoint should show uncertainty, horizon, scenario, source date and evidence quality wherever a risk score is used.', style: TextStyle(color: _muted, fontSize: 12.5, height: 1.45)))),
         ]);
       },
     );

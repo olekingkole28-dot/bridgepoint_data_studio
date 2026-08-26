@@ -33,9 +33,9 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
   Map<String, dynamic> _watchlists = const {};
   int _tab = 0;
 
-  static const _muted = Color(0xFF8FA5BF);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _amber = Color(0xFFFFC857);
+  static const _muted = Color(0xFFB5C6D9);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _amber = Color(0xFFFFC95E);
 
   @override
   void dispose() {
@@ -489,7 +489,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
                           .where((value) =>
                               value != null && '$value'.trim().isNotEmpty)
                           .join(' • '),
-                      style: const TextStyle(color: _muted, fontSize: 9.5),
+                      style: const TextStyle(color: _muted, fontSize: 11.5),
                     ),
                   ],
                 ),
@@ -742,7 +742,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
             const SizedBox(height: 8),
             const Text(
               'Risk values are screening/prioritization output—not proof of damage or future loss. Twin levels are shown at their actual fidelity; low-fidelity massing is never labeled an exact replica.',
-              style: TextStyle(color: _amber, fontSize: 10, height: 1.4),
+              style: TextStyle(color: _amber, fontSize: 12.5, height: 1.4),
             ),
           ],
           if (_tab == 3)

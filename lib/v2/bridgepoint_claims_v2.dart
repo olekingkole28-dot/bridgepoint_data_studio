@@ -13,9 +13,9 @@ class _BridgePointClaimsV2State extends State<BridgePointClaimsV2> {
   bool _busy = false;
   String? _message;
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
-  static const _amber = Color(0xFFFFC857);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
+  static const _amber = Color(0xFFFFC95E);
 
   @override
   void initState() {
@@ -240,7 +240,7 @@ class _BridgePointClaimsV2State extends State<BridgePointClaimsV2> {
                     const _ClaimNotice('Smart Supplement Intelligence is not included in this package.'),
                 ],
                 const SizedBox(height: 12),
-                Text('${intelligence['truth_notice'] ?? 'Claim intelligence requires human/professional review where indicated.'}', style: const TextStyle(color: _amber, fontSize: 10, height: 1.45)),
+                Text('${intelligence['truth_notice'] ?? 'Claim intelligence requires human/professional review where indicated.'}', style: const TextStyle(color: _amber, fontSize: 12.5, height: 1.45)),
               ]),
             ),
           ),
@@ -328,7 +328,7 @@ class _BridgePointClaimsV2State extends State<BridgePointClaimsV2> {
           else
             ...claims.map((c) => Padding(padding: const EdgeInsets.only(bottom: 10), child: _claimCard(c, stages))),
           const SizedBox(height: 10),
-          Text('${data['truth_notice'] ?? 'Claims intelligence is decision support and does not independently establish coverage, damage, causation, liability or entitlement.'}', style: const TextStyle(color: _amber, fontSize: 10, height: 1.45)),
+          Text('${data['truth_notice'] ?? 'Claims intelligence is decision support and does not independently establish coverage, damage, causation, liability or entitlement.'}', style: const TextStyle(color: _amber, fontSize: 12.5, height: 1.45)),
         ]);
       },
     );
@@ -339,7 +339,7 @@ class _ClaimNotice extends StatelessWidget {
   const _ClaimNotice(this.text);
   final String text;
   @override
-  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(text, style: const TextStyle(color: Color(0xFF8FA5BF), height: 1.4))));
+  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(12), child: Text(text, style: const TextStyle(color: Color(0xFFB5C6D9), height: 1.4))));
 }
 
 class _ClaimSection extends StatelessWidget {
@@ -358,7 +358,7 @@ class _ClaimSection extends StatelessWidget {
           Wrap(spacing: 8, runSpacing: 7, children: value.entries.map((entry) {
             final raw = '${entry.value}';
             final text = raw.length > 1200 ? '${raw.substring(0, 1200)}…' : raw;
-            return ConstrainedBox(constraints: const BoxConstraints(maxWidth: 680), child: SelectableText('${entry.key.replaceAll('_', ' ')}: $text', style: const TextStyle(fontSize: 9, height: 1.4)));
+            return ConstrainedBox(constraints: const BoxConstraints(maxWidth: 680), child: SelectableText('${entry.key.replaceAll('_', ' ')}: $text', style: const TextStyle(fontSize: 11.5, height: 1.4)));
           }).toList()),
         ]),
       ),

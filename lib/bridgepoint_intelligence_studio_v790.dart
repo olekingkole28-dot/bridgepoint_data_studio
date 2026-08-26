@@ -22,13 +22,13 @@ class _BridgePointIntelligenceStudioState
   String _query = '';
   String _lane = 'ALL';
 
-  static const _panel = Color(0xFF0D1A2B);
-  static const _panelSoft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _panel = Color(0xFF0E2035);
+  static const _panelSoft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
 
   static const _stages = <_StudioStage>[
     _StudioStage(
@@ -199,7 +199,7 @@ class _BridgePointIntelligenceStudioState
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: _cyan.withValues(alpha: .06),
+            color: _cyan.withValues(alpha: .10),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: _cyan.withValues(alpha: .18)),
           ),
@@ -215,7 +215,7 @@ class _BridgePointIntelligenceStudioState
                       : 'Every stage stays explainable. Scores do not replace evidence, map layers do not hide their source, and integrations do not become “connected” until they are actually verified.',
                   style: const TextStyle(
                     color: _muted,
-                    fontSize: 11,
+                    fontSize: 13,
                     height: 1.45,
                   ),
                 ),
@@ -347,7 +347,7 @@ class _BridgePointIntelligenceStudioState
                           stage.lane,
                           style: TextStyle(
                             color: stage.color,
-                            fontSize: 9,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w900,
                             letterSpacing: .5,
                           ),
@@ -359,7 +359,7 @@ class _BridgePointIntelligenceStudioState
                       stage.description,
                       style: const TextStyle(
                         color: _muted,
-                        fontSize: 10,
+                        fontSize: 12.5,
                         height: 1.5,
                       ),
                     ),

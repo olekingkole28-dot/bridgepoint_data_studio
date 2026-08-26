@@ -13,9 +13,9 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
   bool _busy = false;
   String? _message;
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
-  static const _amber = Color(0xFFFFC857);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
+  static const _amber = Color(0xFFFFC95E);
 
   @override
   void initState() {
@@ -68,8 +68,8 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
   }
 
   Color _kindColor(String kind) => switch (kind) {
-        'CLAIM' || 'CLAIM_TASK' => const Color(0xFFFFC857),
-        'ROUTE' => const Color(0xFF38D49A),
+        'CLAIM' || 'CLAIM_TASK' => const Color(0xFFFFC95E),
+        'ROUTE' => const Color(0xFF45E6A6),
         'SAVED_OPPORTUNITY' => _cyan,
         _ => const Color(0xFFB79CFF),
       };
@@ -294,7 +294,7 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
             ...routes.map((r) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Card(child: ListTile(
-                leading: const Icon(Icons.route_rounded, color: Color(0xFF38D49A)),
+                leading: const Icon(Icons.route_rounded, color: Color(0xFF45E6A6)),
                 title: Text('${r['route_name'] ?? 'Field route'}'),
                 subtitle: Text('${r['stop_count'] ?? 0} stops • ${r['route_status'] ?? 'DRAFT'}'),
                 trailing: FilledButton.tonal(onPressed: _busy ? null : () => _scheduleRoute(r), child: const Text('Schedule')),
@@ -302,7 +302,7 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
             )),
           ],
           const SizedBox(height: 12),
-          Text('${data['truth_notice'] ?? 'Agenda dates are explicit workflow dates, not inferred timestamps.'}', style: const TextStyle(color: _amber, fontSize: 10, height: 1.45)),
+          Text('${data['truth_notice'] ?? 'Agenda dates are explicit workflow dates, not inferred timestamps.'}', style: const TextStyle(color: _amber, fontSize: 12.5, height: 1.45)),
         ]);
       },
     );

@@ -17,12 +17,12 @@ class _BridgePointIntelligenceLiveV2State
   int _tab = 0;
   String _query = '';
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
-  static const _panel = Color(0xFF0D1A2B);
+  static const _muted = Color(0xFFB5C6D9);
+  static const _panel = Color(0xFF0E2035);
 
   @override
   void initState() {
@@ -127,7 +127,7 @@ class _BridgePointIntelligenceLiveV2State
         constraints: const BoxConstraints(minWidth: 112),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: .07),
+          color: color.withValues(alpha: .12),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: color.withValues(alpha: .18)),
         ),
@@ -137,7 +137,7 @@ class _BridgePointIntelligenceLiveV2State
             Text(label,
                 style: TextStyle(
                     color: color,
-                    fontSize: 8,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w900)),
             const SizedBox(height: 2),
             Text('${value ?? '—'}',
@@ -149,7 +149,7 @@ class _BridgePointIntelligenceLiveV2State
   Widget _notice(String text, {Color color = _amber}) => Container(
         padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: .06),
+          color: color.withValues(alpha: .10),
           borderRadius: BorderRadius.circular(11),
           border: Border.all(color: color.withValues(alpha: .18)),
         ),
@@ -161,7 +161,7 @@ class _BridgePointIntelligenceLiveV2State
             Expanded(
               child: Text(text,
                   style: const TextStyle(
-                      color: _muted, fontSize: 10, height: 1.45)),
+                      color: _muted, fontSize: 12.5, height: 1.45)),
             ),
           ],
         ),
@@ -218,7 +218,7 @@ class _BridgePointIntelligenceLiveV2State
                 trailing: Text(
                   stale ? 'STALE' : health,
                   style: TextStyle(
-                      color: color, fontSize: 9, fontWeight: FontWeight.w900),
+                      color: color, fontSize: 11.5, fontWeight: FontWeight.w900),
                 ),
                 childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                 children: [
@@ -239,7 +239,7 @@ class _BridgePointIntelligenceLiveV2State
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Last success: ${_time(row['last_successful_import_at'])}\nLast source record: ${_time(row['last_source_record_at'])}${row['last_error'] == null ? '' : '\nLast error: ${row['last_error']}'}',
-                      style: const TextStyle(color: _muted, fontSize: 9, height: 1.5),
+                      style: const TextStyle(color: _muted, fontSize: 11.5, height: 1.5),
                     ),
                   ),
                 ],
@@ -301,7 +301,7 @@ class _BridgePointIntelligenceLiveV2State
                   alignment: Alignment.centerLeft,
                   child: Text(
                     '${row['description'] ?? row['evidence_summary'] ?? 'No description returned.'}',
-                    style: const TextStyle(fontSize: 10, height: 1.45),
+                    style: const TextStyle(fontSize: 12.5, height: 1.45),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -309,7 +309,7 @@ class _BridgePointIntelligenceLiveV2State
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Signal ≠ confirmed damage or causal proof. It is a source-backed observation used for prioritization and further review.',
-                    style: TextStyle(color: _amber, fontSize: 9, height: 1.4),
+                    style: TextStyle(color: _amber, fontSize: 11.5, height: 1.4),
                   ),
                 ),
               ],
@@ -341,7 +341,7 @@ class _BridgePointIntelligenceLiveV2State
                     style: const TextStyle(fontWeight: FontWeight.w800)),
                 subtitle: Text(
                   '${row['full_address'] ?? [row['municipality'], row['state_code']].where((x) => x != null).join(', ')}\n${row['signal_count'] ?? 0} signals • ${row['distinct_sources'] ?? 0} sources • ${row['recency_band'] ?? ''}',
-                  style: const TextStyle(color: _muted, fontSize: 9, height: 1.4),
+                  style: const TextStyle(color: _muted, fontSize: 11.5, height: 1.4),
                 ),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -396,18 +396,18 @@ class _BridgePointIntelligenceLiveV2State
                         Text(entry.key.replaceAll('_', ' ').toUpperCase(),
                             style: const TextStyle(
                                 color: _muted,
-                                fontSize: 8,
+                                fontSize: 12.5,
                                 fontWeight: FontWeight.w900)),
                         const SizedBox(height: 2),
                         SelectableText('${entry.value}',
-                            style: const TextStyle(fontSize: 10, height: 1.45)),
+                            style: const TextStyle(fontSize: 12.5, height: 1.45)),
                       ],
                     ),
                   )),
               const SizedBox(height: 8),
               const Text(
                 'Transparency exposes customer-safe reasoning, evidence expectations, uncertainty and validation context—not proprietary raw weights or protected learning logic.',
-                style: TextStyle(color: _amber, fontSize: 9, height: 1.45),
+                style: TextStyle(color: _amber, fontSize: 11.5, height: 1.45),
               ),
             ],
           ),
@@ -456,7 +456,7 @@ class _BridgePointIntelligenceLiveV2State
                         ),
                         const SizedBox(height: 7),
                         Text('${row['customer_outcome'] ?? row['description'] ?? ''}',
-                            style: const TextStyle(fontSize: 10, height: 1.45)),
+                            style: const TextStyle(fontSize: 12.5, height: 1.45)),
                         const SizedBox(height: 5),
                         Text('Best for: ${row['best_for'] ?? 'general property intelligence'}',
                             style: const TextStyle(color: _muted, fontSize: 9)),
@@ -472,7 +472,7 @@ class _BridgePointIntelligenceLiveV2State
                         ),
                         const SizedBox(height: 6),
                         Text('${row['evidence_requirement'] ?? ''}',
-                            style: const TextStyle(color: _amber, fontSize: 9, height: 1.4)),
+                            style: const TextStyle(color: _amber, fontSize: 11.5, height: 1.4)),
                       ],
                     ),
                   ),
@@ -546,7 +546,7 @@ class _BridgePointIntelligenceLiveV2State
                           SizedBox(height: 3),
                           Text(
                             'Inspect the current source → evidence → signal → pattern → model chain without exposing protected weights or unsafe infrastructure to customer accounts.',
-                            style: TextStyle(color: _muted, fontSize: 9.5, height: 1.4),
+                            style: TextStyle(color: _muted, fontSize: 11.5, height: 1.4),
                           ),
                         ],
                       ),

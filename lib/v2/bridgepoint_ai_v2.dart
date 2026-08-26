@@ -14,8 +14,8 @@ class _BridgePointAiV2State extends State<BridgePointAiV2> {
   String? _error;
   Map<String, dynamic> _answer = const {};
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
 
   @override
   void dispose() {
@@ -119,7 +119,7 @@ class _BridgePointAiV2State extends State<BridgePointAiV2> {
             padding: EdgeInsets.all(13),
             child: Text(
               'AI safety/truth boundary: a generated answer does not turn weak evidence into proof. Property condition, damage, claim validity and causal conclusions still require appropriate source evidence and human/field verification.',
-              style: TextStyle(color: _muted, fontSize: 10, height: 1.45),
+              style: TextStyle(color: _muted, fontSize: 12.5, height: 1.45),
             ),
           ),
         ),

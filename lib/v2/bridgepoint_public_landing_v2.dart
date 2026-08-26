@@ -11,14 +11,14 @@ class BridgePointPublicLandingV2 extends StatefulWidget {
 }
 
 class _BridgePointPublicLandingV2State extends State<BridgePointPublicLandingV2> {
-  static const _navy = Color(0xFF07111F);
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _navy = Color(0xFF06101F);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
 
   late Future<List<dynamic>> _request;
   int _tab = 0;
@@ -167,7 +167,7 @@ class _Brand extends StatelessWidget {
         const SizedBox(width: 12),
         const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('BRIDGEPOINT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.1)),
-          Text('INTELLIGENCE', style: TextStyle(color: _BridgePointPublicLandingV2State._cyan, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 2)),
+          Text('INTELLIGENCE', style: TextStyle(color: _BridgePointPublicLandingV2State._cyan, fontWeight: FontWeight.w900, fontSize: 12.5, letterSpacing: 2)),
         ])),
       ]);
 }
@@ -181,7 +181,7 @@ class _Hero extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(phone ? 22 : 38),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF07111F), Color(0xFF0A2036), Color(0xFF10244A)]),
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF06101F), Color(0xFF0A2036), Color(0xFF10244A)]),
         borderRadius: BorderRadius.circular(26),
         border: Border.all(color: _BridgePointPublicLandingV2State._cyan.withValues(alpha: .16)),
         boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 30, offset: Offset(0, 16))],
@@ -231,7 +231,7 @@ class _Stat extends StatelessWidget {
   final String detail;
   final Color color;
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(17), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withValues(alpha: .07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 30, height: 4, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(99))), const SizedBox(height: 12), Text(value, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)), const SizedBox(height: 4), Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .8)), const SizedBox(height: 5), Text(detail, style: const TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 10, height: 1.35))]));
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(17), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withValues(alpha: .12))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 30, height: 4, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(99))), const SizedBox(height: 12), Text(value, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)), const SizedBox(height: 4), Text(label, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: .8)), const SizedBox(height: 5), Text(detail, style: const TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 12.5, height: 1.35))]));
 }
 
 class _FeatureGrid extends StatelessWidget {
@@ -261,7 +261,7 @@ class _Feature extends StatelessWidget {
   final String text;
   final Color color;
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alpha: .07))), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: color)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 5), Text(text, style: const TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 10, height: 1.45))]))]));
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alpha: .12))), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 42, height: 42, decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: color)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 5), Text(text, style: const TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 12.5, height: 1.45))]))]));
 }
 
 class _Founder extends StatelessWidget {
@@ -270,7 +270,7 @@ class _Founder extends StatelessWidget {
   final VoidCallback onContact;
   @override
   Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(19), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: _BridgePointPublicLandingV2State._cyan.withValues(alpha: .15))), child: LayoutBuilder(builder: (context, c) {
-        final identity = const Row(children: [CircleAvatar(radius: 27, backgroundColor: _BridgePointPublicLandingV2State._blue, child: Icon(Icons.person_rounded, color: Colors.white, size: 28)), SizedBox(width: 13), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Kole Johnson', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)), SizedBox(height: 2), Text('Founder, BridgePoint Intelligence', style: TextStyle(color: _BridgePointPublicLandingV2State._cyan, fontWeight: FontWeight.w700)), SizedBox(height: 4), Text('Connecticut-built property intelligence software + data infrastructure • Live product • Early commercialization', style: TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 10, height: 1.4))]))]);
+        final identity = const Row(children: [CircleAvatar(radius: 27, backgroundColor: _BridgePointPublicLandingV2State._blue, child: Icon(Icons.person_rounded, color: Colors.white, size: 28)), SizedBox(width: 13), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Kole Johnson', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)), SizedBox(height: 2), Text('Founder, BridgePoint Intelligence', style: TextStyle(color: _BridgePointPublicLandingV2State._cyan, fontWeight: FontWeight.w700)), SizedBox(height: 4), Text('Connecticut-built property intelligence software + data infrastructure • Live product • Early commercialization', style: TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 12.5, height: 1.4))]))]);
         final actions = Wrap(spacing: 8, runSpacing: 8, children: [OutlinedButton.icon(onPressed: onWebsite, icon: const Icon(Icons.language_rounded), label: const Text('Website')), OutlinedButton.icon(onPressed: onContact, icon: const Icon(Icons.mail_outline_rounded), label: const Text('Contact founder'))]);
         if (c.maxWidth < 760) return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [identity, const SizedBox(height: 14), actions]);
         return Row(children: [Expanded(child: identity), const SizedBox(width: 18), actions]);
@@ -294,7 +294,7 @@ class _DataPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = _BridgePointPublicLandingV2State()._rows(payload);
-    return Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alpha: .07))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(icon, color: _BridgePointPublicLandingV2State._cyan), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)), const SizedBox(height: 2), Text(subtitle, style: const TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 10))]))]), const SizedBox(height: 13), if (rows.isEmpty) Text('$payload', style: const TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 10)) else ...rows.take(60).map((row) => Container(margin: const EdgeInsets.only(bottom: 7), padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._soft.withValues(alpha: .65), borderRadius: BorderRadius.circular(11)), child: Wrap(spacing: 10, runSpacing: 5, children: row.entries.take(24).map((e) => Text('${e.key.replaceAll('_', ' ')}: ${e.value}', style: const TextStyle(fontSize: 9, height: 1.3))).toList())))]));
+    return Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alpha: .12))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(icon, color: _BridgePointPublicLandingV2State._cyan), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)), const SizedBox(height: 2), Text(subtitle, style: const TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 10))]))]), const SizedBox(height: 13), if (rows.isEmpty) Text('$payload', style: const TextStyle(color: _BridgePointPublicLandingV2State._muted, fontSize: 10)) else ...rows.take(60).map((row) => Container(margin: const EdgeInsets.only(bottom: 7), padding: const EdgeInsets.all(11), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._soft.withValues(alpha: .65), borderRadius: BorderRadius.circular(11)), child: Wrap(spacing: 10, runSpacing: 5, children: row.entries.take(24).map((e) => Text('${e.key.replaceAll('_', ' ')}: ${e.value}', style: const TextStyle(fontSize: 11.5, height: 1.3))).toList())))]));
   }
 }
 
@@ -304,5 +304,5 @@ class _Pill extends StatelessWidget {
   final String label;
   final Color color;
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: color.withValues(alpha: .08), borderRadius: BorderRadius.circular(999), border: Border.all(color: color.withValues(alpha: .2))), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: color, size: 10), const SizedBox(width: 6), Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .7))]));
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: color.withValues(alpha: .08), borderRadius: BorderRadius.circular(999), border: Border.all(color: color.withValues(alpha: .2))), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: color, size: 10), const SizedBox(width: 6), Text(label, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: .7))]));
 }

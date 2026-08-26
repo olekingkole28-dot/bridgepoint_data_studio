@@ -11,13 +11,13 @@ class BridgePointSavedOpportunitiesV2 extends StatefulWidget {
 
 class _BridgePointSavedOpportunitiesV2State
     extends State<BridgePointSavedOpportunitiesV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   late Future<dynamic> _request;
   bool _busy = false;
@@ -365,7 +365,7 @@ class _BridgePointSavedOpportunitiesV2State
                                     '${row['title'] ?? row['vertical_key'] ?? 'BridgePoint opportunity'}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: _cyan, fontSize: 10, fontWeight: FontWeight.w700),
+                                    style: const TextStyle(color: _cyan, fontSize: 12.5, fontWeight: FontWeight.w700),
                                   ),
                                 ],
                               ),
@@ -380,7 +380,7 @@ class _BridgePointSavedOpportunitiesV2State
                             '${row['reason']}',
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: _muted, fontSize: 10, height: 1.4),
+                            style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.4),
                           ),
                         ],
                         const SizedBox(height: 10),
@@ -461,7 +461,7 @@ class _Metric extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: _BridgePointSavedOpportunitiesV2State._muted,
-                fontSize: 8,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w900,
                 letterSpacing: .7,
               ),
@@ -489,7 +489,7 @@ class _Pill extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: TextStyle(color: color, fontSize: 8.5, fontWeight: FontWeight.w900),
+          style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w900),
         ),
       );
 }
@@ -525,7 +525,7 @@ class _StateMessage extends StatelessWidget {
                 children: [
                   Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 5),
-                  Text(body, style: const TextStyle(color: _BridgePointSavedOpportunitiesV2State._muted, fontSize: 10, height: 1.45)),
+                  Text(body, style: const TextStyle(color: _BridgePointSavedOpportunitiesV2State._muted, fontSize: 12.5, height: 1.45)),
                 ],
               ),
             ),

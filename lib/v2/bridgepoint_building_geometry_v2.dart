@@ -17,9 +17,9 @@ class _BridgePointBuildingGeometryV2State
     extends State<BridgePointBuildingGeometryV2> {
   bool _massing = true;
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
-  static const _amber = Color(0xFFFFC857);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
+  static const _amber = Color(0xFFFFC95E);
 
   List<Map<String, dynamic>> get _rows {
     final raw = widget.payload['geometry'];
@@ -168,7 +168,7 @@ class _BridgePointBuildingGeometryV2State
               const SizedBox(height: 9),
               const Text(
                 'Massing mode extrudes the source footprint using available building height. It is a schematic L1 representation—not a photorealistic scan, BIM model, engineering survey, or exact replica.',
-                style: TextStyle(color: _amber, fontSize: 10, height: 1.45),
+                style: TextStyle(color: _amber, fontSize: 12.5, height: 1.45),
               ),
               if (truth.isNotEmpty) ...[
                 const SizedBox(height: 5),
@@ -176,7 +176,7 @@ class _BridgePointBuildingGeometryV2State
                   truth,
                   style: const TextStyle(
                     color: _muted,
-                    fontSize: 9,
+                    fontSize: 11.5,
                     height: 1.4,
                   ),
                 ),
@@ -235,7 +235,7 @@ class _BuildingGeometryPainter extends CustomPainter {
   final List<Map<String, dynamic>> rows;
   final bool massing;
 
-  static const _cyan = Color(0xFF35D2E8);
+  static const _cyan = Color(0xFF48E1FF);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -334,8 +334,8 @@ class _BuildingGeometryPainter extends CustomPainter {
       text: TextSpan(
         text: label,
         style: const TextStyle(
-          color: Color(0xFF8FA5BF),
-          fontSize: 9,
+          color: Color(0xFFB5C6D9),
+          fontSize: 11.5,
           fontWeight: FontWeight.w800,
           letterSpacing: 1.0,
         ),
@@ -355,7 +355,7 @@ class _BuildingGeometryPainter extends CustomPainter {
 
   void _grid(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF8FA5BF).withValues(alpha: .07)
+      ..color = const Color(0xFFB5C6D9).withValues(alpha: .12)
       ..strokeWidth = .7;
     const gap = 28.0;
     for (double x = 0; x <= size.width; x += gap) {
@@ -370,7 +370,7 @@ class _BuildingGeometryPainter extends CustomPainter {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
-        style: const TextStyle(color: Color(0xFF8FA5BF), fontSize: 12),
+        style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 12),
       ),
       textDirection: ui.TextDirection.ltr,
     )..layout(maxWidth: math.max(40, size.width - 24));
@@ -449,7 +449,7 @@ class _InfoChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
         ),
       );
 }
@@ -478,7 +478,7 @@ class _GeometryProvenance extends StatelessWidget {
           const Icon(
             Icons.verified_outlined,
             size: 16,
-            color: Color(0xFF35D2E8),
+            color: Color(0xFF48E1FF),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -488,15 +488,15 @@ class _GeometryProvenance extends StatelessWidget {
                 Text(
                   source,
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
                   parts.join(' • '),
                   style: const TextStyle(
-                    color: Color(0xFF8FA5BF),
-                    fontSize: 9,
+                    color: Color(0xFFB5C6D9),
+                    fontSize: 11.5,
                   ),
                 ),
               ],
@@ -530,7 +530,7 @@ class _EmptyGeometry extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFF8FA5BF)),
+            Icon(icon, color: const Color(0xFFB5C6D9)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -542,8 +542,8 @@ class _EmptyGeometry extends StatelessWidget {
                   Text(
                     body,
                     style: const TextStyle(
-                      color: Color(0xFF8FA5BF),
-                      fontSize: 10,
+                      color: Color(0xFFB5C6D9),
+                      fontSize: 12.5,
                       height: 1.4,
                     ),
                   ),

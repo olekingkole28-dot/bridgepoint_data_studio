@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-const _bpCyan = Color(0xFF35D2E8);
-const _bpGreen = Color(0xFF38D49A);
-const _bpAmber = Color(0xFFFFC857);
+const _bpCyan = Color(0xFF48E1FF);
+const _bpGreen = Color(0xFF45E6A6);
+const _bpAmber = Color(0xFFFFC95E);
 const _bpRed = Color(0xFFFF6B6B);
-const _bpMuted = Color(0xFF8FA5BF);
-const _bpPanel = Color(0xFF0D1A2B);
+const _bpMuted = Color(0xFFB5C6D9);
+const _bpPanel = Color(0xFF0E2035);
 
 Map<String, dynamic> _map(dynamic value) {
   if (value is Map<String, dynamic>) return value;
@@ -85,7 +85,7 @@ class _Metric extends StatelessWidget {
           border: Border.all(color: color.withValues(alpha: .17)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: .45)),
+          Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w900, letterSpacing: .45)),
           const SizedBox(height: 3),
           Text(value, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900)),
         ]),
@@ -109,7 +109,7 @@ class _Notice extends StatelessWidget {
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(color: _bpMuted, fontSize: 9.5, height: 1.45))),
+          Expanded(child: Text(text, style: const TextStyle(color: _bpMuted, fontSize: 11.5, height: 1.45))),
         ]),
       );
 }
@@ -123,8 +123,8 @@ class _AllFields extends StatelessWidget {
   Widget build(BuildContext context) => ExpansionTile(
         tilePadding: EdgeInsets.zero,
         childrenPadding: const EdgeInsets.only(bottom: 8),
-        title: Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-        subtitle: const Text('Complete customer-safe payload for audit / detail review', style: TextStyle(color: _bpMuted, fontSize: 8.5)),
+        title: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+        subtitle: const Text('Complete customer-safe payload for audit / detail review', style: TextStyle(color: _bpMuted, fontSize: 11)),
         children: [_StructuredValue(value: value)],
       );
 }
@@ -148,7 +148,7 @@ class _StructuredValue extends StatelessWidget {
               dense: true,
               tilePadding: EdgeInsets.zero,
               childrenPadding: EdgeInsets.only(left: depth == 0 ? 10 : 6, bottom: 5),
-              title: Text(_labelKey('${entry.key}'), style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800)),
+              title: Text(_labelKey('${entry.key}'), style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
               children: [_StructuredValue(value: entry.value, depth: depth + 1)],
             );
           }
@@ -157,8 +157,8 @@ class _StructuredValue extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(bottom: 7),
             child: LayoutBuilder(builder: (context, constraints) {
-              final label = Text(_labelKey('${entry.key}'), style: const TextStyle(color: _bpMuted, fontSize: 8.5, fontWeight: FontWeight.w800));
-              final content = SelectableText(displayed, style: const TextStyle(fontSize: 9, height: 1.35));
+              final label = Text(_labelKey('${entry.key}'), style: const TextStyle(color: _bpMuted, fontSize: 13, fontWeight: FontWeight.w800));
+              final content = SelectableText(displayed, style: const TextStyle(fontSize: 11.5, height: 1.35));
               if (constraints.maxWidth < 360) {
                 return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [label, const SizedBox(height: 3), content]);
               }
@@ -182,7 +182,7 @@ class _StructuredValue extends StatelessWidget {
               ? ExpansionTile(
                   dense: true,
                   tilePadding: EdgeInsets.zero,
-                  title: Text('Record ${entry.key + 1}', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800)),
+                  title: Text('Record ${entry.key + 1}', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
                   children: [_StructuredValue(value: entry.value, depth: depth + 1)],
                 )
               : SelectableText('${entry.value}', style: const TextStyle(fontSize: 9)),
@@ -209,7 +209,7 @@ Widget _responsiveHeading({
           Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
           if (subtitle != null) ...[
             const SizedBox(height: 3),
-            Text(subtitle, style: const TextStyle(color: _bpMuted, fontSize: 9.5)),
+            Text(subtitle, style: const TextStyle(color: _bpMuted, fontSize: 11.5)),
           ],
         ]),
       ),
@@ -266,10 +266,10 @@ class BridgePointPropertyOverviewV2 extends StatelessWidget {
               [property['full_address'], property['municipality'], property['county'], property['state_code'], property['postal_code']]
                   .where((value) => value != null && '$value'.trim().isNotEmpty)
                   .join(' • '),
-              style: const TextStyle(color: _bpMuted, fontSize: 9.5),
+              style: const TextStyle(color: _bpMuted, fontSize: 11.5),
             ),
             const SizedBox(height: 8),
-            Text('Property record updated ${_time(property['updated_at'])}', style: const TextStyle(color: _bpMuted, fontSize: 8.5)),
+            Text('Property record updated ${_time(property['updated_at'])}', style: const TextStyle(color: _bpMuted, fontSize: 11)),
           ]),
         ),
       ),
@@ -310,13 +310,13 @@ class BridgePointPropertyOverviewV2 extends StatelessWidget {
                   Chip(label: Text('${opportunity['confidence_percent'] ?? '—'}% confidence')),
                 ]),
                 const SizedBox(height: 7),
-                Text(_text(opportunity['why_now'], 'No Why Now explanation returned.'), style: const TextStyle(fontSize: 10, height: 1.45)),
+                Text(_text(opportunity['why_now'], 'No Why Now explanation returned.'), style: const TextStyle(fontSize: 12.5, height: 1.45)),
                 if (_text(opportunity['recommended_action'], '').isNotEmpty) ...[
                   const SizedBox(height: 7),
-                  Text('Next best action: ${opportunity['recommended_action']}', style: const TextStyle(color: _bpCyan, fontSize: 10, fontWeight: FontWeight.w800)),
+                  Text('Next best action: ${opportunity['recommended_action']}', style: const TextStyle(color: _bpCyan, fontSize: 12.5, fontWeight: FontWeight.w800)),
                 ],
                 const SizedBox(height: 7),
-                Text('Latest direct evidence: ${_time(opportunity['latest_evidence_at'])}', style: const TextStyle(color: _bpMuted, fontSize: 8.5)),
+                Text('Latest direct evidence: ${_time(opportunity['latest_evidence_at'])}', style: const TextStyle(color: _bpMuted, fontSize: 11)),
               ]),
             ),
           ),
@@ -377,14 +377,14 @@ class BridgePointPropertyTimelineV2 extends StatelessWidget {
                 title: Text(_text(item['title'], type), style: const TextStyle(fontWeight: FontWeight.w800)),
                 subtitle: Text(
                   '${_time(item['timeline_at'])} • ${_text(item['source_label'], 'source unavailable')} • ${_text(item['support_level'], type)}',
-                  style: const TextStyle(color: _bpMuted, fontSize: 8.5),
+                  style: const TextStyle(color: _bpMuted, fontSize: 11),
                 ),
                 childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                 children: [
-                  Align(alignment: Alignment.centerLeft, child: Text(_text(item['description'], 'No description returned.'), style: const TextStyle(fontSize: 10, height: 1.45))),
+                  Align(alignment: Alignment.centerLeft, child: Text(_text(item['description'], 'No description returned.'), style: const TextStyle(fontSize: 12.5, height: 1.45))),
                   if (_text(item['why_it_matters'], '').isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Align(alignment: Alignment.centerLeft, child: Text('Why it matters: ${item['why_it_matters']}', style: const TextStyle(color: _bpCyan, fontSize: 9.5, height: 1.4))),
+                    Align(alignment: Alignment.centerLeft, child: Text('Why it matters: ${item['why_it_matters']}', style: const TextStyle(color: _bpCyan, fontSize: 11.5, height: 1.4))),
                   ],
                   const SizedBox(height: 8),
                   Wrap(spacing: 7, runSpacing: 7, children: [
@@ -395,7 +395,7 @@ class BridgePointPropertyTimelineV2 extends StatelessWidget {
                   ]),
                   if (_text(item['limitations'], '').isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Align(alignment: Alignment.centerLeft, child: Text('Limitation: ${item['limitations']}', style: const TextStyle(color: _bpAmber, fontSize: 9, height: 1.4))),
+                    Align(alignment: Alignment.centerLeft, child: Text('Limitation: ${item['limitations']}', style: const TextStyle(color: _bpAmber, fontSize: 11.5, height: 1.4))),
                   ],
                 ],
               ),
@@ -454,7 +454,7 @@ class BridgePointClimateProfileV2 extends StatelessWidget {
                   const SizedBox(height: 5),
                   Text(
                     observed ? 'Observed exposure ${_text(hazard['observed_exposure_score'])} • ${hazard['recurrence_count'] ?? 0} observations' : 'No property-level observations yet',
-                    style: const TextStyle(color: _bpMuted, fontSize: 8.5, height: 1.35),
+                    style: const TextStyle(color: _bpMuted, fontSize: 13, height: 1.35),
                   ),
                   if (observed) Text('Latest ${_time(hazard['latest_observed_at'])}', style: const TextStyle(color: _bpMuted, fontSize: 8)),
                 ]),
@@ -515,7 +515,7 @@ class BridgePointTwinSummaryV2 extends StatelessWidget {
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Icon(Icons.science_outlined, size: 15, color: _bpCyan),
                 const SizedBox(width: 7),
-                Expanded(child: Text('${_labelKey(entry.key)}: ${entry.value}', style: const TextStyle(color: _bpMuted, fontSize: 9, height: 1.35))),
+                Expanded(child: Text('${_labelKey(entry.key)}: ${entry.value}', style: const TextStyle(color: _bpMuted, fontSize: 11.5, height: 1.35))),
               ]),
             )),
           ],
@@ -548,7 +548,7 @@ class BridgePointPermitContextV2 extends StatelessWidget {
           const _Notice('This current permit feed is municipality/year context, not a property-specific permit claim. Property-specific permit sources can appear separately in the property timeline when matched.'),
           const SizedBox(height: 8),
           if (rows.isEmpty)
-            const Text('No municipal permit context returned.', style: TextStyle(color: _bpMuted, fontSize: 9.5))
+            const Text('No municipal permit context returned.', style: TextStyle(color: _bpMuted, fontSize: 11.5))
           else
             ...rows.take(12).map((row) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
@@ -559,7 +559,7 @@ class BridgePointPermitContextV2 extends StatelessWidget {
                 title: Text('${row['report_year'] ?? 'Year'} • ${row['municipality'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 10)),
                 subtitle: Text(
                   'Total units ${row['total_units'] ?? '—'} • 1-unit ${row['one_unit'] ?? '—'} • 2-unit ${row['two_unit'] ?? '—'} • 3–4 unit ${row['three_four_units'] ?? '—'} • 5+ ${row['five_plus_units'] ?? '—'} • demolitions ${row['demolitions'] ?? '—'}',
-                  style: const TextStyle(color: _bpMuted, fontSize: 8.5),
+                  style: const TextStyle(color: _bpMuted, fontSize: 11),
                 ),
               ),
             )),
@@ -612,7 +612,7 @@ class BridgePointMediaHistoryV2 extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             '${_text(item['source_name'] ?? item['provider'], 'Source unavailable')} • ${_time(item['captured_at'] ?? item['observed_at'] ?? item['capture_date'])}',
-            style: const TextStyle(color: _bpMuted, fontSize: 8.5),
+            style: const TextStyle(color: _bpMuted, fontSize: 11),
           ),
           if (_text(item['license_note'], '').isNotEmpty) ...[
             const SizedBox(height: 3),
@@ -654,7 +654,7 @@ class BridgePointMediaHistoryV2 extends StatelessWidget {
               return Wrap(spacing: 8, runSpacing: 8, children: all.map((item) => SizedBox(width: width, child: _imageCard(item))).toList());
             }),
             const SizedBox(height: 8),
-            Text(_text(payload['priority_rule'], 'Property media is ordered by BridgePoint source/usefulness policy.'), style: const TextStyle(color: _bpMuted, fontSize: 8.5, height: 1.4)),
+            Text(_text(payload['priority_rule'], 'Property media is ordered by BridgePoint source/usefulness policy.'), style: const TextStyle(color: _bpMuted, fontSize: 13, height: 1.4)),
           ],
           _AllFields(title: 'All imagery / media fields', value: payload),
         ]),

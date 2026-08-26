@@ -20,8 +20,8 @@ class _BridgePointNotificationsSettingsV2State
   bool _sourceHealth = true;
   bool _dailyBrief = true;
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
 
   @override
   void initState() {
@@ -95,7 +95,7 @@ class _BridgePointNotificationsSettingsV2State
         const SizedBox(height: 4),
         const Text(
           'Control operational alerts without hiding critical account or security messages that BridgePoint must still surface.',
-          style: TextStyle(color: _muted, fontSize: 10, height: 1.45),
+          style: TextStyle(color: _muted, fontSize: 12.5, height: 1.45),
         ),
         if (_busy) ...[
           const SizedBox(height: 8),

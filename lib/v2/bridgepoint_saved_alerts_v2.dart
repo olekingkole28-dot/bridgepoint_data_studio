@@ -9,14 +9,14 @@ class BridgePointSavedAlertsV2 extends StatefulWidget {
 }
 
 class _BridgePointSavedAlertsV2State extends State<BridgePointSavedAlertsV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   late Future<List<dynamic>> _request;
   int _tab = 0;
@@ -449,7 +449,7 @@ class _Metric extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: _BridgePointSavedAlertsV2State._muted,
-                fontSize: 8,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w900,
                 letterSpacing: .7,
               ),
@@ -461,7 +461,7 @@ class _Metric extends StatelessWidget {
               detail,
               style: const TextStyle(
                 color: _BridgePointSavedAlertsV2State._muted,
-                fontSize: 9,
+                fontSize: 11.5,
               ),
             ),
           ],
@@ -481,7 +481,7 @@ class _Panel extends StatelessWidget {
         decoration: BoxDecoration(
           color: _BridgePointSavedAlertsV2State._panel,
           borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: Colors.white.withValues(alpha: .07)),
+          border: Border.all(color: Colors.white.withValues(alpha: .12)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -567,7 +567,7 @@ class _Notifications extends StatelessWidget {
                                   '${row['message'] ?? ''}',
                                   style: const TextStyle(
                                     color: _BridgePointSavedAlertsV2State._muted,
-                                    fontSize: 10,
+                                    fontSize: 12.5,
                                     height: 1.4,
                                   ),
                                 ),
@@ -576,7 +576,7 @@ class _Notifications extends StatelessWidget {
                                   '${row['created_at'] ?? ''}',
                                   style: const TextStyle(
                                     color: _BridgePointSavedAlertsV2State._muted,
-                                    fontSize: 8,
+                                    fontSize: 12.5,
                                   ),
                                 ),
                               ],
@@ -720,7 +720,7 @@ class _Watchlists extends StatelessWidget {
                             '${row['type'] ?? 'properties'} • ${row['item_count'] ?? 0} items',
                             style: const TextStyle(
                               color: _BridgePointSavedAlertsV2State._muted,
-                              fontSize: 10,
+                              fontSize: 12.5,
                             ),
                           ),
                           children: [
@@ -735,7 +735,7 @@ class _Watchlists extends StatelessWidget {
                                     '${item['item_label'] ?? item['item_key'] ?? item['property_id'] ?? 'Watchlist item'}',
                                     style: const TextStyle(
                                       color: _BridgePointSavedAlertsV2State._muted,
-                                      fontSize: 10,
+                                      fontSize: 12.5,
                                     ),
                                   ),
                                 ),
@@ -781,7 +781,7 @@ class _DataRow extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       color: _BridgePointSavedAlertsV2State._muted,
-                      fontSize: 9,
+                      fontSize: 11.5,
                       height: 1.35,
                     ),
                   ),
@@ -805,7 +805,7 @@ class _Empty extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: _BridgePointSavedAlertsV2State._muted,
-              fontSize: 10,
+              fontSize: 12.5,
               height: 1.45,
             ),
           ),

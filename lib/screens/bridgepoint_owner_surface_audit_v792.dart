@@ -15,13 +15,13 @@ class _BridgePointOwnerSurfaceAuditState
   String _query = '';
   String _status = 'ALL';
 
-  static const _panel = Color(0xFF0D1A2B);
-  static const _panelSoft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _panel = Color(0xFF0E2035);
+  static const _panelSoft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   @override
   void initState() {
@@ -60,7 +60,7 @@ class _BridgePointOwnerSurfaceAuditState
           children: [
             Text(label,
                 style: const TextStyle(
-                    color: _muted, fontSize: 9, fontWeight: FontWeight.w800)),
+                    color: _muted, fontSize: 11.5, fontWeight: FontWeight.w800)),
             const SizedBox(height: 5),
             Text('$value',
                 style: TextStyle(
@@ -165,7 +165,7 @@ class _BridgePointOwnerSurfaceAuditState
                 ),
                 child: const Text(
                   'Classification is not the same as customer exposure. Security internals stay internal; automation stays automation. The goal is zero accidental hidden capability, not hundreds of buttons.',
-                  style: TextStyle(color: _muted, fontSize: 10, height: 1.45),
+                  style: TextStyle(color: _muted, fontSize: 12.5, height: 1.45),
                 ),
               ),
               const SizedBox(height: 14),
@@ -246,17 +246,17 @@ class _BridgePointOwnerSurfaceAuditState
                       title: Text('${row['capability_label']}',
                           style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 11,
+                              fontSize: 13,
                               fontWeight: FontWeight.w800)),
                       subtitle: Text(
                         '${row['source_reference']}\n${row['audience'] ?? 'UNCLASSIFIED'} • ${row['surface_kind'] ?? 'UNCLASSIFIED'}${row['surface_reference'] == null ? '' : ' • ${row['surface_reference']}'}',
                         style: const TextStyle(
-                            color: _muted, fontSize: 9, height: 1.35),
+                            color: _muted, fontSize: 11.5, height: 1.35),
                       ),
                       trailing: Text(status,
                           style: TextStyle(
                               color: color,
-                              fontSize: 8,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w900)),
                     ),
                   );

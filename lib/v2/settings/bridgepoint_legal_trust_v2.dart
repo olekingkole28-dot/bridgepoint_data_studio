@@ -13,10 +13,10 @@ class _BridgePointLegalTrustV2State extends State<BridgePointLegalTrustV2> {
   bool _busy = false;
   String? _message;
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
-  static const _amber = Color(0xFFFFC857);
-  static const _green = Color(0xFF38D49A);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
+  static const _amber = Color(0xFFFFC95E);
+  static const _green = Color(0xFF45E6A6);
 
   @override
   void initState() {
@@ -309,7 +309,7 @@ class _BridgePointLegalTrustV2State extends State<BridgePointLegalTrustV2> {
               alignment: Alignment.centerLeft,
               child: SelectableText(
                 '${doc['content_markdown']}',
-                style: const TextStyle(fontSize: 11, height: 1.5),
+                style: const TextStyle(fontSize: 13, height: 1.5),
               ),
             ),
           ],
@@ -440,7 +440,7 @@ class _BridgePointLegalTrustV2State extends State<BridgePointLegalTrustV2> {
                       title: Text('${row['title'] ?? row['key'] ?? 'Recommendation'}'),
                       subtitle: Text('${row['detail'] ?? ''}'),
                       trailing: Text('${row['priority'] ?? ''}',
-                          style: const TextStyle(fontSize: 9, color: _muted)),
+                          style: const TextStyle(fontSize: 11.5, color: _muted)),
                     ),
                   )),
             ],
@@ -462,7 +462,7 @@ class _BridgePointLegalTrustV2State extends State<BridgePointLegalTrustV2> {
             const SizedBox(height: 10),
             Text(
               'Attorney review status: ${legal['attorney_review_status'] ?? 'not reported by backend'}. BridgePoint does not represent automated legal text as attorney advice.',
-              style: const TextStyle(color: _amber, fontSize: 9.5, height: 1.45),
+              style: const TextStyle(color: _amber, fontSize: 11.5, height: 1.45),
             ),
           ],
         );

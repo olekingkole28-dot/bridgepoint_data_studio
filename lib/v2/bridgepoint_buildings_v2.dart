@@ -11,13 +11,13 @@ class BridgePointBuildingsV2 extends StatefulWidget {
 }
 
 class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
+  static const _muted = Color(0xFFB5C6D9);
 
   final _query = TextEditingController();
   late Future<dynamic> _summary;
@@ -294,7 +294,7 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: _statusColor(threeDStatus, threeDCount)
-                        .withValues(alpha: .07),
+                        .withValues(alpha: .12),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: _statusColor(threeDStatus, threeDCount)
@@ -326,7 +326,7 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
                               _physicalStatusText(stateRow),
                               style: const TextStyle(
                                 color: _muted,
-                                fontSize: 10,
+                                fontSize: 12.5,
                                 height: 1.4,
                               ),
                             ),
@@ -411,7 +411,7 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
               decoration: BoxDecoration(
                 color: _panel,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: .07)),
+                border: Border.all(color: Colors.white.withValues(alpha: .12)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -488,7 +488,7 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
                                 '${row['state_code'] ?? _state}',
                                 style: const TextStyle(
                                   color: _blue,
-                                  fontSize: 10,
+                                  fontSize: 12.5,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -520,7 +520,7 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
                 decoration: BoxDecoration(
                   color: _panel,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: .07)),
+                  border: Border.all(color: Colors.white.withValues(alpha: .12)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,7 +573,7 @@ class _BuildingMetric extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: _BridgePointBuildingsV2State._muted,
-                fontSize: 9,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w900,
                 letterSpacing: .7,
               ),
@@ -592,7 +592,7 @@ class _BuildingMetric extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: _BridgePointBuildingsV2State._muted,
-                fontSize: 10,
+                fontSize: 12.5,
               ),
             ),
           ],
@@ -619,7 +619,7 @@ class _Payload extends StatelessWidget {
                   '${e.key.toString().replaceAll('_', ' ')}: ${e.value}',
                   style: const TextStyle(
                     color: _BridgePointBuildingsV2State._muted,
-                    fontSize: 10,
+                    fontSize: 12.5,
                     height: 1.35,
                   ),
                 ),
@@ -630,7 +630,7 @@ class _Payload extends StatelessWidget {
                 dense: true,
                 title: Text(
                   e.key.toString().replaceAll('_', ' '),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
                 ),
                 children: [
                   Padding(
@@ -653,7 +653,7 @@ class _Payload extends StatelessWidget {
       '$payload',
       style: const TextStyle(
         color: _BridgePointBuildingsV2State._muted,
-        fontSize: 10,
+        fontSize: 12.5,
       ),
     );
   }

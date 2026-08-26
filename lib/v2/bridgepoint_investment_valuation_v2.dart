@@ -14,14 +14,14 @@ class BridgePointInvestmentValuationV2 extends StatefulWidget {
 
 class _BridgePointInvestmentValuationV2State
     extends State<BridgePointInvestmentValuationV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   late Future<dynamic> _request;
   Timer? _timer;
@@ -205,7 +205,7 @@ class _BridgePointInvestmentValuationV2State
                     'MODELED PRE-MONEY VALUE',
                     style: TextStyle(
                       color: _muted,
-                      fontSize: 9,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.2,
                     ),
@@ -379,7 +379,7 @@ class _BridgePointInvestmentValuationV2State
             const SizedBox(height: 12),
             const Text(
               'Valuation truth rule: this is BridgePoint’s internal modeled pre-money planning range, calculated from current operating metrics and milestone logic. It is not an audited appraisal, investor offer, financing commitment, or guaranteed transaction value.',
-              style: TextStyle(color: _muted, fontSize: 9.5, height: 1.45),
+              style: TextStyle(color: _muted, fontSize: 11.5, height: 1.45),
             ),
           ],
         );
@@ -413,7 +413,7 @@ class _Metric extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: _BridgePointInvestmentValuationV2State._muted,
-                fontSize: 8.5,
+                fontSize: 13,
                 fontWeight: FontWeight.w900,
                 letterSpacing: .7,
               ),
@@ -432,7 +432,7 @@ class _Metric extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: _BridgePointInvestmentValuationV2State._muted,
-                fontSize: 9.5,
+                fontSize: 11.5,
               ),
             ),
           ],
@@ -459,7 +459,7 @@ class _Section extends StatelessWidget {
         decoration: BoxDecoration(
           color: _BridgePointInvestmentValuationV2State._panel,
           borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: Colors.white.withValues(alpha: .07)),
+          border: Border.all(color: Colors.white.withValues(alpha: .12)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,7 +484,7 @@ class _Section extends StatelessWidget {
                         subtitle,
                         style: const TextStyle(
                           color: _BridgePointInvestmentValuationV2State._muted,
-                          fontSize: 9.5,
+                          fontSize: 11.5,
                         ),
                       ),
                     ],
@@ -529,7 +529,7 @@ class _DriverRow extends StatelessWidget {
               children: [
                 Text(
                   factor.toUpperCase(),
-                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
+                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
                 ),
                 if (detail.isNotEmpty) ...[
                   const SizedBox(height: 2),
@@ -537,7 +537,7 @@ class _DriverRow extends StatelessWidget {
                     detail,
                     style: const TextStyle(
                       color: _BridgePointInvestmentValuationV2State._muted,
-                      fontSize: 9,
+                      fontSize: 11.5,
                     ),
                   ),
                 ],
@@ -549,7 +549,7 @@ class _DriverRow extends StatelessWidget {
               impact.toUpperCase(),
               style: const TextStyle(
                 color: _BridgePointInvestmentValuationV2State._green,
-                fontSize: 8,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -579,7 +579,7 @@ class _BenchmarkRow extends StatelessWidget {
               .map(
                 (e) => Text(
                   '${e.key.replaceAll('_', ' ')}: ${e.value}',
-                  style: const TextStyle(fontSize: 9.5),
+                  style: const TextStyle(fontSize: 11.5),
                 ),
               )
               .toList(),
@@ -604,7 +604,7 @@ class _Pill extends StatelessWidget {
           label,
           style: TextStyle(
             color: color,
-            fontSize: 9,
+            fontSize: 11.5,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -634,7 +634,7 @@ class _ValuationTrendPainter extends CustomPainter {
     final span = math.max(1.0, maxV - minV);
 
     final grid = Paint()
-      ..color = Colors.white.withValues(alpha: .06)
+      ..color = Colors.white.withValues(alpha: .10)
       ..strokeWidth = 1;
     for (var i = 0; i <= 4; i++) {
       final y = size.height * i / 4;

@@ -14,14 +14,14 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
   bool _busy = false;
   String? _message;
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
+  static const _muted = Color(0xFFB5C6D9);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
 
   @override
   void initState() {
@@ -256,7 +256,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
                         pricingLabel.isEmpty ? 'BridgePoint package' : pricingLabel,
                         style: TextStyle(
                           color: color,
-                          fontSize: 9,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w900,
                           letterSpacing: .7,
                         ),
@@ -297,7 +297,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
                     action,
                     style: TextStyle(
                       color: color,
-                      fontSize: 9,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -314,7 +314,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
                 '$trialDays-day free trial',
                 style: const TextStyle(
                   color: _cyan,
-                  fontSize: 10,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -332,14 +332,14 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
                 description,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: _muted, fontSize: 10, height: 1.45),
+                style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.45),
               ),
             ],
             if (bestFor.isNotEmpty) ...[
               const SizedBox(height: 9),
-              Text('BEST FOR', style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: .8)),
+              Text('BEST FOR', style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w900, letterSpacing: .8)),
               const SizedBox(height: 3),
-              Text(bestFor, style: const TextStyle(fontSize: 10, height: 1.4)),
+              Text(bestFor, style: const TextStyle(fontSize: 12.5, height: 1.4)),
             ],
             if (includes.isNotEmpty) ...[
               const SizedBox(height: 9),
@@ -352,7 +352,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
                         color: _soft,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(item, style: const TextStyle(fontSize: 8.5)),
+                      child: Text(item, style: const TextStyle(fontSize: 11)),
                     )).toList(),
               ),
             ],
@@ -360,7 +360,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
               const SizedBox(height: 10),
               Text(
                 [if (disclosure.isNotEmpty) disclosure, if (pricingNote.isNotEmpty) pricingNote].join(' '),
-                style: const TextStyle(color: _muted, fontSize: 9.5, height: 1.4),
+                style: const TextStyle(color: _muted, fontSize: 11.5, height: 1.4),
               ),
             ],
             const SizedBox(height: 14),
@@ -417,7 +417,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [_panel, _cyan.withValues(alpha: .06)]),
+                gradient: LinearGradient(colors: [_panel, _cyan.withValues(alpha: .10)]),
                 borderRadius: BorderRadius.circular(17),
                 border: Border.all(color: _cyan.withValues(alpha: .14)),
               ),
@@ -478,7 +478,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
             const SizedBox(height: 10),
             const Text(
               'Commercial truth rule: READY + IMMEDIATE packages use the live Stripe checkout contract. Owner-approval and managed products remain request-based. BUILDING and ROADMAP products are visible without being falsely sold as finished.',
-              style: TextStyle(color: _amber, fontSize: 10, height: 1.45),
+              style: TextStyle(color: _amber, fontSize: 12.5, height: 1.45),
             ),
           ],
         );

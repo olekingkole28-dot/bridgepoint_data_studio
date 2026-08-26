@@ -9,14 +9,14 @@ class BridgePointInvestorV2 extends StatefulWidget {
 }
 
 class _BridgePointInvestorV2State extends State<BridgePointInvestorV2> {
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   String _state = 'CT';
   List<Map<String, dynamic>> _stateRows = const [];
@@ -314,7 +314,7 @@ class _BridgePointInvestorV2State extends State<BridgePointInvestorV2> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: _statusColor(scoreStatus, opportunities.isNotEmpty)
-                    .withValues(alpha: .07),
+                    .withValues(alpha: .12),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: _statusColor(scoreStatus, opportunities.isNotEmpty)
@@ -342,7 +342,7 @@ class _BridgePointInvestorV2State extends State<BridgePointInvestorV2> {
                           statusText,
                           style: const TextStyle(
                             color: _muted,
-                            fontSize: 10,
+                            fontSize: 12.5,
                             height: 1.45,
                           ),
                         ),
@@ -417,7 +417,7 @@ class _BridgePointInvestorV2State extends State<BridgePointInvestorV2> {
               decoration: BoxDecoration(
                 color: _panel,
                 borderRadius: BorderRadius.circular(17),
-                border: Border.all(color: Colors.white.withValues(alpha: .07)),
+                border: Border.all(color: Colors.white.withValues(alpha: .12)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,7 +513,7 @@ class _Metric extends StatelessWidget {
         decoration: BoxDecoration(
           color: _BridgePointInvestorV2State._panel,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: .07)),
+          border: Border.all(color: Colors.white.withValues(alpha: .12)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,7 +524,7 @@ class _Metric extends StatelessWidget {
               label,
               style: const TextStyle(
                 color: _BridgePointInvestorV2State._muted,
-                fontSize: 9,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w900,
                 letterSpacing: .7,
               ),
@@ -543,7 +543,7 @@ class _Metric extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: _BridgePointInvestorV2State._muted,
-                fontSize: 10,
+                fontSize: 12.5,
               ),
             ),
           ],
@@ -568,7 +568,7 @@ class _InvestorEmpty extends StatelessWidget {
         decoration: BoxDecoration(
           color: _BridgePointInvestorV2State._soft.withValues(alpha: .55),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: .06)),
+          border: Border.all(color: Colors.white.withValues(alpha: .10)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -586,7 +586,7 @@ class _InvestorEmpty extends StatelessWidget {
                     detail,
                     style: const TextStyle(
                       color: _BridgePointInvestorV2State._muted,
-                      fontSize: 10,
+                      fontSize: 12.5,
                       height: 1.4,
                     ),
                   ),
@@ -637,7 +637,7 @@ class _InvestorCard extends StatelessWidget {
                       '${entry.key.replaceAll('_', ' ')}: ${entry.value}',
                       style: const TextStyle(
                         color: _BridgePointInvestorV2State._muted,
-                        fontSize: 11,
+                        fontSize: 13,
                         height: 1.35,
                       ),
                     ),
@@ -696,7 +696,7 @@ class _InvestorCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: _BridgePointInvestorV2State._muted,
-                      fontSize: 10,
+                      fontSize: 12.5,
                     ),
                   ),
                 ],
@@ -714,7 +714,7 @@ class _InvestorCard extends StatelessWidget {
                   priority.toUpperCase(),
                   style: const TextStyle(
                     color: _BridgePointInvestorV2State._muted,
-                    fontSize: 8,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

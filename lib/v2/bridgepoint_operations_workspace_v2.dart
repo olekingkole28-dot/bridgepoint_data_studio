@@ -17,8 +17,8 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
   bool _busy = false;
   String? _message;
 
-  static const _cyan = Color(0xFF35D2E8);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _muted = Color(0xFFB5C6D9);
 
   @override
   void initState() {
@@ -322,11 +322,11 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
                       decoration: BoxDecoration(color: const Color(0xFF081625), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x2235D2E8))),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                         Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 8, runSpacing: 5, children: [
-                          CircleAvatar(radius: 14, backgroundColor: const Color(0x1835D2E8), child: Text('${i + 1}', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
+                          CircleAvatar(radius: 14, backgroundColor: const Color(0x1835D2E8), child: Text('${i + 1}', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900))),
                           ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600), child: Text('${stops[i]['address'] ?? stops[i]['opportunity_name'] ?? 'Route stop ${i + 1}'}', style: const TextStyle(fontWeight: FontWeight.w800))),
                           Chip(label: Text('${stops[i]['status'] ?? 'PLANNED'}')),
                         ]),
-                        if ('${stops[i]['why_now'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text('${stops[i]['why_now']}', style: const TextStyle(color: _muted, fontSize: 10, height: 1.4))),
+                        if ('${stops[i]['why_now'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text('${stops[i]['why_now']}', style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.4))),
                         if ('${stops[i]['last_note'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text('Last note: ${stops[i]['last_note']}', style: const TextStyle(fontSize: 10))),
                         const SizedBox(height: 7),
                         Align(alignment: Alignment.centerLeft, child: FilledButton.tonalIcon(onPressed: _busy ? null : () => _updateRouteStop(route, stops[i], i + 1), icon: const Icon(Icons.edit_location_alt_outlined), label: const Text('Update field status'))),
@@ -382,7 +382,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
             if (_routeSelection.isNotEmpty) const SizedBox(height: 8),
             if (opportunities.isEmpty) _dataPanel('Ranked opportunities / Why Now', at(0), Icons.track_changes_rounded, const ['opportunities']) else ...opportunities.map(_opportunityCard),
             const SizedBox(height: 8),
-            const Card(child: Padding(padding: EdgeInsets.all(13), child: Text('Opportunity ranking is decision support. Weather exposure, model scores and signals are not confirmed damage. Field feedback is written back to BridgePoint’s learning loop when the account/workspace allows it.', style: TextStyle(color: _muted, fontSize: 10, height: 1.45)))),
+            const Card(child: Padding(padding: EdgeInsets.all(13), child: Text('Opportunity ranking is decision support. Weather exposure, model scores and signals are not confirmed damage. Field feedback is written back to BridgePoint’s learning loop when the account/workspace allows it.', style: TextStyle(color: _muted, fontSize: 12.5, height: 1.45)))),
           ],
           if (_tab == 1) ...[
             _dataPanel('Signals / evidence', at(1), Icons.sensors_rounded, const ['signals','items','results']),
@@ -427,7 +427,7 @@ class _CompactMap extends StatelessWidget {
   final Map<String, dynamic> value;
   @override
   Widget build(BuildContext context) {
-    if (value.isEmpty) return const Text('No data returned.', style: TextStyle(color: Color(0xFF8FA5BF)));
-    return Container(width: double.infinity, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF081625), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x2235D2E8))), child: Wrap(spacing: 10, runSpacing: 6, children: value.entries.take(24).map((e) { final raw='${e.value}'; final text=raw.length>220?'${raw.substring(0,220)}…':raw; return ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: Text('${e.key.replaceAll('_',' ')}: $text', style: const TextStyle(fontSize: 9, height: 1.35))); }).toList()));
+    if (value.isEmpty) return const Text('No data returned.', style: TextStyle(color: Color(0xFFB5C6D9)));
+    return Container(width: double.infinity, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF081625), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0x2235D2E8))), child: Wrap(spacing: 10, runSpacing: 6, children: value.entries.take(24).map((e) { final raw='${e.value}'; final text=raw.length>220?'${raw.substring(0,220)}…':raw; return ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: Text('${e.key.replaceAll('_',' ')}: $text', style: const TextStyle(fontSize: 11.5, height: 1.35))); }).toList()));
   }
 }

@@ -26,15 +26,15 @@ class BridgePointHomeLiveV2 extends StatefulWidget {
 }
 
 class _BridgePointHomeLiveV2State extends State<BridgePointHomeLiveV2> {
-  static const _navy = Color(0xFF07111F);
-  static const _panel = Color(0xFF0D1A2B);
-  static const _soft = Color(0xFF122238);
-  static const _cyan = Color(0xFF35D2E8);
-  static const _blue = Color(0xFF4F7CFF);
-  static const _green = Color(0xFF38D49A);
-  static const _amber = Color(0xFFFFC857);
+  static const _navy = Color(0xFF06101F);
+  static const _panel = Color(0xFF0E2035);
+  static const _soft = Color(0xFF16324E);
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF6C83FF);
+  static const _green = Color(0xFF45E6A6);
+  static const _amber = Color(0xFFFFC95E);
   static const _red = Color(0xFFFF6B6B);
-  static const _muted = Color(0xFF8FA5BF);
+  static const _muted = Color(0xFFB5C6D9);
 
   late Future<List<dynamic>> _request;
   Timer? _timer;
@@ -111,19 +111,106 @@ class _BridgePointHomeLiveV2State extends State<BridgePointHomeLiveV2> {
   }
 
   void _showOpportunity(Map<String, dynamic> row) {
+    final address = '${row['full_address'] ?? row['title'] ?? 'BridgePoint opportunity'}';
+    final title = '${row['title'] ?? 'Ranked property opportunity'}';
+    final explanation = '${row['explanation'] ?? ''}'.trim();
+    final action = '${row['recommended_action'] ?? ''}'.trim();
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 22),
-          child: SingleChildScrollView(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Text('${row['full_address'] ?? row['title'] ?? 'BridgePoint opportunity'}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 12),
-              for (final entry in row.entries)
-                Padding(padding: const EdgeInsets.only(bottom: 5), child: Text('${entry.key.replaceAll('_', ' ')}: ${entry.value}', style: const TextStyle(color: _muted, fontSize: 10, height: 1.4))),
-            ]),
+        child: FractionallySizedBox(
+          heightFactor: .82,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: ListView(
+              children: [
+                Text(
+                  address,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _cyan,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (row['score'] != null) Chip(label: Text('Score ${row['score']}')),
+                    if (row['priority'] != null) Chip(label: Text('${row['priority']}'.toUpperCase())),
+                    if (row['confidence_score'] != null) Chip(label: Text('${row['confidence_score']}% confidence')),
+                    Chip(label: Text('${row['signal_count'] ?? 0} signals')),
+                    Chip(label: Text('${row['source_count'] ?? 0} sources')),
+                  ],
+                ),
+                if (explanation.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const Text(
+                    'WHY IT RANKED',
+                    style: TextStyle(
+                      color: _amber,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .7,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    explanation,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 14,
+                      height: 1.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                if (action.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const Text(
+                    'RECOMMENDED ACTION',
+                    style: TextStyle(
+                      color: _green,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: .7,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    action,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                const Divider(),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 9,
+                  runSpacing: 9,
+                  children: [
+                    if (row['municipality'] != null)
+                      _Pill(Icons.location_city_outlined, '${row['municipality']}', _blue),
+                    if (row['county'] != null)
+                      _Pill(Icons.map_outlined, '${row['county']} County', _cyan),
+                    if (row['property_type'] != null)
+                      _Pill(Icons.home_work_outlined, '${row['property_type']}', _green),
+                    if (row['year_built'] != null)
+                      _Pill(Icons.history_rounded, 'Built ${row['year_built']}', _amber),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -154,7 +241,7 @@ class _BridgePointHomeLiveV2State extends State<BridgePointHomeLiveV2> {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF07111F), Color(0xFF0A2036), Color(0xFF0B1930)],
+                colors: [Color(0xFF06101F), Color(0xFF0A2036), Color(0xFF0B1930)],
               ),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: _cyan.withValues(alpha: .15)),
@@ -165,7 +252,7 @@ class _BridgePointHomeLiveV2State extends State<BridgePointHomeLiveV2> {
                 Container(width: 46, height: 46, decoration: BoxDecoration(gradient: const LinearGradient(colors: [_cyan, _blue]), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.polyline_rounded, color: Colors.white)),
                 const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('BRIDGEPOINT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-                  Text('INTELLIGENCE', style: TextStyle(color: _cyan, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                  Text('INTELLIGENCE', style: TextStyle(color: _cyan, fontSize: 12.5, fontWeight: FontWeight.w900, letterSpacing: 2)),
                 ]),
                 const _LiveBadge(),
                 if (widget.owner) const _Pill(Icons.admin_panel_settings_rounded, 'OWNER ACCESS', _amber),
@@ -226,7 +313,7 @@ class _BridgePointHomeLiveV2State extends State<BridgePointHomeLiveV2> {
                 const SizedBox(height: 14),
                 const _Pill(Icons.sync_rounded, 'AUTO REFRESH • 2 MIN', _green),
                 const SizedBox(height: 8),
-                const Text('Use Map for weather + property icons, Properties for the live inventory, Investor for investor-specific rankings, and Buildings/Twin for the 2D/3D geometry work.', style: TextStyle(color: _muted, fontSize: 10, height: 1.45)),
+                const Text('Use Map for weather + property icons, Properties for the live inventory, Investor for investor-specific rankings, and Buildings/Twin for the 2D/3D geometry work.', style: TextStyle(color: _muted, fontSize: 12.5, height: 1.45)),
               ]),
             );
             if (stacked) return Column(children: [feed, const SizedBox(height: 12), brief]);
@@ -235,11 +322,11 @@ class _BridgePointHomeLiveV2State extends State<BridgePointHomeLiveV2> {
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(color: _panel, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white.withValues(alpha: .06))),
+            decoration: BoxDecoration(color: _panel, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white.withValues(alpha: .10))),
             child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Icon(Icons.verified_user_outlined, color: _green, size: 18),
               SizedBox(width: 9),
-              Expanded(child: Text('BridgePoint preserves provenance, dates, property-match confidence and uncertainty. Ranked intelligence prioritizes review; it does not turn model confidence into a fabricated property condition or claim.', style: TextStyle(color: _muted, fontSize: 10, height: 1.45))),
+              Expanded(child: Text('BridgePoint preserves provenance, dates, property-match confidence and uncertainty. Ranked intelligence prioritizes review; it does not turn model confidence into a fabricated property condition or claim.', style: TextStyle(color: _muted, fontSize: 12.5, height: 1.45))),
             ]),
           ),
         ]);
@@ -271,11 +358,11 @@ class _HomeCard extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: data.color.withValues(alpha: .10), borderRadius: BorderRadius.circular(12)), child: Icon(data.icon, color: data.color)), const Spacer(), const Icon(Icons.chevron_right_rounded, color: _BridgePointHomeLiveV2State._muted)]),
             const SizedBox(height: 13),
-            Text(data.label, style: const TextStyle(color: _BridgePointHomeLiveV2State._muted, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .8)),
+            Text(data.label, style: const TextStyle(color: _BridgePointHomeLiveV2State._muted, fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: .8)),
             const SizedBox(height: 4),
             Text(data.value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             const SizedBox(height: 5),
-            Text(data.detail, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _BridgePointHomeLiveV2State._muted, fontSize: 10, height: 1.35)),
+            Text(data.detail, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _BridgePointHomeLiveV2State._muted, fontSize: 12.5, height: 1.35)),
           ]),
         ),
       );
@@ -306,7 +393,7 @@ class _OpportunityRow extends StatelessWidget {
           ])),
           Text('$score', style: const TextStyle(color: _BridgePointHomeLiveV2State._cyan, fontWeight: FontWeight.w900)),
           const SizedBox(width: 7),
-          Text(priority.toUpperCase(), style: const TextStyle(color: _BridgePointHomeLiveV2State._muted, fontSize: 8, fontWeight: FontWeight.w800)),
+          Text(priority.toUpperCase(), style: const TextStyle(color: _BridgePointHomeLiveV2State._muted, fontSize: 12.5, fontWeight: FontWeight.w800)),
           const SizedBox(width: 4),
           const Icon(Icons.chevron_right_rounded, color: _BridgePointHomeLiveV2State._muted),
         ]),
@@ -324,7 +411,7 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(17),
-        decoration: BoxDecoration(color: _BridgePointHomeLiveV2State._panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withValues(alpha: .07))),
+        decoration: BoxDecoration(color: _BridgePointHomeLiveV2State._panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: Colors.white.withValues(alpha: .12))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [Icon(icon, color: _BridgePointHomeLiveV2State._cyan), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)), const SizedBox(height: 2), Text(subtitle, style: const TextStyle(color: _BridgePointHomeLiveV2State._muted, fontSize: 10))]))]),
           const SizedBox(height: 13),
@@ -348,6 +435,6 @@ class _Pill extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
         decoration: BoxDecoration(color: color.withValues(alpha: .08), borderRadius: BorderRadius.circular(999), border: Border.all(color: color.withValues(alpha: .20))),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: color, size: 10), const SizedBox(width: 6), Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: .7))]),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: color, size: 10), const SizedBox(width: 6), Text(label, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: .7))]),
       );
 }
