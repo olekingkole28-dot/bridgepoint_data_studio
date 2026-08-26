@@ -19,11 +19,15 @@ if show_radar<0:
     raise SystemExit('v830 radar state field missing')
 
 def find_radar_condition(offset):
-    # The generated map's stable semantic contract is the visibility guard,
-    # while provider URLs and WMS formatting are intentionally replaceable.
-    # Bind to that guard directly and validate the following TileLayer/WMS below.
-    match=re.search(r'\\bif\\s*\\(\\s*_showRadar\\b',text[offset:])
-    return offset+match.start() if match else -1
+    # The generated map's stable semantic contract is the visibility guard.
+    # Avoid regex escaping differences in generated/replayed workflow source.
+    candidates=[
+        pos for pos in (
+            text.find('if (_showRadar',offset),
+            text.find('if(_showRadar',offset),
+        ) if pos>=0
+    ]
+    return min(candidates) if candidates else -1
 
 
 main_radar_if=find_radar_condition(show_radar)
