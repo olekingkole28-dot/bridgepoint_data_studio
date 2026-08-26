@@ -1,8 +1,8 @@
 -- BridgePoint Intelligence V929
 -- Self-resuming USGS 3DEP scheduler with adaptive validation batch sizing.
 -- The underlying V927 dispatcher enforces shared pg_net backpressure and one in-flight request.
--- V930 registry-contract gate prevents a fresh migration sequence from dispatching
--- during the narrow interval between scheduler creation and the V930 contract fix.
+-- The registry-contract gate prevents autonomous dispatch unless the governed
+-- intelligence-eligible 3DEP adapter contract is present.
 
 create or replace function automation.usgs_3dep_scheduler_tick_v929()
 returns jsonb
@@ -31,7 +31,7 @@ begin
     return jsonb_build_object(
       'complete',true,
       'version',929,
-      'skipped','WAITING_FOR_V930_REGISTRY_CONTRACT',
+      'skipped','WAITING_FOR_GOVERNED_3DEP_REGISTRY_CONTRACT',
       'source_class',v_source_class,
       'adapter_status',v_adapter_status);
   end if;
