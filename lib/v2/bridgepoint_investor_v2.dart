@@ -615,13 +615,13 @@ class _InvestorCard extends StatelessWidget {
   void _open(BuildContext context) {
     final propertyId = '${row['property_id'] ?? ''}'.trim();
     if (propertyId.isEmpty) return;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => BridgePointPropertyDossierV2(
-        propertyId: propertyId,
-        seed: row,
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => BridgePointPropertyDossierV2(
+          propertyId: propertyId,
+          seed: row,
+          asPage: true,
+        ),
       ),
     );
   }

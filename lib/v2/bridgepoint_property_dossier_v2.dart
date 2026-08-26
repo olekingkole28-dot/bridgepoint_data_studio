@@ -8,10 +8,12 @@ class BridgePointPropertyDossierV2 extends StatefulWidget {
     super.key,
     required this.propertyId,
     required this.seed,
+    this.asPage = false,
   });
 
   final String propertyId;
   final Map<String, dynamic> seed;
+  final bool asPage;
 
   @override
   State<BridgePointPropertyDossierV2> createState() =>
@@ -325,10 +327,7 @@ class _BridgePointPropertyDossierV2State
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: FractionallySizedBox(
-        heightFactor: .95,
-        child: FutureBuilder<List<dynamic>>(
+    final content = FutureBuilder<List<dynamic>>(
           future: _request,
           builder: (context, snapshot) {
             final values = snapshot.data ?? const [];
@@ -380,7 +379,7 @@ class _BridgePointPropertyDossierV2State
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close_rounded),
+                        icon: Icon(widget.asPage ? Icons.arrow_back_rounded : Icons.close_rounded),
                       ),
                     ],
                   ),
@@ -450,8 +449,25 @@ class _BridgePointPropertyDossierV2State
               ],
             );
           },
+        );
+
+    if (widget.asPage) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF040B14),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF05111F), Color(0xFF071B2B), Color(0xFF040B14)],
+            ),
+          ),
+          child: SafeArea(child: content),
         ),
-      ),
+      );
+    }
+    return SafeArea(
+      child: FractionallySizedBox(heightFactor: .95, child: content),
     );
   }
 }

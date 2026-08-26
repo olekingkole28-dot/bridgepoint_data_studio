@@ -142,11 +142,14 @@ class _BridgePointPropertiesV2State extends State<BridgePointPropertiesV2> {
   Future<void> _openProperty(Map<String, dynamic> property) async {
     final id = '${property['property_id'] ?? ''}'.trim();
     if (id.isEmpty) return;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) => BridgePointPropertyDossierV2(propertyId: id, seed: property),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => BridgePointPropertyDossierV2(
+          propertyId: id,
+          seed: property,
+          asPage: true,
+        ),
+      ),
     );
   }
 
