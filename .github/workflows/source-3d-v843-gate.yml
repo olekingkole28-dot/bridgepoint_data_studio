@@ -1,0 +1,39 @@
+name: Source 3D V843 Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/source-3d-v843-gate.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: source-3d-v843-gate
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze full app
+        run: flutter analyze
+      - name: Run tests
+        run: flutter test
+      - name: Build web
+        run: flutter build web --release --base-href /app/
+      - name: Verify source 3D compiled markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'bridgepoint_property_source_3d_v843' lib/v2/bridgepoint_building_geometry_v2.dart
+          grep -q 'L2 • SOURCE XYZ SURFACES' lib/v2/bridgepoint_source_surface_model_v2.dart
+          test -s build/web/main.dart.js
