@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'bridgepoint_owner_capability_catalog_v868.dart';
 import 'v2/bridgepoint_intelligence_live_v2.dart';
 
 class BridgePointIntelligenceStudio extends StatefulWidget {
@@ -226,6 +227,10 @@ class _BridgePointIntelligenceStudioState
         const SizedBox(height: 14),
         BridgePointIntelligenceLiveV2(ownerMode: widget.ownerMode),
         const SizedBox(height: 18),
+        if (widget.ownerMode) ...[
+          const BridgePointOwnerCapabilityCatalogV868(),
+          const SizedBox(height: 18),
+        ],
         const Text(
           'Intelligence architecture',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
