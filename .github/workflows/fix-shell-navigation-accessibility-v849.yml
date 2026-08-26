@@ -1,0 +1,122 @@
+name: Fix Shell Navigation Accessibility V849
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-shell-navigation-accessibility-v849.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair shell navigation accessibility and auth UX
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('lib/v2/bridgepoint_app_v2.dart')
+          s=p.read_text()
+
+          old="""      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        final scale = media.size.width < 820 ? 1.06 : 1.04;
+        return MediaQuery(
+          data: media.copyWith(textScaler: TextScaler.linear(scale)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+"""
+          new="""      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        final appBump = media.size.width < 820 ? 1.06 : 1.04;
+        final userScale = media.textScaler.scale(1.0);
+        final effectiveScale = (userScale * appBump).clamp(0.8, 2.5);
+        return MediaQuery(
+          data: media.copyWith(textScaler: TextScaler.linear(effectiveScale)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+"""
+          if old not in s: raise SystemExit('text scale block not found')
+          s=s.replace(old,new,1)
+
+          old="""    } catch (e) {
+      if (mounted) setState(() => error = '$e');
+    } finally {
+"""
+          new="""    } catch (e) {
+      if (mounted) {
+        final message = e is AuthException
+            ? e.message
+            : 'BridgePoint could not complete authentication right now. Please try again.';
+        setState(() => error = message);
+      }
+    } finally {
+"""
+          if old not in s: raise SystemExit('auth catch block not found')
+          s=s.replace(old,new,1)
+
+          old="""  List<_AreaV2> get _primary => [
+        _AreaV2.home,
+        _AreaV2.map,
+        _AreaV2.properties,
+        owner ? _AreaV2.investment : _AreaV2.investor,
+      ];
+"""
+          new="""  List<_AreaV2> get _primary => const [
+        _AreaV2.home,
+        _AreaV2.map,
+        _AreaV2.properties,
+        _AreaV2.investor,
+      ];
+"""
+          if old not in s: raise SystemExit('primary navigation block not found')
+          s=s.replace(old,new,1)
+
+          old="""  void _navigateFromStudio(int oldIndex) {
+    final target = switch (oldIndex) {
+      1 || 4 || 8 => _AreaV2.property,
+      3 => _AreaV2.map,
+      5 => _AreaV2.sources,
+      6 => _AreaV2.products,
+      7 => _AreaV2.models,
+      14 => _AreaV2.integrations,
+      _ => _AreaV2.studio,
+    };
+    setState(() => selected = target);
+  }
+"""
+          new="""  void _navigateFromStudio(int oldIndex) {
+    final target = switch (oldIndex) {
+      1 => _AreaV2.opportunities,
+      3 => _AreaV2.map,
+      4 => _AreaV2.property,
+      5 => _AreaV2.signals,
+      6 => _AreaV2.sources,
+      7 => _AreaV2.operations,
+      8 => _AreaV2.sources,
+      9 => _AreaV2.map,
+      11 => _AreaV2.models,
+      14 => _AreaV2.integrations,
+      _ => _AreaV2.studio,
+    };
+    setState(() => selected = target);
+  }
+"""
+          if old not in s: raise SystemExit('studio navigation block not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+      - name: Commit shell repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Product QA'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_app_v2.dart
+          git diff --cached --quiet && exit 0
+          git commit -m 'Fix mobile Investor nav, Studio routing and text scaling'
+          git push origin HEAD:main
