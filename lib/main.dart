@@ -9789,7 +9789,7 @@ class _PropertyIntelligenceDialogState
             body: jsonEncode({'p_property_id': widget.propertyId}),
           )
           .timeout(const Duration(seconds: 30)),
-      _callRpc('bridgepoint_property_timeline_v78', {
+      _callRpc('bridgepoint_property_timeline_v857', {
         'p_property_id': widget.propertyId,
         'p_limit': 120
       }).catchError((_) => <String, dynamic>{}),

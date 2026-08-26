@@ -186,11 +186,11 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
       _error = null;
     });
     final values = await Future.wait([
-      _safe('bridgepoint_property_geometry_v837', {
+      _safe('bridgepoint_property_geometry_v854', {
         'p_property_id': id,
         'p_limit': 25,
       }),
-      _safe('bridgepoint_digital_twin_summary_v509', {'p_property_id': id}),
+      _safe('bridgepoint_digital_twin_summary_v856', {'p_property_id': id}),
     ]);
     if (!mounted) return;
     setState(() {

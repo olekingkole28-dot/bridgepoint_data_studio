@@ -43,7 +43,7 @@ class _BridgePointBuildingGeometryV2State
     if (mounted) setState(() => _source3dLoading = true);
     try {
       final raw = await Supabase.instance.client.rpc(
-        'bridgepoint_property_source_3d_v843',
+        'bridgepoint_property_source_3d_v855',
         params: {'p_property_id': id},
       );
       if (!mounted) return;

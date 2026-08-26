@@ -100,9 +100,9 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
     setState(() => _busy = true);
     final values = await Future.wait([
       _safe('bridgepoint_flutter_property_detail_v344', {'p_property_id': id}),
-      _safe('bridgepoint_property_timeline_v78', {'p_property_id': id, 'p_limit': 120}),
-      _safe('bridgepoint_property_geometry_v837', {'p_property_id': id, 'p_limit': 25}),
-      _safe('bridgepoint_digital_twin_summary_v509', {'p_property_id': id}),
+      _safe('bridgepoint_property_timeline_v857', {'p_property_id': id, 'p_limit': 120}),
+      _safe('bridgepoint_property_geometry_v854', {'p_property_id': id, 'p_limit': 25}),
+      _safe('bridgepoint_digital_twin_summary_v856', {'p_property_id': id}),
       _safe('bridgepoint_customer_notes_v70', {'p_property_id': id, 'p_limit': 50}),
     ]);
     if (!mounted) return;

@@ -31,7 +31,7 @@ class BridgePointAiService {
       _rpc('bridgepoint_ai_home_v509');
 
   Future<Map<String, dynamic>> digitalTwinSummary(String propertyId) =>
-      _rpc('bridgepoint_digital_twin_summary_v509', {
+      _rpc('bridgepoint_digital_twin_summary_v856', {
         'p_property_id': propertyId,
       });
 

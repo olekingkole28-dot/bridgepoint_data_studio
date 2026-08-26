@@ -121,13 +121,13 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
 
     final values = await Future.wait([
       _safe('bridgepoint_flutter_property_detail_v344', {'p_property_id': id}),
-      _safe('bridgepoint_property_timeline_v78', {
+      _safe('bridgepoint_property_timeline_v857', {
         'p_property_id': id,
         'p_limit': 200,
       }),
       _safe('bridgepoint_property_climate_profile_v510', {'p_property_id': id}),
-      _safe('bridgepoint_digital_twin_summary_v509', {'p_property_id': id}),
-      _safe('bridgepoint_property_geometry_v837', {
+      _safe('bridgepoint_digital_twin_summary_v856', {'p_property_id': id}),
+      _safe('bridgepoint_property_geometry_v854', {
         'p_property_id': id,
         'p_limit': 25,
       }),
