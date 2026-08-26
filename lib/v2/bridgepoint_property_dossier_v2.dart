@@ -5,4 +5,5 @@
 // bridgepoint_property_photo_contributions_v266
 // bridgepoint_property_media_bundle_v169
 // BridgePointBuildingGeometryV2
-export 'bridgepoint_property_dossier_recovered_v3.dart';
+// bridgepoint_property_intelligence_snapshot_v907
+export 'bridgepoint_property_dossier_recovered_v4.dart';
