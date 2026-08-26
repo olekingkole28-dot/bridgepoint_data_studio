@@ -14,6 +14,7 @@ on:
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - 'test/**'
+      - '.github/scripts/product_release_audit_v852.py'
       - '.github/workflows/flutter-web-v2-production.yml'
 
 permissions:
@@ -67,6 +68,9 @@ jobs:
           print('Clean V2 restored source contract verified.')
           PY
 
+      - name: Deep product regression audit
+        run: python .github/scripts/product_release_audit_v852.py
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -81,7 +85,7 @@ jobs:
         run: |
           set -euo pipefail
           cat > web/bridgepoint-v2-release.json <<EOF
-          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","historical_patch_replay":false,"production_candidate":true,"restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true}
+          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","backend":"existing-production-supabase","historical_patch_replay":false,"production_candidate":true,"restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"product_release_audit":"v852"}
           EOF
           flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
           grep -q '<base href="/app/">' build/web/index.html
@@ -92,10 +96,10 @@ jobs:
           MAIN_SHA="$(sha256sum build/web/main.dart.js | awk '{print $1}')"
           ICON_FONT_SHA="$(sha256sum build/web/assets/fonts/MaterialIcons-Regular.otf | awk '{print $1}')"
           cat > build/web/bridgepoint-release.json <<EOF
-          {"version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","public_origin":"https://bridgepointintelligence.online/","architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"material_icon_font_sha256":"${ICON_FONT_SHA}"}
+          {"version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","public_origin":"https://bridgepointintelligence.online/","architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"product_release_audit":"v852","material_icon_font_sha256":"${ICON_FONT_SHA}"}
           EOF
           cat > build/web/public-promotion-v682.json <<EOF
-          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${ICON_FONT_SHA}","source_repo_private":true,"architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true}
+          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${ICON_FONT_SHA}","source_repo_private":true,"architecture":"clean-v2","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"current_icon_font":true,"product_release_audit":"v852"}
           EOF
           touch build/web/.nojekyll
 
@@ -128,7 +132,7 @@ jobs:
           CHUNKS="$(find /tmp/v2-handoff -type f -name 'chunk-*' | wc -l)"
           FONT_SHA="$(sha256sum /tmp/v2-delta/assets/fonts/MaterialIcons-Regular.otf | awk '{print $1}')"
           cat > /tmp/v2-handoff/manifest.json <<EOF
-          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"brand_asset_included":true,"material_icon_font_included":true,"material_icon_font_sha256":"${FONT_SHA}"}
+          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","restored_product_surfaces":true,"progressive_national_map":true,"saved_alerts_restored":true,"opportunities_restored":true,"brand_asset_included":true,"material_icon_font_included":true,"product_release_audit":"v852","material_icon_font_sha256":"${FONT_SHA}"}
           EOF
           cat /tmp/v2-handoff/manifest.json
 
