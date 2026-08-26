@@ -32,10 +32,35 @@ check('_radarMaxHonestZoom' in w, 'Weather must retain property-level radar trut
 # ---- 3D / digital twin permanent regression contract ----
 geom = text('lib/v2/bridgepoint_building_geometry_v2.dart')
 bldg = text('lib/v2/bridgepoint_buildings_v2.dart')
+surface = text('lib/v2/bridgepoint_source_surface_model_v2.dart')
 check('L2_SOURCE_SURFACE_MODEL' in bldg, 'Buildings/Twin must surface L2 source-surface fidelity')
-check('source_surface' in (geom + bldg).lower() or 'xyz' in (geom + bldg).lower(), '3D viewer must contain source-surface/XYZ rendering path')
+check('BridgePointSourceSurfaceModelV2' in geom, 'Building geometry must mount the real source-surface renderer')
+check("widget.payload['geometry_3d']" in surface, 'Source-surface renderer must consume backend geometry_3d')
+check('coordinate.length >= 3' in surface and 'coordinate[2]' in surface,
+      'Source-surface renderer must require and parse a real Z coordinate')
+check('L2 • SOURCE XYZ SURFACES' in surface, 'Source model must identify real L2 XYZ surfaces')
+check('_Vec3' in surface and '_rotate' in surface and '_project' in surface,
+      'Source-surface renderer must perform 3D rotation/projection rather than 2D footprint extrusion')
 check('exact replica' in bldg.lower(), 'Digital twin UI must preserve exact-replica truth disclosure')
 check('photoreal' in bldg.lower(), 'Digital twin UI must preserve photorealistic truth disclosure')
+
+# Hardened customer RPC contract: old internal versions must never be called from Flutter.
+all_dart = '\n'.join(p.read_text(encoding='utf-8') for p in LIB.rglob('*.dart'))
+old_customer_rpcs = [
+    'bridgepoint_property_geometry_v837',
+    'bridgepoint_property_source_3d_v843',
+    'bridgepoint_digital_twin_summary_v509',
+    'bridgepoint_property_timeline_v78',
+]
+for rpc in old_customer_rpcs:
+    check(rpc not in all_dart, f'Flutter still calls internal/unhardened RPC {rpc}')
+for rpc in [
+    'bridgepoint_property_geometry_v854',
+    'bridgepoint_property_source_3d_v855',
+    'bridgepoint_digital_twin_summary_v856',
+    'bridgepoint_property_timeline_v857',
+]:
+    check(rpc in all_dart, f'Hardened customer RPC is not wired into Flutter: {rpc}')
 
 # ---- Navigation contract ----
 app = text('lib/v2/bridgepoint_app_v2.dart')
@@ -62,12 +87,7 @@ check('equation' not in home.lower(), 'Signed-in Home regressed to equation/form
 check('equation' not in landing.lower(), 'Public landing regressed to equation/formula presentation')
 
 # ---- Deep customer-surface hygiene ----
-production_v2 = [p for p in (LIB/'v2').rglob('*.dart') if '/settings/' not in p.as_posix() or True]
-raw_exception_patterns = [
-    re.compile(r"snapshot\.error"),
-    re.compile(r"\$\{?e\}?"),
-    re.compile(r"\$\{?error\}?"),
-]
+production_v2 = [p for p in (LIB/'v2').rglob('*.dart')]
 # Catch only user-visible interpolation patterns around Text/message strings, not catch variable declarations.
 for p in production_v2:
     s = p.read_text(encoding='utf-8')
@@ -103,6 +123,7 @@ required = [
     'lib/v2/bridgepoint_properties_v2.dart',
     'lib/v2/bridgepoint_investor_v2.dart',
     'lib/v2/bridgepoint_buildings_v2.dart',
+    'lib/v2/bridgepoint_source_surface_model_v2.dart',
     'lib/screens/bridgepoint_owner_overview_v2.dart',
     'lib/v2/bridgepoint_portfolio_risk_v2.dart',
     'lib/v2/bridgepoint_ai_v2.dart',
@@ -111,11 +132,11 @@ required = [
 for path in required:
     check((ROOT/path).exists(), f'Restored product surface missing: {path}')
 
-print('BridgePoint V852 product release audit')
+print('BridgePoint product release audit V858')
 print(f'Checked {len(list(LIB.rglob("*.dart")))} Dart files')
 if errors:
     print('\nFAILURES:')
     for err in errors:
         print(f' - {err}')
     sys.exit(1)
-print('PASS: weather, 3D/twin, navigation, checkout, customer-surface hygiene, and restored-surface contracts')
+print('PASS: weather, true XYZ 3D/twin, hardened property RPCs, navigation, checkout, customer-surface hygiene, and restored-surface contracts')
