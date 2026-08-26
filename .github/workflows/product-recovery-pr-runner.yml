@@ -1,0 +1,102 @@
+name: BridgePoint Product Recovery PR Runner
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'recovery-run-v3.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Apply recovery script from guarded workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/podcast-product-recovery-v3.yml').read_text()
+          start = "          python - <<'PY'\n"
+          end = "\n          PY\n"
+          if start not in workflow:
+              raise SystemExit('Embedded recovery script start marker missing')
+          script = workflow.split(start, 1)[1].split(end, 1)[0]
+          script = textwrap.dedent(script)
+
+          dossier = Path('lib/v2/bridgepoint_property_dossier_v2.dart').read_text()
+          home = Path('lib/v2/bridgepoint_home_live_v2.dart').read_text()
+          if 'bridgepoint_property_media_bundle_v169' in dossier and 'Live BridgePoint build progress' in home:
+              print('Recovery markers already present; source patch is a no-op.')
+          else:
+              exec(compile(script, 'bridgepoint_recovery_v3.py', 'exec'), {})
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Format changed Dart
+        shell: bash
+        run: |
+          dart format \
+            lib/v2/bridgepoint_property_dossier_v2.dart \
+            lib/v2/bridgepoint_property_presentation_v2.dart \
+            lib/v2/bridgepoint_app_v2.dart \
+            lib/v2/bridgepoint_home_live_v2.dart \
+            lib/v2/bridgepoint_map_weather_v2.dart \
+            lib/v2/bridgepoint_chrome_v2.dart
+
+      - name: Verify recovery contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "bridgepoint_property_media_bundle_v169" lib/v2/bridgepoint_property_dossier_v2.dart
+          grep -q "street-level" lib/v2/bridgepoint_property_dossier_v2.dart
+          grep -q "Live BridgePoint build progress" lib/v2/bridgepoint_home_live_v2.dart
+          grep -q "radar_base_reflectivity/MapServer/WMSServer" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q "_railAreas" lib/v2/bridgepoint_app_v2.dart
+          grep -q "double helix" lib/v2/bridgepoint_chrome_v2.dart
+          git diff --check
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Test
+        run: flutter test
+
+      - name: Commit verified patch to PR branch
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No source changes to commit.'
+            exit 0
+          fi
+          git config user.name 'BridgePoint Recovery Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add \
+            lib/v2/bridgepoint_property_dossier_v2.dart \
+            lib/v2/bridgepoint_property_presentation_v2.dart \
+            lib/v2/bridgepoint_app_v2.dart \
+            lib/v2/bridgepoint_home_live_v2.dart \
+            lib/v2/bridgepoint_map_weather_v2.dart \
+            lib/v2/bridgepoint_chrome_v2.dart \
+            .github/workflows/productized-v2-release.yml
+          git commit -m 'Recover show-ready BridgePoint property intelligence V3'
+          git push origin HEAD:${HEAD_REF}
