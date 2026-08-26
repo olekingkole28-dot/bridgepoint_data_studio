@@ -24,7 +24,7 @@ jobs:
           set -euo pipefail
           git config user.name 'BridgePoint Visual QA'
           git config user.email 'actions@users.noreply.github.com'
-          git add lib/v2 lib/screens/bridgepoint_owner*.dart lib/bridgepoint_intelligence_studio_v790.dart lib/bridgepoint_integrations_hub_v790.dart .github/workflows/flutter-web-v2-production.yml
+          git add lib/v2 lib/screens/bridgepoint_owner*.dart lib/bridgepoint_intelligence_studio_v790.dart lib/bridgepoint_integrations_hub_v790.dart
           if git diff --cached --quiet; then
             echo 'No visual changes to commit.'
             exit 0
