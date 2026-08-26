@@ -126,13 +126,14 @@ begin
         'source_class','INTELLIGENCE_ELIGIBLE',
         'adapter_status','ACTIVE',
         'batch_mode','MULTIPOINT_WITH_EPQS_FALLBACK',
-        'max_batch_size',500),
+        'max_batch_size',100),
       metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object(
         'role','NATIONAL_TERRAIN_LIDAR_BASELINE',
         'official_provider','USGS',
         'verified_service_at',now(),
         'service_data_type','esriImageServiceDataTypeElevation',
-        'fallback_service','USGS_EPQS'),
+        'fallback_service','USGS_EPQS',
+        'truth_note','3DEP elevation is evidence-gated; national coverage does not imply direct high-resolution LiDAR for every location'),
       updated_at=now()
   where source_code='USGS_3DEP_V918';
 
