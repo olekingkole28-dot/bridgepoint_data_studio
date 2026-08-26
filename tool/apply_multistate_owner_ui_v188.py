@@ -14,6 +14,7 @@ if start<0 or property_card<0:
 # replacement cannot delete map/radar classes.
 end=map_page if map_page>start and map_page<property_card else property_card
 removed=text[start:end]
+print('v846 v188 boundaries',{'len_before':len(text),'start':start,'end':end,'property_card':property_card,'map_page':map_page,'removed_len':len(removed),'wms_before':text.count('WMSTileLayerOptions('),'wms_removed':removed.count('WMSTileLayerOptions(')})
 if 'class _IntelligenceMapPage' in removed or 'WMSTileLayerOptions(' in removed:
     raise SystemExit('v188 unsafe PropertiesPage boundary would remove Intelligence Map')
 
@@ -180,5 +181,6 @@ text=text.replace("'PROPERTY INTELLIGENCE RECORD • ${property['municipality'] 
 for marker in ['bridgepoint_state_workspace_v188','bridgepoint_property_browser_v188','All My States','Current recorded owner','OWNER VERIFIED','constraints.maxWidth<620']:
     if marker not in text: raise SystemExit(f'missing v188 UI marker {marker}')
 if text==original: raise SystemExit('No multistate/owner UI changes applied')
+print('v846 v188 result',{'len_after':len(text),'wms_after':text.count('WMSTileLayerOptions('),'map_after':text.count('class _IntelligenceMapPage')})
 path.write_text(text,encoding='utf-8')
 print('Applied phone-responsive multistate property workspace and current-owner UI v188')
