@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 ROOT = Path('.')
 
@@ -49,5 +48,30 @@ s = s.replace("    } catch (e) {\n      if (mounted) setState(() => _message = '
 s = s.replace("    } catch (e) {\n      if (mounted) setState(() => _message = 'Could not request activation: $e');\n", "    } catch (_) {\n      if (mounted) setState(() => _message = 'Could not submit this activation request right now. Please try again.');\n")
 s = s.replace("              Text('Package catalog unavailable: ${snapshot.error}')", "              const Text('Package catalog is temporarily unavailable. Please refresh and try again.')")
 write(path, s)
+
+# GLOBAL SAFE-RPC FALLBACKS: do not retain raw exceptions or internal RPC names in
+# payloads that can reach customer-facing widgets.
+fallback_files = [
+    'lib/v2/bridgepoint_intelligence_live_v2.dart',
+    'lib/v2/bridgepoint_public_landing_v2.dart',
+    'lib/v2/bridgepoint_opportunities_v2.dart',
+    'lib/v2/bridgepoint_home_live_v2.dart',
+    'lib/v2/bridgepoint_saved_alerts_v2.dart',
+    'lib/v2/bridgepoint_investor_v2.dart',
+    'lib/v2/bridgepoint_properties_v2.dart',
+    'lib/v2/settings/bridgepoint_account_support_v2.dart',
+]
+raw_returns = [
+    "return {'available': false, 'error': '$e', 'rpc': rpc};",
+    "return {'available': false, 'rpc': rpc, 'error': '$e'};",
+    "return {'available': false, 'error': '$e', 'rpc': name};",
+    "return {'available': false, 'error': '$e', 'rpc': 'api.$name'};",
+]
+for path in fallback_files:
+    s = read(path)
+    before = s
+    for raw in raw_returns:
+        s = s.replace(raw, "return const <String, dynamic>{'available': false};")
+    write(path, s)
 
 print('V852 deterministic product repairs applied')
