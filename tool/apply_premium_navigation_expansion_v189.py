@@ -216,29 +216,41 @@ if text.count('WMSTileLayerOptions(')<3 or len(text)<int(len(original)*0.8):
 for marker in ['_bridgePointPageAccent','bridgepoint_expansion_eta_v188','BUILDING NOW','Current step ETA:']:
     if marker not in text: raise SystemExit(f'missing v189 marker {marker}')
 if text==original: raise SystemExit('No v189 premium navigation/expansion changes applied')
-# Write the generated handoff atomically, then guard its settled on-disk state.
-# A prior CI run proved the in-memory result was healthy (905,065 bytes / 3 WMS
-# layers) but an adjacent legacy writer replaced it immediately after process exit.
-# Reassert only this exact validated payload; never accept or manufacture a smaller
-# artifact, and fail closed if the file cannot settle.
+# Write an immutable canonical handoff, then require a genuinely settled disk state.
+# CI proved an overlapping legacy writer can survive the original 0.5 second guard.
+# Keep the validated V189 payload separate from every mutable working variable,
+# reassert only that exact payload, and require three consecutive hash matches.
+import hashlib
 import os
 import time
 
+canonical_text=str(text)
+canonical_bytes=canonical_text.encode('utf-8')
+canonical_sha=hashlib.sha256(canonical_bytes).hexdigest()
+if len(canonical_text)<int(len(original)*0.8) or canonical_text.count('WMSTileLayerOptions(')<3:
+    raise SystemExit('v189 canonical handoff invalid before write')
+
 handoff=p.with_name('.main.dart.v189-handoff')
-handoff.write_text(text,encoding='utf-8')
-os.replace(handoff,p)
-for attempt in range(5):
-    time.sleep(0.10)
-    persisted=p.read_text(encoding='utf-8')
-    if persisted==text:
+deadline=time.monotonic()+12.0
+stable_reads=0
+attempt=0
+while time.monotonic()<deadline and stable_reads<3:
+    attempt+=1
+    persisted=p.read_bytes() if p.exists() else b''
+    persisted_sha=hashlib.sha256(persisted).hexdigest() if persisted else ''
+    if persisted==canonical_bytes and persisted_sha==canonical_sha:
+        stable_reads+=1
+        time.sleep(0.20)
         continue
-    if len(text)<int(len(original)*0.8) or text.count('WMSTileLayerOptions(')<3:
-        raise SystemExit('v189 canonical handoff invalid before recovery')
-    print('v848 v189 detected post-write drift',{'attempt':attempt+1,'expected':len(text),'observed':len(persisted),'expected_wms':text.count('WMSTileLayerOptions('),'observed_wms':persisted.count('WMSTileLayerOptions(')})
-    handoff.write_text(text,encoding='utf-8')
+    stable_reads=0
+    print('v851 v189 post-write drift',{'attempt':attempt,'expected':len(canonical_bytes),'observed':len(persisted),'expected_sha':canonical_sha[:12],'observed_sha':persisted_sha[:12],'observed_wms':persisted.count(b'WMSTileLayerOptions(')})
+    handoff.write_bytes(canonical_bytes)
     os.replace(handoff,p)
-persisted=p.read_text(encoding='utf-8')
-if persisted!=text or persisted.count('WMSTileLayerOptions(')<3:
-    raise SystemExit(f'v189 handoff failed to settle: expected={len(text)} observed={len(persisted)} wms={persisted.count("WMSTileLayerOptions(")}')
+    time.sleep(0.20)
+
+persisted=p.read_bytes() if p.exists() else b''
+persisted_sha=hashlib.sha256(persisted).hexdigest() if persisted else ''
+if stable_reads<3 or persisted!=canonical_bytes or persisted_sha!=canonical_sha or persisted.count(b'WMSTileLayerOptions(')<3:
+    raise SystemExit(f'v189 handoff failed to settle: expected={len(canonical_bytes)} observed={len(persisted)} stable_reads={stable_reads} expected_sha={canonical_sha[:12]} observed_sha={persisted_sha[:12]} wms={persisted.count(b"WMSTileLayerOptions(")}')
 print('Applied premium navigation colors, build-state map status, and expansion ETAs v189')
-print('v848 v189 settled handoff',{'bytes':len(persisted),'wms':persisted.count('WMSTileLayerOptions(')})
+print('v851 v189 settled handoff',{'bytes':len(persisted),'wms':persisted.count(b'WMSTileLayerOptions('),'sha256':canonical_sha,'stable_reads':stable_reads})
