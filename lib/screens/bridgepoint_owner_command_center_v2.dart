@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'bridgepoint_integrations_hub_v790.dart';
 import 'bridgepoint_operations_hub.dart';
 import 'bridgepoint_owner_ai_cockpit.dart';
 import 'bridgepoint_owner_engine_health_v777.dart';
@@ -68,6 +69,11 @@ class _BridgePointOwnerCommandCenterV2State
                   icon: Icon(Icons.visibility_outlined),
                   label: Text('Surfaces'),
                 ),
+                ButtonSegment(
+                  value: 7,
+                  icon: Icon(Icons.hub_outlined),
+                  label: Text('Integrations'),
+                ),
               ],
               selected: <int>{_tab},
               onSelectionChanged: (value) => setState(() => _tab = value.first),
@@ -82,7 +88,8 @@ class _BridgePointOwnerCommandCenterV2State
             3 => const BridgePointOwnerAiCockpit(),
             4 => const BridgePointOwnerGlobalControl(),
             5 => const BridgePointOperationsHub(),
-            _ => const BridgePointOwnerSurfaceAudit(),
+            6 => const BridgePointOwnerSurfaceAudit(),
+            _ => const BridgePointIntegrationsHubV790(),
           },
         ),
       ],
