@@ -156,8 +156,10 @@ new_cov="""        final coverageMarkets=_detailList(coverage['markets']);
         final buildingMarkets=coverageMarkets.where((m)=>'${m['data_status']}'=='BUILDING').toList();
         final highPriority = points.where((p) {
 """
-if old_cov not in text: raise SystemExit('coverage market anchor missing')
-text=text.replace(old_cov,new_cov,1)
+if old_cov in text:
+    text=text.replace(old_cov,new_cov,1)
+elif "final buildingMarkets=coverageMarkets.where" not in text:
+    raise SystemExit('coverage market anchor missing')
 checkpoint('map_coverage')
 
 old_marker="""          final requested=market['interest_registered']==true;
@@ -180,8 +182,10 @@ new_marker="""          final requested=market['interest_registered']==true;fina
             )),
           )));
 """
-if old_marker not in text: raise SystemExit('coverage marker anchor missing')
-text=text.replace(old_marker,new_marker,1)
+if old_marker in text:
+    text=text.replace(old_marker,new_marker,1)
+elif "final building=market['data_status']=='BUILDING'" not in text:
+    raise SystemExit('coverage marker anchor missing')
 checkpoint('map_marker')
 
 old_heading="""            _PageHeading(
@@ -201,8 +205,10 @@ new_heading="""            _PageHeading(
             if(buildingMarkets.isNotEmpty)...[const SizedBox(height:10),Container(width:double.infinity,padding:const EdgeInsets.all(11),decoration:BoxDecoration(color:AppTheme.green.withOpacity(.07),borderRadius:BorderRadius.circular(12),border:Border.all(color:AppTheme.green.withOpacity(.22))),child:Row(children:[const _PulseDot(color:AppTheme.green),const SizedBox(width:9),Expanded(child:Text('BUILDING NOW • ${buildingMarkets.map((m)=>'${m['state_name']} (${m['state_code']})').join(' • ')} • Tap the state marker to see coverage status.',style:const TextStyle(color:Colors.white,fontSize:9.5,fontWeight:FontWeight.w800))) ]))],
             const SizedBox(height: 18),
 """
-if old_heading not in text: raise SystemExit('map heading anchor missing')
-text=text.replace(old_heading,new_heading,1)
+if old_heading in text:
+    text=text.replace(old_heading,new_heading,1)
+elif "if(buildingMarkets.isNotEmpty)" not in text:
+    raise SystemExit('map heading anchor missing')
 checkpoint('map_heading')
 
 if text.count('WMSTileLayerOptions(')<3 or len(text)<int(len(original)*0.8):
