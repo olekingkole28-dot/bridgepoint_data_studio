@@ -1,4 +1,4 @@
-# V852 deterministic repair + release gate
+# V852 deterministic repair + release gate — pass 2
 name: Run Product Audit Patch V851
 
 on:
