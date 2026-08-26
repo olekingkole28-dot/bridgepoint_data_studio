@@ -28,6 +28,25 @@ if old_tail in s:
 elif new_tail not in s:
     raise SystemExit('v94 no-op compatibility repair target not found')
 
+# Current canonical main uses the same guarded U.S. control in a multiline V794 shape.
+# Accept exactly one semantic marker; absence or duplication still fails closed.
+old_us_guard="""elif text.count(_new_us_weather) >= 1:
+    print('map-us-weather-button: already applied by a newer canonical source; continuing')
+else:
+    raise SystemExit('map-us-weather-button: neither historical nor current control found')
+"""
+new_us_guard="""elif text.count(_new_us_weather) >= 1:
+    print('map-us-weather-button: already applied by a newer canonical source; continuing')
+elif text.count("tooltip: 'Show U.S. intelligence'") == 1:
+    print('map-us-weather-button: current V794 U.S. intelligence control verified; continuing')
+else:
+    raise SystemExit('map-us-weather-button: neither historical nor current control found')
+"""
+if old_us_guard in s:
+    s=s.replace(old_us_guard,new_us_guard,1)
+elif new_us_guard not in s:
+    raise SystemExit('v94 U.S. control compatibility guard not found')
+
 p.write_text(s,encoding='utf-8')
 print('Repaired v94 historical generator for current canonical source')
 
