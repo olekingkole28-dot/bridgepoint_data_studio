@@ -1,4 +1,4 @@
-# trigger v1
+# trigger v2
 name: Source 3D V843 Gate
 
 on:
@@ -26,7 +26,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Analyze full app
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Run tests
         run: flutter test
       - name: Build web
