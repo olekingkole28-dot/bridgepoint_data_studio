@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -92,8 +95,10 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
   bool busy = false;
   bool viewportBusy = false;
   bool locating = false;
-  int frame = 48;
+  int frame = 0;
   double _zoom = 4.0;
+  List<DateTime> _radarFrames = const <DateTime>[];
+  bool _radarFramesLive = false;
   int _viewportSerial = 0;
   Timer? _radarTimer;
   Timer? _viewportDebounce;
@@ -110,14 +115,19 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
   @override
   void initState() {
     super.initState();
+    _loadRadarFrames();
     _loadOverview();
     _radarTimer = Timer.periodic(const Duration(milliseconds: 850), (_) {
-      if (mounted && radar && playing) {
-        setState(() => frame = frame >= 48 ? 0 : frame + 1);
+      if (mounted && radar && playing && _radarFrames.length > 1) {
+        setState(() =>
+            frame = frame >= _radarFrames.length - 1 ? 0 : frame + 1);
       }
     });
     _refreshTimer = Timer.periodic(const Duration(minutes: 2), (_) {
-      if (mounted) _loadOverview(silent: true);
+      if (mounted) {
+        _loadOverview(silent: true);
+        _loadRadarFrames();
+      }
     });
   }
 
@@ -129,30 +139,66 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
     super.dispose();
   }
 
-  List<DateTime> get _frames {
-    final now = DateTime.now().toUtc();
-    final rounded = DateTime.utc(
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-      (now.minute ~/ 5) * 5,
-    );
-    return List.generate(
-      49,
-      (i) => rounded.subtract(Duration(minutes: (48 - i) * 5)),
-    );
+  DateTime get _radarTime {
+    if (_radarFrames.isEmpty) return DateTime.now().toUtc();
+    return _radarFrames[frame.clamp(0, _radarFrames.length - 1)];
   }
 
-  DateTime get _radarTime => _frames[frame.clamp(0, 48)];
+  Future<void> _loadRadarFrames() async {
+    try {
+      final uri = Uri.parse(
+        'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/'
+        'radar_base_reflectivity_time/ImageServer/query',
+      ).replace(queryParameters: const <String, String>{
+        'where': '1=1',
+        'outFields': 'idp_validtime',
+        'returnGeometry': 'false',
+        'orderByFields': 'idp_validtime ASC',
+        'resultRecordCount': '500',
+        'f': 'json',
+      });
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (response.statusCode < 200 || response.statusCode >= 300) return;
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map) return;
+      final features = decoded['features'];
+      if (features is! List) return;
+      final unique = <int>{};
+      for (final feature in features) {
+        if (feature is! Map) continue;
+        final attributes = feature['attributes'];
+        if (attributes is! Map) continue;
+        final raw = attributes['idp_validtime'];
+        final epoch = raw is num ? raw.toInt() : int.tryParse('${raw ?? ''}');
+        if (epoch != null && epoch > 0) unique.add(epoch);
+      }
+      final frames = unique
+          .map(DateTime.fromMillisecondsSinceEpoch)
+          .map((value) => value.toUtc())
+          .toList()
+        ..sort();
+      if (frames.isEmpty || !mounted) return;
+      setState(() {
+        _radarFrames = frames;
+        _radarFramesLive = true;
+        frame = frames.length - 1;
+      });
+    } catch (_) {
+      // No fabricated history: with no published catalog, WMS omits TIME and
+      // NOAA serves the latest available image.
+      if (mounted && _radarFrames.isEmpty) {
+        setState(() => _radarFramesLive = false);
+      }
+    }
+  }
   bool get _showRadar => radar && _zoom <= _radarMaxHonestZoom;
   bool get _showStates => stateReadiness && _zoom <= _stateLabelMaxZoom;
 
   Future<dynamic> _safe(String rpc, [Map<String, dynamic>? params]) async {
     try {
       return await Supabase.instance.client.rpc(rpc, params: params);
-    } catch (e) {
-      return {'_error': '$e'};
+    } catch (_) {
+      return const <String, dynamic>{'available': false};
     }
   }
 
@@ -269,7 +315,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
           final opportunityStates = nextStates
               .where((row) => _int(row['opportunity_count']) > 0)
               .length;
-          final hadError = mapPayload is Map && mapPayload['_error'] != null;
+          final hadError = mapPayload is Map && mapPayload['available'] == false;
           _message = hadError
               ? 'State intelligence is live. Zoom into a state to load property-level intelligence.'
               : '$ready states with property data • $signalStates with signals • $opportunityStates with scored opportunities. Zoom in to load property-level points.';
@@ -374,8 +420,11 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
         _locationMessage = 'Centered on your device. Your precise location is not stored by this map action.';
       });
       _mapController.move(point, 13.2);
-    } catch (e) {
-      if (mounted) setState(() => _locationMessage = '$e');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _locationMessage =
+            'BridgePoint could not read this device location. Check location services and permission, then try again.');
+      }
     } finally {
       if (mounted) setState(() => locating = false);
     }
@@ -804,14 +853,18 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                       ),
                     if (_showRadar)
                       TileLayer(
-                        key: ValueKey('bp-radar-${_radarTime.millisecondsSinceEpoch}'),
+                        key: ValueKey(_radarFrames.isEmpty
+                            ? 'bp-radar-live'
+                            : 'bp-radar-${_radarTime.millisecondsSinceEpoch}'),
                         wmsOptions: WMSTileLayerOptions(
                           baseUrl: 'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',
                           layers: const ['0'],
                           format: 'image/png',
                           transparent: true,
                           version: '1.3.0',
-                          otherParameters: {'TIME': _radarTime.toUtc().toIso8601String()},
+                          otherParameters: _radarFrames.isEmpty
+                              ? const <String, String>{}
+                              : {'TIME': _radarTime.toUtc().toIso8601String()},
                         ),
                         maxNativeZoom: 10,
                         userAgentPackageName: 'com.bridgepoint.data_studio',
@@ -901,21 +954,35 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                         padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
                         child: Row(
                           children: [
-                            const Text('NOAA • 4H', style: TextStyle(color: _cyan, fontSize: 13, fontWeight: FontWeight.w900)),
+                            Text(
+                              _radarFramesLive
+                                  ? 'NOAA MRMS • ${_radarFrames.length} FRAMES'
+                                  : 'NOAA MRMS • LIVE',
+                              style: const TextStyle(color: _cyan, fontSize: 12.5, fontWeight: FontWeight.w900),
+                            ),
                             const SizedBox(width: 7),
                             Expanded(
-                              child: Slider(
-                                value: frame.toDouble(),
-                                min: 0,
-                                max: 48,
-                                divisions: 48,
-                                onChanged: (value) => setState(() {
-                                  playing = false;
-                                  frame = value.round();
-                                }),
-                              ),
+                              child: _radarFrames.length > 1
+                                  ? Slider(
+                                      value: frame.clamp(0, _radarFrames.length - 1).toDouble(),
+                                      min: 0,
+                                      max: (_radarFrames.length - 1).toDouble(),
+                                      divisions: _radarFrames.length - 1,
+                                      onChanged: (value) => setState(() {
+                                        playing = false;
+                                        frame = value.round();
+                                      }),
+                                    )
+                                  : const Text(
+                                      'Latest published reflectivity',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: _muted, fontSize: 10.5),
+                                    ),
                             ),
-                            Text(_clock(_radarTime), style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900)),
+                            Text(
+                              _radarFrames.isEmpty ? 'LATEST' : _clock(_radarTime),
+                              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                            ),
                           ],
                         ),
                       ),

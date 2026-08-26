@@ -33,8 +33,11 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
   }
 
   Future<dynamic> _safe(String name, [Map<String, dynamic>? params]) async {
-    try { return await Supabase.instance.client.rpc(name, params: params); }
-    catch (e) { return {'available': false, 'rpc': name, 'error': '$e'}; }
+    try {
+      return await Supabase.instance.client.rpc(name, params: params);
+    } catch (_) {
+      return const <String, dynamic>{'available': false};
+    }
   }
 
   Future<List<dynamic>> _load() => Future.wait([
@@ -90,7 +93,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
       });
       if (mounted) setState(() => _message = '${_map(raw)['status'] ?? 'Saved'}');
     } catch (e) {
-      if (mounted) setState(() => _message = 'Could not save: $e');
+      if (mounted) setState(() => _message = 'Could not save this opportunity right now. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -110,7 +113,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
       });
       if (mounted) setState(() => _message = 'Feedback recorded: ${_map(raw)['feedback_code'] ?? code}');
     } catch (e) {
-      if (mounted) setState(() => _message = 'Feedback unavailable: $e');
+      if (mounted) setState(() => _message = 'Could not record feedback right now. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -155,7 +158,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
         _tab = 3;
       });
     } catch (e) {
-      if (mounted) setState(() => _message = 'Route build unavailable: $e');
+      if (mounted) setState(() => _message = 'Could not build this field route right now. Please try again.');
     } finally {
       name.dispose();
       if (mounted) setState(() => _busy = false);
@@ -171,7 +174,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
       final result = _map(raw);
       if (mounted) setState(() => _message = '${result['message'] ?? 'Offline route prepared for 24 hours.'}');
     } catch (e) {
-      if (mounted) setState(() => _message = 'Offline preparation unavailable: $e');
+      if (mounted) setState(() => _message = 'Could not prepare this route for offline use right now.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -222,7 +225,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
         _request = _load();
       });
     } catch (e) {
-      if (mounted) setState(() => _message = 'Route stop update unavailable: $e');
+      if (mounted) setState(() => _message = 'Could not record this route-stop update right now.');
     } finally {
       note.dispose();
       if (mounted) setState(() => _busy = false);
@@ -236,7 +239,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
       await Supabase.instance.client.rpc('bridgepoint_mark_notifications_read_v74', params: {'p_notification_id': id});
       _refresh();
     } catch (e) {
-      if (mounted) setState(() => _message = 'Could not mark read: $e');
+      if (mounted) setState(() => _message = 'Could not update this notification right now.');
     }
   }
 
@@ -249,7 +252,7 @@ class _BridgePointOperationsWorkspaceV2State extends State<BridgePointOperations
       _inviteEmail.clear();
       if (mounted) setState(() { _message = '${_map(raw)['message'] ?? 'Team invite created.'}'; _request = _load(); });
     } catch (e) {
-      if (mounted) setState(() => _message = 'Invite unavailable: $e');
+      if (mounted) setState(() => _message = 'Could not create this team invite right now. Check the email and try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

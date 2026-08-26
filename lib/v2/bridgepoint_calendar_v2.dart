@@ -74,12 +74,32 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
         _ => const Color(0xFFB79CFF),
       };
 
+  Future<DateTime?> _pickDateTime({DateTime? initial}) async {
+    final base = initial ?? DateTime.now().add(const Duration(hours: 1));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: base,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    );
+    if (date == null || !mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(base),
+    );
+    if (time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  String _pickerLabel(DateTime? value, String fallback) =>
+      value == null ? fallback : _when(value.toIso8601String());
+
   Future<void> _createEvent() async {
     final title = TextEditingController();
-    final start = TextEditingController();
-    final end = TextEditingController();
     final notes = TextEditingController();
     String type = 'FOLLOW_UP';
+    DateTime? startsAt;
+    DateTime? endsAt;
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -104,9 +124,38 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
                   decoration: const InputDecoration(labelText: 'Type'),
                 ),
                 const SizedBox(height: 10),
-                TextField(controller: start, decoration: const InputDecoration(labelText: 'Start (ISO or YYYY-MM-DD HH:MM)')),
-                const SizedBox(height: 10),
-                TextField(controller: end, decoration: const InputDecoration(labelText: 'End (optional)')),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event_rounded, color: _cyan),
+                  title: const Text('Start'),
+                  subtitle: Text(_pickerLabel(startsAt, 'Choose date and time')),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () async {
+                    final picked = await _pickDateTime(initial: startsAt);
+                    if (picked != null) setLocal(() => startsAt = picked);
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event_available_rounded, color: _cyan),
+                  title: const Text('End (optional)'),
+                  subtitle: Text(_pickerLabel(endsAt, 'No end time')),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (endsAt != null)
+                      IconButton(
+                        tooltip: 'Clear end time',
+                        onPressed: () => setLocal(() => endsAt = null),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    const Icon(Icons.chevron_right_rounded),
+                  ]),
+                  onTap: () async {
+                    final picked = await _pickDateTime(
+                      initial: endsAt ?? startsAt?.add(const Duration(hours: 1)),
+                    );
+                    if (picked != null) setLocal(() => endsAt = picked);
+                  },
+                ),
                 const SizedBox(height: 10),
                 TextField(controller: notes, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: 'Notes')),
               ]),
@@ -114,29 +163,34 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Add')),
+            FilledButton(
+              onPressed: title.text.trim().isEmpty || startsAt == null
+                  ? null
+                  : () => Navigator.pop(context, true),
+              child: const Text('Add'),
+            ),
           ],
         ),
       ),
     );
-    if (ok != true) {
-      title.dispose(); start.dispose(); end.dispose(); notes.dispose();
+    if (ok != true || startsAt == null) {
+      title.dispose();
+      notes.dispose();
+      return;
+    }
+    if (endsAt != null && endsAt!.isBefore(startsAt!)) {
+      if (mounted) setState(() => _message = 'End time must be after the start time.');
+      title.dispose();
+      notes.dispose();
       return;
     }
     setState(() { _busy = true; _message = null; });
     try {
-      DateTime parse(String value) {
-        final direct = DateTime.tryParse(value.trim());
-        if (direct == null) throw const FormatException('Use a valid date/time.');
-        return direct;
-      }
-      final startsAt = parse(start.text);
-      final endsAt = end.text.trim().isEmpty ? null : parse(end.text);
       await Supabase.instance.client.rpc('bridgepoint_calendar_event_upsert_v835', params: {
         'p_calendar_event_id': null,
         'p_title': title.text.trim(),
         'p_event_type': type,
-        'p_starts_at': startsAt.toUtc().toIso8601String(),
+        'p_starts_at': startsAt!.toUtc().toIso8601String(),
         'p_ends_at': endsAt?.toUtc().toIso8601String(),
         'p_property_id': null,
         'p_opportunity_id': null,
@@ -146,10 +200,11 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
         'p_status': 'SCHEDULED',
       });
       if (mounted) setState(() { _message = 'Calendar item added.'; _request = _load(); });
-    } catch (e) {
-      if (mounted) setState(() => _message = 'Could not add this calendar item. Check the date/time and try again.');
+    } catch (_) {
+      if (mounted) setState(() => _message = 'Could not add this calendar item right now. Please try again.');
     } finally {
-      title.dispose(); start.dispose(); end.dispose(); notes.dispose();
+      title.dispose();
+      notes.dispose();
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -169,32 +224,31 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
   }
 
   Future<void> _scheduleRoute(Map<String, dynamic> route) async {
-    final input = TextEditingController();
+    final picked = await _pickDateTime();
+    if (picked == null) return;
+    if (!mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Schedule ${route['route_name'] ?? 'route'}'),
-        content: SizedBox(width: 420, child: TextField(controller: input, decoration: const InputDecoration(labelText: 'Date/time (ISO or YYYY-MM-DD HH:MM)'))),
+        content: Text('Schedule this route for ${_when(picked.toIso8601String())}?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Schedule')),
         ],
       ),
     );
-    if (ok != true) { input.dispose(); return; }
+    if (ok != true) return;
     setState(() { _busy = true; _message = null; });
     try {
-      final dt = DateTime.tryParse(input.text.trim());
-      if (dt == null) throw const FormatException('Use a valid date/time.');
       await Supabase.instance.client.rpc('bridgepoint_schedule_route_v835', params: {
         'p_route_plan_id': route['route_plan_id'],
-        'p_scheduled_for': dt.toUtc().toIso8601String(),
+        'p_scheduled_for': picked.toUtc().toIso8601String(),
       });
       if (mounted) setState(() { _message = 'Route scheduled.'; _request = _load(); });
-    } catch (e) {
-      if (mounted) setState(() => _message = 'Could not schedule this route. Check the date/time and try again.');
+    } catch (_) {
+      if (mounted) setState(() => _message = 'Could not schedule this route right now. Please try again.');
     } finally {
-      input.dispose();
       if (mounted) setState(() => _busy = false);
     }
   }
