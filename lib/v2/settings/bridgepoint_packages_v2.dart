@@ -120,9 +120,9 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
         : '\$${number.toStringAsFixed(2)}';
   }
 
-  Future<void> _buy(Map<String, dynamic> package) async {
+  Future<void> _buy(Map<String, dynamic> package, String interval) async {
     final key = _key(package);
-    if (key.isEmpty) return;
+    if (key.isEmpty || (interval != 'month' && interval != 'year')) return;
     setState(() {
       _busy = true;
       _message = null;
@@ -130,7 +130,7 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
     try {
       final response = await Supabase.instance.client.functions.invoke(
         'bridgepoint-checkout-v67',
-        body: {'package_key': key, 'interval': 'month'},
+        body: {'package_key': key, 'interval': interval},
       );
       final data = _map(response.data);
       final url = '${data['url'] ?? ''}';
@@ -141,8 +141,9 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
         throw StateError('Could not open Stripe checkout.');
       }
       if (mounted) {
+        final cadence = interval == 'year' ? 'annual' : 'monthly';
         setState(() => _message =
-            'Stripe checkout opened for ${package['package_name'] ?? key}.');
+            'Stripe $cadence checkout opened for ${package['package_name'] ?? key}.');
       }
     } catch (_) {
       if (mounted) setState(() => _message = 'Checkout is temporarily unavailable. Please try again.');
@@ -365,10 +366,22 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
             ],
             const SizedBox(height: 14),
             if (action == 'BUY')
-              FilledButton.icon(
-                onPressed: _busy ? null : () => _buy(p),
-                icon: const Icon(Icons.credit_card_rounded),
-                label: const Text('Start trial / Buy'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: _busy ? null : () => _buy(p, 'month'),
+                    icon: const Icon(Icons.credit_card_rounded),
+                    label: const Text('Monthly checkout'),
+                  ),
+                  if (yearly != null)
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : () => _buy(p, 'year'),
+                      icon: const Icon(Icons.calendar_month_rounded),
+                      label: const Text('Annual checkout'),
+                    ),
+                ],
               )
             else if (action == 'REQUEST')
               FilledButton.tonalIcon(
