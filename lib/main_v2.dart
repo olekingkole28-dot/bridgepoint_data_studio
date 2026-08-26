@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'v2/bridgepoint_app_v2.dart';
+import 'v2/bridgepoint_recovery_shell_v3.dart';
 
 const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
 const _supabasePublishableKey =
@@ -13,5 +13,5 @@ Future<void> main() async {
     url: _supabaseUrl,
     publishableKey: _supabasePublishableKey,
   );
-  runApp(const BridgePointV2App());
+  runApp(const BridgePointRecoveryV3App());
 }
