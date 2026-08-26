@@ -1,0 +1,64 @@
+name: Recovery V7 Route Fix
+
+on:
+  push:
+    branches: [podcast-product-recovery-v3]
+    paths:
+      - '.github/workflows/recovery-v7-route-fix.yml'
+      - 'lib/v2/bridgepoint_property_dossier_recovered_v7.dart'
+      - 'lib/v2/bridgepoint_property_dossier_v2.dart'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: recovery-v7-route-fix
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: podcast-product-recovery-v3
+          fetch-depth: 0
+      - name: Fix V7 property id type and make V7 canonical recovery dossier
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          v7 = Path('lib/v2/bridgepoint_property_dossier_recovered_v7.dart')
+          s = v7.read_text(encoding='utf-8')
+          old = "widget.propertyId.substring(0, math.min(8, widget.propertyId.length))"
+          new = "widget.propertyId.substring(0, widget.propertyId.length < 8 ? widget.propertyId.length : 8)"
+          s = s.replace(old, new)
+          v7.write_text(s, encoding='utf-8')
+
+          shim = Path('lib/v2/bridgepoint_property_dossier_v2.dart')
+          s = shim.read_text(encoding='utf-8')
+          s = s.replace('Recovery V6 is isolated to podcast-product-recovery-v3 until validation passes.',
+                        'Recovery V7 is isolated to podcast-product-recovery-v3 until validation passes.')
+          s = s.replace("export 'bridgepoint_property_dossier_recovered_v6.dart';",
+                        "export 'bridgepoint_property_dossier_recovered_v7.dart';")
+          if 'bridgepoint_property_dossier_recovered_v7.dart' not in s:
+              raise SystemExit('V7 shim route was not applied')
+          shim.write_text(s, encoding='utf-8')
+          PY
+          git diff --check
+      - name: Commit patch if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'V7 route already fixed.'
+            exit 0
+          fi
+          git config user.name 'BridgePoint Recovery Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_property_dossier_recovered_v7.dart lib/v2/bridgepoint_property_dossier_v2.dart
+          git commit -m 'Make Property Twin V7 primary property workspace'
+          git push origin HEAD:podcast-product-recovery-v3
