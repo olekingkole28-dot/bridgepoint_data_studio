@@ -20,7 +20,16 @@ if show_radar<0:
 
 def find_radar_condition(offset):
     match=re.search(r'if\s*\(\s*_showRadar\b[^)]*\)',text[offset:])
-    return -1 if match is None else offset+match.start()
+    if match is not None:
+        return offset+match.start()
+    # Formatting/generator fallback: bind the condition to the first radar WMS
+    # TileLayer, never to a later preview or unrelated control.
+    seed_wms=text.find('WMSTileLayerOptions(',offset)
+    seed_tile=text.rfind('TileLayer(',offset,seed_wms)
+    seed_if=text.rfind('if',max(offset,seed_tile-500),seed_tile)
+    if min(seed_wms,seed_tile,seed_if)>=0 and '_showRadar' in text[seed_if:seed_tile]:
+        return seed_if
+    return -1
 
 main_radar_if=find_radar_condition(show_radar)
 if main_radar_if<0:
