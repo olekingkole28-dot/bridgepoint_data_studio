@@ -19,24 +19,35 @@ if show_radar<0:
     raise SystemExit('v830 radar state field missing')
 
 def find_radar_condition(offset):
-    # Anchor to the first main-map WMS layer, then search backward for the
-    # condition governing that exact TileLayer. This avoids accidentally binding
-    # to refresh-timer or preview conditions earlier/later in generated source.
-    seed_wms=text.find('WMSTileLayerOptions(',offset)
+    # Find the first WMS block that is demonstrably a radar layer, then bind to
+    # the closest governing if-condition containing _showRadar. Generated source
+    # may contain unrelated WMS/options blocks and formatting varies by replay.
+    radar_tokens=('conus_bref_qcd','radar_base_reflectivity','reflectivity','opengeo.ncep.noaa.gov')
+    seed_wms=-1
+    cursor=offset
+    while True:
+        candidate=text.find('WMSTileLayerOptions(',cursor)
+        if candidate<0:
+            break
+        probe=text[candidate:candidate+1200].lower()
+        if any(token in probe for token in radar_tokens):
+            seed_wms=candidate
+            break
+        cursor=candidate+1
+    if seed_wms<0:
+        return -1
     seed_tile=text.rfind('TileLayer(',offset,seed_wms)
-    if min(seed_wms,seed_tile)>=0:
-        window_start=max(offset,seed_tile-1400)
-        window=text[window_start:seed_tile]
-        matches=list(re.finditer(r'if\s*\([^)]*_showRadar[^)]*\)',window))
-        if matches:
-            return window_start+matches[-1].start()
-        show=text.rfind('_showRadar',window_start,seed_tile)
-        seed_if=text.rfind('if',window_start,show)
-        if show>=0 and seed_if>=0:
-            return seed_if
-    # Final compatibility fallback for older generated shapes.
-    match=re.search(r'if\s*\(\s*_showRadar\b[^)]*\)',text[offset:])
-    return offset+match.start() if match is not None else -1
+    if seed_tile<0:
+        return -1
+    prefix=text[offset:seed_tile]
+    candidates=list(re.finditer(r'\bif\s*\(',prefix))
+    for match in reversed(candidates):
+        condition_start=offset+match.start()
+        segment=text[condition_start:seed_tile]
+        if '_showRadar' in segment:
+            return condition_start
+    return -1
+
 
 main_radar_if=find_radar_condition(show_radar)
 if main_radar_if<0:
