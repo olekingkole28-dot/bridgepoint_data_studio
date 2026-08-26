@@ -8,7 +8,8 @@ const IMAGE_SAMPLES = "https://elevation.nationalmap.gov/arcgis/rest/services/3D
 const EPQS = "https://epqs.nationalmap.gov/v1/json";
 const H = { "content-type": "application/json", "cache-control": "no-store" };
 const IMAGE_CHUNK = 10;
-const EPQS_CONCURRENCY = 5;
+const EPQS_CONCURRENCY = 4;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function authenticated(token: string) {
   const q = await sb.rpc("bridgepoint_expansion_worker_auth_v90", { p_task_token: token });
@@ -20,19 +21,16 @@ function finiteNumber(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function retryable(message: string) {
+  return /(HTTP_(502|503|504)|timed out|timeout|network|fetch failed|connection reset)/i.test(message);
+}
+
 function baseRow(r: any) {
   return {
-    property_id: String(r.property_id),
-    longitude: Number(r.longitude),
-    latitude: Number(r.latitude),
-    sample_status: "NO_DATA",
-    elevation_m: null as number | null,
-    resolution_m: null as number | null,
-    raster_id: null as number | null,
-    dataset_id: null as string | null,
-    product_name: null as string | null,
-    vertical_datum: null as string | null,
-    acquisition_date: null as string | null,
+    property_id: String(r.property_id), longitude: Number(r.longitude), latitude: Number(r.latitude),
+    sample_status: "NO_DATA", elevation_m: null as number | null, resolution_m: null as number | null,
+    raster_id: null as number | null, dataset_id: null as string | null, product_name: null as string | null,
+    vertical_datum: null as string | null, acquisition_date: null as string | null,
     attributes: {} as Record<string, unknown>,
   };
 }
@@ -69,22 +67,27 @@ async function imageSamples(rows: any[]) {
   params.set("outFields", "Dataset_ID,ProductName,VerticalDatum,AcquisitionDate,Source,Resolution_X,Resolution_Y,pubdate,title");
   params.set("f", "json");
 
-  const res = await fetch(IMAGE_SAMPLES, {
-    method: "POST",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "accept": "application/json",
-      "user-agent": "BridgePointIntelligence/1.0"
-    },
-    body: params.toString(),
-    signal: AbortSignal.timeout(18000),
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`USGS_IMAGE_HTTP_${res.status}:${text.slice(0,300)}`);
-  let payload: any;
-  try { payload = JSON.parse(text); } catch { throw new Error(`USGS_IMAGE_NON_JSON:${text.slice(0,300)}`); }
-  if (payload?.error) throw new Error(`USGS_IMAGE_ARCGIS_ERROR:${JSON.stringify(payload.error).slice(0,500)}`);
-  return Array.isArray(payload?.samples) ? payload.samples : [];
+  let last = "USGS image request failed";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(IMAGE_SAMPLES, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded;charset=UTF-8", "accept": "application/json", "user-agent": "BridgePointIntelligence/1.0" },
+        body: params.toString(), signal: AbortSignal.timeout(15000),
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`USGS_IMAGE_HTTP_${res.status}:${text.slice(0,300)}`);
+      let payload: any;
+      try { payload = JSON.parse(text); } catch { throw new Error(`USGS_IMAGE_NON_JSON:${text.slice(0,300)}`); }
+      if (payload?.error) throw new Error(`USGS_IMAGE_ARCGIS_ERROR:${JSON.stringify(payload.error).slice(0,500)}`);
+      return Array.isArray(payload?.samples) ? payload.samples : [];
+    } catch (e) {
+      last = String((e as any)?.message || e);
+      if (!retryable(last) || attempt === 3) throw new Error(last);
+      await sleep(600 * attempt);
+    }
+  }
+  throw new Error(last);
 }
 
 async function epqsOne(row: any) {
@@ -94,25 +97,33 @@ async function epqsOne(row: any) {
   url.searchParams.set("wkid", "4326");
   url.searchParams.set("units", "Meters");
   url.searchParams.set("includeDate", "true");
-  const res = await fetch(url, {
-    headers: { "accept": "application/json", "user-agent": "BridgePointIntelligence/1.0", "cache-control": "no-cache" },
-    signal: AbortSignal.timeout(12000),
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`USGS_EPQS_HTTP_${res.status}:${text.slice(0,250)}`);
-  let p: any;
-  try { p = JSON.parse(text); } catch { throw new Error(`USGS_EPQS_NON_JSON:${text.slice(0,250)}`); }
-  if (p?.error) throw new Error(`USGS_EPQS_ERROR:${JSON.stringify(p.error).slice(0,400)}`);
-  const legacy = p?.USGS_Elevation_Point_Query_Service?.Elevation_Query || p?.Elevation_Query || {};
-  return {
-    value: p?.value ?? p?.elevation ?? legacy?.Elevation,
-    rasterId: p?.rasterId ?? p?.rasterID ?? legacy?.RasterId,
-    resolution: p?.resolution ?? legacy?.Resolution,
-    attributes: {
-      ...(p?.attributes && typeof p.attributes === "object" ? p.attributes : {}),
-      EPQS_Date: p?.date ?? p?.Date ?? legacy?.Data_Source ?? null,
-    },
-  };
+
+  let last = "USGS EPQS request failed";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { "accept": "application/json", "user-agent": "BridgePointIntelligence/1.0", "cache-control": "no-cache" },
+        signal: AbortSignal.timeout(10000),
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`USGS_EPQS_HTTP_${res.status}:${text.slice(0,250)}`);
+      let p: any;
+      try { p = JSON.parse(text); } catch { throw new Error(`USGS_EPQS_NON_JSON:${text.slice(0,250)}`); }
+      if (p?.error) throw new Error(`USGS_EPQS_ERROR:${JSON.stringify(p.error).slice(0,400)}`);
+      const legacy = p?.USGS_Elevation_Point_Query_Service?.Elevation_Query || p?.Elevation_Query || {};
+      return {
+        value: p?.value ?? p?.elevation ?? legacy?.Elevation,
+        rasterId: p?.rasterId ?? p?.rasterID ?? legacy?.RasterId,
+        resolution: p?.resolution ?? legacy?.Resolution,
+        attributes: { ...(p?.attributes && typeof p.attributes === "object" ? p.attributes : {}), EPQS_Date: p?.date ?? p?.Date ?? legacy?.Data_Source ?? null },
+      };
+    } catch (e) {
+      last = String((e as any)?.message || e);
+      if (!retryable(last) || attempt === 3) throw new Error(last);
+      await sleep(500 * attempt);
+    }
+  }
+  throw new Error(last);
 }
 
 async function mapLimited<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
@@ -131,22 +142,16 @@ async function mapLimited<T, R>(items: T[], limit: number, fn: (item: T, index: 
 
 Deno.serve(async (req: Request) => {
   try {
-    if (req.method !== "POST") {
-      return new Response(JSON.stringify({ complete: false, version: VERSION, error: "POST required" }), { status: 405, headers: H });
-    }
+    if (req.method !== "POST") return new Response(JSON.stringify({ complete: false, version: VERSION, error: "POST required" }), { status: 405, headers: H });
     const body = await req.json().catch(() => ({}));
     const token = String(body.task_token || req.headers.get("x-bridgepoint-token") || "");
-    if (!(await authenticated(token))) {
-      return new Response(JSON.stringify({ complete: false, version: VERSION, error: "invalid task token" }), { status: 401, headers: H });
-    }
+    if (!(await authenticated(token))) return new Response(JSON.stringify({ complete: false, version: VERSION, error: "invalid task token" }), { status: 401, headers: H });
 
-    const batchSize = Math.max(1, Math.min(Number(body.batch_size || 50), 500));
+    const batchSize = Math.max(1, Math.min(Number(body.batch_size || 40), 100));
     const claim = await sb.rpc("bridgepoint_3dep_claim_v927", { p_task_token: token, p_batch_size: batchSize });
     if (claim.error) throw claim.error;
     const job = claim.data || {};
-    if (!job.claimed) {
-      return new Response(JSON.stringify({ complete: true, version: VERSION, claimed: false, reason: job.reason || "NO_WORK" }), { status: 200, headers: H });
-    }
+    if (!job.claimed) return new Response(JSON.stringify({ complete: true, version: VERSION, claimed: false, reason: job.reason || "NO_WORK" }), { status: 200, headers: H });
 
     const state = String(job.state_code || "");
     const lease = String(job.lease_token || "");
@@ -155,10 +160,7 @@ Deno.serve(async (req: Request) => {
 
     try {
       const out = rows.map(baseRow);
-      let imageChunksOk = 0;
-      let imageChunksFailed = 0;
-      let imageSamplesUsed = 0;
-      let epqsFallbacks = 0;
+      let imageChunksOk = 0, imageChunksFailed = 0, imageSamplesUsed = 0, epqsFallbacks = 0;
       const fallbackIndexes = new Set<number>();
 
       for (let start = 0; start < rows.length; start += IMAGE_CHUNK) {
@@ -189,48 +191,21 @@ Deno.serve(async (req: Request) => {
 
       const indexes = [...fallbackIndexes].sort((a, b) => a - b);
       if (indexes.length) {
-        const fallbackResults = await mapLimited(indexes, EPQS_CONCURRENCY, async (idx) => {
-          const sample = await epqsOne(rows[idx]);
-          return { idx, sample };
-        });
+        const fallbackResults = await mapLimited(indexes, EPQS_CONCURRENCY, async (idx) => ({ idx, sample: await epqsOne(rows[idx]) }));
         for (const { idx, sample } of fallbackResults) {
           assignSample(out[idx], sample, { query_path: "EPQS_FALLBACK", fallback_from: "3DEP_IMAGESERVER_GETSAMPLES" });
           epqsFallbacks++;
         }
       }
 
-      const saved = await sb.rpc("bridgepoint_3dep_persist_v927", {
-        p_task_token: token,
-        p_state_code: state,
-        p_lease_token: lease,
-        p_samples: out,
-      });
+      const saved = await sb.rpc("bridgepoint_3dep_persist_v927", { p_task_token: token, p_state_code: state, p_lease_token: lease, p_samples: out });
       if (saved.error) throw saved.error;
 
       const accepted = out.filter((x: any) => x.sample_status === "OK").length;
-      return new Response(JSON.stringify({
-        complete: true,
-        version: VERSION,
-        claimed: true,
-        state_code: state,
-        requested: rows.length,
-        accepted,
-        image_chunks_ok: imageChunksOk,
-        image_chunks_failed: imageChunksFailed,
-        image_samples_used: imageSamplesUsed,
-        epqs_fallbacks: epqsFallbacks,
-        persisted: saved.data,
-      }), { status: 200, headers: H });
+      return new Response(JSON.stringify({ complete: true, version: VERSION, claimed: true, state_code: state, requested: rows.length, accepted, image_chunks_ok: imageChunksOk, image_chunks_failed: imageChunksFailed, image_samples_used: imageSamplesUsed, epqs_fallbacks: epqsFallbacks, persisted: saved.data }), { status: 200, headers: H });
     } catch (e) {
       const msg = String((e as any)?.message || e);
-      try {
-        await sb.rpc("bridgepoint_3dep_fail_v927", {
-          p_task_token: token,
-          p_state_code: state,
-          p_lease_token: lease,
-          p_error: msg.slice(0, 1500),
-        });
-      } catch (_) {}
+      try { await sb.rpc("bridgepoint_3dep_fail_v927", { p_task_token: token, p_state_code: state, p_lease_token: lease, p_error: msg.slice(0, 1500) }); } catch (_) {}
       throw e;
     }
   } catch (e) {
