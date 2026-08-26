@@ -33,7 +33,7 @@ jobs:
               exit 1
             fi
           }
-          run_py tool/repair_v94_script.py
+          run_py tool/repair_v94_script_v735.py
           run_py tool/apply_launch_v94.py
           run_py tool/repair_owner_expansion_v96.py
           run_py tool/apply_launch_v95.py

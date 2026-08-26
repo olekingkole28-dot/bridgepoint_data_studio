@@ -1,0 +1,338 @@
+name: V735 Flutter Release Certification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [chatgpt/completion-release-v735]
+  pull_request:
+    branches: [main]
+
+# PRs should supersede older PR builds quickly, but production main releases must
+# finish their audited build + Pages deploy + receipt write. With cancel-in-progress
+# enabled on main, unrelated sprint pushes could repeatedly cancel a valid deploy
+# before production verification completed. GitHub concurrency keeps at most one
+# running and one pending run for the main ref, so this serializes production while
+# naturally replacing stale pending pushes with the newest main revision.
+concurrency:
+  group: bridgepoint-release-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply established BridgePoint release layers
+        run: |
+          set -euo pipefail
+          python tool/repair_v94_script_v735.py
+          python tool/apply_launch_v94.py
+          python tool/repair_owner_expansion_v96.py
+          python tool/apply_launch_v95.py
+          python tool/apply_satellite_map_v98.py
+          python tool/apply_map_viewport_v124.py
+          python tool/apply_technology_clarity_v100.py
+          python tool/apply_exports_v101.py
+          python tool/apply_growth_center_v105.py
+          python tool/apply_notification_center_v109.py
+          python tool/apply_owner_recent_people_v112.py
+          python tool/apply_social_publish_v120.py
+          python tool/apply_social_connect_v123.py
+          python tool/apply_launch_readiness_v121.py
+          python tool/apply_weather_home_community_v145.py
+          python tool/repair_weather_home_v147.py
+          python tool/apply_numbered_sales_posts_v146.py
+          python tool/apply_copyright_footer_v150.py
+          python tool/apply_about_bridgepoint_v151.py
+          python tool/apply_routes_offline_v157.py
+          python tool/apply_training_demo_founder_v159.py
+          python tool/repair_generated_release_v160.py
+          python tool/fix_legal_gate_v160.py
+          python tool/apply_package_colors_molly_update_v162.py
+          python tool/apply_pwa_auto_update_v162.py
+          python tool/apply_dashboard_widgets_property_media_v164.py
+          python tool/repair_dashboard_media_v166.py
+          python tool/apply_property_imagery_history_ui_v169.py
+          python tool/apply_molly_companion_v165.py
+      - name: Repair map radar and release origin
+        run: python tool/apply_release_map_radar_v172.py
+      - name: Replace fragile radar GIF with live WMS
+        run: python tool/fix_live_radar_wms_v177.py
+      - name: Repair live location weather
+        run: python tool/apply_live_location_weather_v173.py
+      - name: Add satellite labels and initial customer location
+        run: python tool/apply_map_labels_location_domain_v180.py
+      - name: Repair property media everywhere
+        run: python tool/apply_property_media_everywhere_v174.py
+      - name: Repair interactive widgets and alerts
+        run: python tool/apply_interactive_widgets_alerts_v175.py
+      - name: Install Molly live walkthrough
+        run: python tool/apply_molly_live_walkthrough_v176.py
+      - name: Make expansion approvals continue immediately
+        run: python tool/fix_expansion_approve_continue_v178.py
+      - name: Add secure remembered sign-in and nickname
+        run: python tool/apply_auth_nickname_v181b.py
+      - name: Add front-first street property media and aerial zoom controls
+        run: python tool/apply_property_street_media_v186.py
+      - name: Add multistate property workspace and current-owner UI
+        run: python tool/apply_multistate_owner_ui_v188.py
+      - name: Add premium page accents and expansion ETA/status UI
+        run: python tool/apply_premium_navigation_expansion_v189.py
+      - name: Add animated NOAA weather timeline
+        run: python tool/apply_noaa_weather_loop_v190.py
+      - name: Make global property search multistate and map recenter location-aware
+        run: python tool/apply_global_search_location_v192.py
+      - name: Protect customer property details from formula/internal leakage
+        run: python tool/apply_customer_safe_json_v193.py
+      - name: Disable no-op click handlers and repair combined compile points
+        run: python tool/fix_dead_click_handlers_v194b.py
+      - name: Surface 60-day social readiness and approval ETA polish
+        run: python tool/apply_social_readiness_eta_polish_v196.py
+      - name: Restore Share, expose package delivery readiness, and animate Molly
+        run: python tool/apply_share_packages_molly_v207.py
+      - name: Apply v212 and run strict release contract audit
+        run: python tool/audit_release_clicks_v194.py
+      - name: Apply v215 production stability, onboarding, clouds, billing and About polish
+        run: python tool/apply_stability_polish_v215.py
+      - name: Repair v215 generated Flutter compile points
+        run: python tool/fix_v215_compile_points.py
+      - name: Repair NOAA cloud clarity and animation
+        run: python tool/fix_cloud_clarity_v217.py
+      - name: Repair mobile map gestures and customer evidence text
+        run: python tool/fix_mobile_map_evidence_v218.py
+      - name: Add owner outreach command center
+        run: python tool/apply_owner_outreach_v219.py
+      - name: Surface account and sender email identities
+        run: python tool/apply_account_email_v221.py
+      - name: Add nationwide weather motion, 3D scroll isolation and spatial background
+        run: python tool/apply_national_weather_spatial_v287.py
+      - name: Add page-specific semantic immersive backgrounds
+        run: python tool/apply_semantic_immersive_v290.py
+      - name: Polish customer-facing language
+        run: python tool/apply_customer_language_v304.py
+      - name: Add live density heat map layer
+        run: python tool/apply_map_density_heat_v306.py
+      - name: Run permanent final release audit
+        run: python tool/final_release_audit_v305.py
+      - name: Apply dynamic account avatar
+        run: python tool/apply_dynamic_account_avatar_v444.py
+      - name: Repair final generated Flutter structure
+        run: python tool/repair_dashboard_anchor_v736.py
+
+      # Generated-source capture is useful forensic evidence but is not release truth.
+      # GitHub can temporarily reject artifact uploads when storage quota is exhausted;
+      # that must not prevent analyze/build from proving the generated source itself.
+      - name: Record final generated source fingerprint
+        run: |
+          set -euo pipefail
+          test -s lib/main.dart
+          sha256sum lib/main.dart
+          wc -c lib/main.dart
+
+      - name: Capture final generated source for audit when storage is available
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-generated-final
+          path: lib/main.dart
+          retention-days: 1
+
+      - name: Validate guarded release markers
+        run: |
+          printf '{"version":"%s","built_at":"%s","public_origin":"https://bridgepointintelligence.online/"}\n' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/bridgepoint-release.json
+          python - <<'PY'
+          from pathlib import Path
+          checks={
+            'lib/main.dart':[
+              'Send to CRM','Weather Center','My Home','Community Property Observations',
+              'Property photo not available yet','ROUTES & OFFLINE MODE',
+              'Connection looks spotty — switch to Offline Mode?','Skip for now',
+              'Founder Command Center','Preview as customer',"MOLLY'S TIP",
+              'ENTERPRISE TECHNOLOGY','MY DASHBOARD WIDGETS','Customize Dashboard',
+              '_PropertyMediaCard','Property Image History','Image history •',
+              '_bridgePointRelease','Questions or Concerns: 203-605-2389',
+              'NOAA CLOUDS + RADAR • WEATHER MOTION','Pause weather motion','class _BridgePointLiveLocation',
+              'Start live location','_PropertyMediaThumb','PINCH / SCROLL TO ZOOM',
+              'Open aerial • pinch / scroll to zoom','bridgepoint-property-street-media-v186',
+              'tap a widget to open its tool','MOLLY LIVE WALKTHROUGH',
+              'https://bridgepointintelligence.online/',
+              'World_Boundaries_and_Places','Center on my current location',
+              "'action':'continue'",'Save my info for next time','Your nickname',
+              'All My States','Current recorded owner','BUILDING NOW','bridgepoint_expansion_progress_v212',
+              '_bridgePointPageAccent','_bridgePointCustomerSafeKey','bridgepoint_property_suggestions_v192',
+              'Molly dog bone activity animation','BUILDING VERIFIED DELIVERY • NOT BILLING YET','Building verified feed',
+              'bridgepoint-v212-stability-connected-release','Pattern Intelligence','bridgepoint_pattern_intelligence_v212',
+              'Test NOAA live','bridgepoint-noaa-live-health-v212','MOST ACTIVE SIGNAL TYPES',
+              'MY PROPERTY TRACKERS','Community Observation Map','BridgePoint Community Chat','Show more plans',
+              'DRAG TO PAN • PINCH / SCROLL TO ZOOM',
+              'bridgepoint-v215-secure-stability-polish','FINISH SETTING UP BRIDGEPOINT',
+              'NOAA SATELLITE CLOUD MOTION','global_visible_imagery_mosaic','Buy Pattern Intelligence',
+              'WHY BRIDGEPOINT WAS BUILT','Add / edit socials','bridgepoint_brand_contact_v215',
+              'bridgepoint_setup_checklist_v215','bridgepoint-noaa-cloud-frames-v215',
+              'bridgepoint-v217-cloud-clarity','bridgepoint-v218-mobile-layout-readable-evidence',
+              '_bridgePointReadableEvidenceV218','_compactMapV218','bridgepoint-v219-owner-outreach',
+              'bridgepoint-v221-account-email','bridgepoint-v287-national-weather-spatial-background',
+              '_BridgePointNationwideWeatherV287','_bridgePointMapTouchLockV287','bp-us-radar-v287',
+              '_BridgePointSpatialAtmospherePainterV287','bridgepoint-v290-semantic-immersive-backgrounds',
+              '_BridgePointSemanticScenePainterV290','_bridgePointPageAccentV290',
+              'bridgepoint-v304-customer-plain-language','_bridgePointCustomerPlainLanguageV304',
+              'bridgepoint-v306-live-density-heat','_bridgePointLiveDensityHeatV306','DENSITY HEAT',
+              'bridgepoint-v319-owner-pattern-intelligence + iso-wms-preloaded-radar + municipal-permit-live',
+              'bridgepoint-v320-resilience-market-guard-service-credit','bridgepoint-v320-unsupported-market-preview',
+              'bridgepoint-v320-owner-resilience-metrics','bridgepoint_public_system_status_v320',
+              'bridgepoint_public_expansion_status_v321','BridgePoint is temporarily unavailable',
+              '// bridgepoint-localization-v711','home: const _LanguageBootstrap()',
+              'bridgepoint_supported_languages_v711','bridgepoint_save_locale_v711',
+              '// bridgepoint-visible-national-v728','Authorized U.S. property universe',
+              'bridgepoint-v602-owner-ai-workers-forgotten-work','// bridgepoint-v678-native-owner-global-ai',
+              'bridgepoint-v444-dynamic-account-avatar',
+            ],
+            'web/index.html':['bridgepoint_auto_update_restoring','bridgepoint-release.json'],
+          }
+          missing=[]
+          for filename,needles in checks.items():
+            body=Path(filename).read_text(encoding='utf-8')
+            for needle in needles:
+              if needle not in body: missing.append(f'{filename}: {needle}')
+          if missing:
+            print('Missing guarded release markers:')
+            for item in missing: print(' -',item)
+            raise SystemExit(1)
+          print('All guarded v735 release markers are present.')
+          PY
+          test -s web/bridgepoint-release.json
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Run tests when present
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No test directory yet; continuing to the release build."
+          fi
+      - name: Build installable web app
+        run: flutter build web --release --base-href "/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+      - name: Verify compiled web app locally
+        run: |
+          set -euo pipefail
+          test -s build/web/index.html
+          test -s build/web/bridgepoint-release.json
+          test -s build/web/flutter_bootstrap.js
+          du -sh build/web
+          echo "Audited Flutter web compilation completed for ${GITHUB_SHA}."
+
+      # PR proof must not fail because GitHub artifact storage is full. Production/main
+      # promotion still requires a durable exact compiled artifact and is therefore kept
+      # separate from this non-production PR review upload.
+      - name: Upload non-production review artifact when storage is available
+        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-flutter-web-review
+          path: build/web
+          retention-days: 1
+
+      - name: Upload production handoff artifact
+        if: ${{ false }} # certification branch never produces a production handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-flutter-web-review
+          path: build/web
+          retention-days: 3
+
+  deploy:
+    if: ${{ false }} # production deploy remains owned by current main/V2 pipeline
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download audited release from this build
+        uses: actions/download-artifact@v4
+        with:
+          name: bridgepoint-flutter-web-review
+          path: site
+      - name: Verify exact release before production
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test -s site/index.html
+          test -s site/bridgepoint-release.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          marker=json.loads(Path('site/bridgepoint-release.json').read_text(encoding='utf-8'))
+          if marker.get('public_origin')!='https://bridgepointintelligence.online/':
+              raise SystemExit(f"Unexpected public origin: {marker.get('public_origin')}")
+          if marker.get('version')!=os.environ['EXPECTED_SHA']:
+              raise SystemExit(f"Artifact SHA {marker.get('version')} does not match {os.environ['EXPECTED_SHA']}")
+          print('Verified production artifact',marker['version'])
+          PY
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload production Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Publish BridgePoint Intelligence
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Checkout release repository for receipts
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: repo
+      - name: Record verified build and production deployment
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          marker=json.loads(Path('site/bridgepoint-release.json').read_text(encoding='utf-8'))
+          now=datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
+          release={
+              'status':'BUILD_COMPLETED','conclusion':'success','completed_at':now,
+              'source_workflow_run_id':int(os.environ['SOURCE_RUN_ID']),'source_sha':os.environ['SOURCE_SHA']
+          }
+          deployment={
+              'status':'PUBLISHED','version':marker['version'],'built_at':marker.get('built_at'),'deployed_at':now,
+              'public_origin':marker.get('public_origin'),'pages_url':os.environ['PAGE_URL'],
+              'source_workflow_run_id':int(os.environ['SOURCE_RUN_ID']),'source_sha':os.environ['SOURCE_SHA'],
+              'publisher':'GitHub Pages / same-workflow audited artifact'
+          }
+          Path('repo/web/release-pipeline-status.json').write_text(json.dumps(release,indent=2)+'\n',encoding='utf-8')
+          Path('repo/web/deployment-status.json').write_text(json.dumps(deployment,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(deployment,indent=2))
+          PY
+          cd repo
+          git config user.name "BridgePoint Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add web/release-pipeline-status.json web/deployment-status.json
+          if git diff --cached --quiet; then
+            echo "Deployment receipts already current."
+          else
+            git commit -m "Record BridgePoint production deployment [skip ci]"
+            git push origin HEAD:main
+          fi

@@ -101,12 +101,17 @@ replace_once(
 """                      // Keep the live map lightweight; NOAA radar provides the motion/context instead of a GPU scan overlay.
 """,
 'map-remove-scan-overlay')
-replace_once(
-"""                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show Northeast expansion',onTap:()=>_mapController.move(const LatLng(42.15,-72.90),6.3)),
-""",
-"""                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show United States live weather',onTap:()=>_mapController.move(const LatLng(39.50,-98.35),4.2)),
-""",
-'map-us-weather-button')
+# bridgepoint-release-idempotency-v768
+_old_us_weather = """                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show Northeast expansion',onTap:()=>_mapController.move(const LatLng(42.15,-72.90),6.3)),
+"""
+_new_us_weather = """                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show United States live weather',onTap:()=>_mapController.move(const LatLng(39.50,-98.35),4.2)),
+"""
+if text.count(_old_us_weather) == 1:
+    text = text.replace(_old_us_weather, _new_us_weather, 1)
+elif text.count(_new_us_weather) >= 1:
+    print('map-us-weather-button: already applied by a newer canonical source; continuing')
+else:
+    raise SystemExit('map-us-weather-button: neither historical nor current control found')
 
 # 3) Technology products: show starting prices but route them to enterprise interest, never normal Stripe checkout.
 replace_once(

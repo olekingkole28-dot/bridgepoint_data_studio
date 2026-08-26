@@ -3,83 +3,284 @@ from pathlib import Path
 p=Path('tool/apply_launch_v94.py')
 s=p.read_text(encoding='utf-8')
 
-# Repair the historical banner matcher so it still recognizes the current widget shape.
+# Historical v94 banner syntax repair.
 old='''"""                  const Text(\n                    'Start with a 7-day free trial. Founding customers #1–10 receive 50% off their first 6 monthly payments.',\n                    style: TextStyle(color: AppTheme.cyan,fontSize:10,height:1.45,fontWeight:FontWeight.w700),\n                  ),\n""",\n"""                  Text(\n                    technology\n'''
 new='''"""                  child: const Text(\n                    'Start with a 7-day free trial. Founding customers #1–10 receive 50% off their first 6 monthly payments.',\n                    style: TextStyle(color: AppTheme.cyan,fontSize:10,height:1.45,fontWeight:FontWeight.w700),\n                  ),\n""",\n"""                  child: Text(\n                    technology\n'''
 if old in s:
     s=s.replace(old,new,1)
 elif new not in s:
-    raise SystemExit('v94 banner matcher repair target not found')
+    raise SystemExit('v94 banner matcher repair target not found in either historical or repaired form')
 
-# v94 is a historical generator. Current canonical source legitimately contains newer
-# equivalents. An absent OLD anchor therefore means "superseded", not "destroy release".
-# Duplicate old anchors remain a hard failure because that is genuine structural drift.
-old_helper="""    if count != 1:\n        raise SystemExit(f'{label}: expected exactly 1 match, found {count}')\n    text = text.replace(old, new, 1)\n"""
-new_helper="""    if count == 0:\n        print(f'{label}: legacy anchor already superseded; leaving current source unchanged')\n        return\n    if count != 1:\n        raise SystemExit(f'{label}: expected at most 1 legacy match, found {count}')\n    text = text.replace(old, new, 1)\n"""
-if old_helper in s:
-    s=s.replace(old_helper,new_helper,1)
-elif new_helper not in s:
-    raise SystemExit('v94 replace_once compatibility repair target not found')
+# v782: v94 predates the canonical national NOAA map stack, the server-driven
+# package purchase/delivery truth, and the current Owner Global Control plane.
+# Historical replacements remain strict unless newer checked-in source proves
+# the capability that superseded them.
+old_replace='''def replace_once(old: str, new: str, label: str):
+    global text
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+    text = text.replace(old, new, 1)
+'''
+old_v775='''_SUPERSEDED_V94_MAP_LABELS = {
+    'map-radar-state',
+    'map-radar-timer',
+    'map-opportunity-limit',
+    'map-signal-limit',
+    'map-min-zoom',
+    'map-live-radar-cache-bust',
+    'map-remove-scan-overlay',
+}
+_MODERN_MAP_MARKERS = (
+    'bridgepoint-v287-national-weather-spatial-background',
+    '_BridgePointNationwideWeatherV287',
+    'bp-us-radar-v287',
+    'bridgepoint-v218-mobile-layout-readable-evidence',
+)
 
-old_tail="""if text == original:\n    raise SystemExit('No changes applied')\npath.write_text(text, encoding='utf-8')\nprint('Applied BridgePoint launch patch v94')\n"""
-new_tail="""if text == original:\n    print('BridgePoint v94: all historical anchors were already superseded; no legacy mutation required')\nelse:\n    path.write_text(text, encoding='utf-8')\n    print('Applied compatible BridgePoint launch patch v94')\n"""
-if old_tail in s:
-    s=s.replace(old_tail,new_tail,1)
-elif new_tail not in s:
-    raise SystemExit('v94 no-op compatibility repair target not found')
+def replace_once(old: str, new: str, label: str):
+    global text
+    count = text.count(old)
+    if count == 1:
+        text = text.replace(old, new, 1)
+        return
+    if count == 0 and label in _SUPERSEDED_V94_MAP_LABELS and any(marker in text for marker in _MODERN_MAP_MARKERS):
+        print(f'{label}: superseded by newer canonical radar/map source; continuing')
+        return
+    raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+'''
+old_v776='''_SUPERSEDED_V94_MAP_LABELS = {
+    'map-radar-state',
+    'map-radar-timer',
+    'map-opportunity-limit',
+    'map-signal-limit',
+    'map-min-zoom',
+    'map-live-radar-cache-bust',
+    'map-remove-scan-overlay',
+}
+
+def _canonical_map_truth_present() -> bool:
+    radar_state = ('bool _showRadar = true;' in text or 'bool _showRadar=true;' in text)
+    noaa_wms = (
+        'opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows?' in text
+        and "layers: const ['conus_bref_qcd']" in text
+    )
+    us_control = (
+        "tooltip: 'Show U.S. intelligence'" in text
+        or "tooltip:'Show United States live weather'" in text
+        or "LatLng(39.50, -98.35)" in text
+        or "LatLng(39.50,-98.35)" in text
+    )
+    return radar_state and noaa_wms and us_control
+
+def replace_once(old: str, new: str, label: str):
+    global text
+    count = text.count(old)
+    if count == 1:
+        text = text.replace(old, new, 1)
+        return
+    if count == 0 and label in _SUPERSEDED_V94_MAP_LABELS and _canonical_map_truth_present():
+        print(f'{label}: superseded by canonical NOAA WMS + U.S. map controls; continuing')
+        return
+    raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+'''
+old_v780='''_SUPERSEDED_V94_MAP_LABELS = {
+    'map-radar-state',
+    'map-radar-timer',
+    'map-opportunity-limit',
+    'map-signal-limit',
+    'map-min-zoom',
+    'map-live-radar-cache-bust',
+    'map-remove-scan-overlay',
+}
+_SUPERSEDED_V94_PACKAGE_LABELS = {
+    'technology-card-flag',
+    'technology-card-chip',
+    'technology-empty-model-copy',
+    'technology-price-label',
+    'technology-detail-flag',
+    'technology-detail-banner',
+    'technology-contact-sales',
+}
+
+def _canonical_map_truth_present() -> bool:
+    radar_state = ('bool _showRadar = true;' in text or 'bool _showRadar=true;' in text)
+    noaa_wms = (
+        'opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows?' in text
+        and "layers: const ['conus_bref_qcd']" in text
+    )
+    us_control = (
+        "tooltip: 'Show U.S. intelligence'" in text
+        or "tooltip:'Show United States live weather'" in text
+        or "LatLng(39.50, -98.35)" in text
+        or "LatLng(39.50,-98.35)" in text
+    )
+    return radar_state and noaa_wms and us_control
+
+def _canonical_package_truth_present() -> bool:
+    return (
+        'bridgepoint-package-purchase-truth-v778' in text
+        and "'bridgepoint_request_owner_approved_package_v323'" in text
+        and "'bridgepoint_request_technology_package_v93'" in text
+        and "return 'BUY';" in text
+        and "return 'REQUEST';" in text
+        and "return 'BUILDING';" in text
+    )
+
+def replace_once(old: str, new: str, label: str):
+    global text
+    count = text.count(old)
+    if count == 1:
+        text = text.replace(old, new, 1)
+        return
+    if count == 0 and label in _SUPERSEDED_V94_MAP_LABELS and _canonical_map_truth_present():
+        print(f'{label}: superseded by canonical NOAA WMS + U.S. map controls; continuing')
+        return
+    if count == 0 and label in _SUPERSEDED_V94_PACKAGE_LABELS and _canonical_package_truth_present():
+        print(f'{label}: superseded by server-driven package purchase/delivery truth v778; continuing')
+        return
+    raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+'''
+new_v782='''_SUPERSEDED_V94_MAP_LABELS = {
+    'map-radar-state',
+    'map-radar-timer',
+    'map-opportunity-limit',
+    'map-signal-limit',
+    'map-min-zoom',
+    'map-live-radar-cache-bust',
+    'map-remove-scan-overlay',
+}
+_SUPERSEDED_V94_PACKAGE_LABELS = {
+    'technology-card-flag',
+    'technology-card-chip',
+    'technology-empty-model-copy',
+    'technology-price-label',
+    'technology-detail-flag',
+    'technology-detail-banner',
+    'technology-contact-sales',
+}
+_SUPERSEDED_V94_OWNER_LABELS = {
+    'owner-expansion-insert',
+}
+
+def _canonical_map_truth_present() -> bool:
+    radar_state = ('bool _showRadar = true;' in text or 'bool _showRadar=true;' in text)
+    noaa_wms = (
+        'opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows?' in text
+        and "layers: const ['conus_bref_qcd']" in text
+    )
+    us_control = (
+        "tooltip: 'Show U.S. intelligence'" in text
+        or "tooltip:'Show United States live weather'" in text
+        or "LatLng(39.50, -98.35)" in text
+        or "LatLng(39.50,-98.35)" in text
+    )
+    return radar_state and noaa_wms and us_control
+
+def _canonical_package_truth_present() -> bool:
+    return (
+        'bridgepoint-package-purchase-truth-v778' in text
+        and "'bridgepoint_request_owner_approved_package_v323'" in text
+        and "'bridgepoint_request_technology_package_v93'" in text
+        and "return 'BUY';" in text
+        and "return 'REQUEST';" in text
+        and "return 'BUILDING';" in text
+    )
+
+def _canonical_owner_global_truth_present() -> bool:
+    owner_path = Path('lib/screens/bridgepoint_owner_global_control.dart')
+    if not owner_path.exists():
+        return False
+    owner = owner_path.read_text(encoding='utf-8')
+    main_wired = (
+        "import 'screens/bridgepoint_owner_command_center.dart';" in text
+        and 'BridgePointOwnerCommandCenter' in text
+    )
+    control_truth = all(marker in owner for marker in (
+        'bridgepoint_owner_global_command_v675',
+        "'START_US_ALL'",
+        "'START_WORLD_DISCOVERY'",
+        "'START_JURISDICTION'",
+        'bridgepoint_owner_state_export_manifest_v675',
+        'These actions queue discovery/build work. They never bypass validation or customer-readiness gates.',
+    ))
+    return main_wired and control_truth
+
+def replace_once(old: str, new: str, label: str):
+    global text
+    count = text.count(old)
+    if count == 1:
+        text = text.replace(old, new, 1)
+        return
+    if count == 0 and label in _SUPERSEDED_V94_MAP_LABELS and _canonical_map_truth_present():
+        print(f'{label}: superseded by canonical NOAA WMS + U.S. map controls; continuing')
+        return
+    if count == 0 and label in _SUPERSEDED_V94_PACKAGE_LABELS and _canonical_package_truth_present():
+        print(f'{label}: superseded by server-driven package purchase/delivery truth v778; continuing')
+        return
+    if count == 0 and label in _SUPERSEDED_V94_OWNER_LABELS and _canonical_owner_global_truth_present():
+        print(f'{label}: superseded by Owner Global Control v675; continuing')
+        return
+    raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+'''
+if new_v782 not in s:
+    if old_v780 in s:
+        s=s.replace(old_v780,new_v782,1)
+    elif old_v776 in s:
+        s=s.replace(old_v776,new_v782,1)
+    elif old_v775 in s:
+        s=s.replace(old_v775,new_v782,1)
+    elif old_replace in s:
+        s=s.replace(old_replace,new_v782,1)
+    else:
+        raise SystemExit('v94 replace_once compatibility target not found')
+
+# The U.S.-weather control was historically patched outside replace_once.
+old_us='''if text.count(_old_us_weather) == 1:
+    text = text.replace(_old_us_weather, _new_us_weather, 1)
+elif text.count(_new_us_weather) >= 1:
+    print('map-us-weather-button: already applied by a newer canonical source; continuing')
+else:
+    raise SystemExit('map-us-weather-button: neither historical nor current control found')
+'''
+new_us='''if text.count(_old_us_weather) == 1:
+    text = text.replace(_old_us_weather, _new_us_weather, 1)
+elif text.count(_new_us_weather) >= 1:
+    print('map-us-weather-button: already applied by a newer canonical source; continuing')
+elif _canonical_map_truth_present():
+    print('map-us-weather-button: superseded by canonical U.S. intelligence control; continuing')
+else:
+    raise SystemExit('map-us-weather-button: neither historical nor canonical U.S. map control found')
+'''
+if new_us not in s:
+    if old_us not in s:
+        raise SystemExit('v94 special U.S. map-control compatibility target not found')
+    s=s.replace(old_us,new_us,1)
+
+# The old owner expansion class was injected outside replace_once as well.
+old_owner_guard="""if text.count(marker) != 1:
+    raise SystemExit('owner-expansion-class-marker not found exactly once')
+"""
+new_owner_guard="""_owner_global_superseded = _canonical_owner_global_truth_present()
+if not _owner_global_superseded and text.count(marker) != 1:
+    raise SystemExit('owner-expansion-class-marker not found exactly once')
+"""
+if new_owner_guard not in s:
+    if old_owner_guard not in s:
+        raise SystemExit('v94 owner-expansion class guard target not found')
+    s=s.replace(old_owner_guard,new_owner_guard,1)
+
+old_owner_insert="text = text.replace(marker, owner_class + marker, 1)"
+new_owner_insert="""if _owner_global_superseded:
+    print('owner-expansion-class: superseded by wired Owner Global Control v675; continuing')
+elif 'class _OwnerExpansionPanel extends StatefulWidget' in text:
+    print('owner-expansion-class: already present; continuing')
+else:
+    text = text.replace(marker, owner_class + marker, 1)"""
+if new_owner_insert not in s:
+    if old_owner_insert not in s:
+        raise SystemExit('v94 owner-expansion class insertion target not found')
+    s=s.replace(old_owner_insert,new_owner_insert,1)
 
 p.write_text(s,encoding='utf-8')
-print('Repaired v94 historical generator for current canonical source')
-
-# v124 used the exact v94 tooltip as a final sanity check even though newer source calls
-# the same control "Show U.S. intelligence". Make that one check semantic instead of stale.
-v124=Path('tool/apply_map_viewport_v124.py')
-t=v124.read_text(encoding='utf-8')
-old_check="""if text.count(controls)!=1:\n    raise SystemExit(f'US weather control missing: found {text.count(controls)}')\ntext=text.replace(controls,replacement,1)\n"""
-new_check="""if text.count(controls)==1:\n    text=text.replace(controls,replacement,1)\nelif text.count(\"_MapControlButton(icon:Icons.public_rounded,tooltip:'Show U.S. intelligence'\")==1:\n    print('v124: current U.S. intelligence control already supersedes historical weather tooltip')\nelse:\n    raise SystemExit(f'US map control missing or ambiguous: historical={text.count(controls)}')\n"""
-if old_check in t:
-    t=t.replace(old_check,new_check,1)
-elif new_check not in t:
-    raise SystemExit('v124 U.S. control compatibility repair target not found')
-v124.write_text(t,encoding='utf-8')
-print('Repaired v124 U.S. map control compatibility')
-
-# v189 still searches for the pre-national Connecticut map subtitle. Update only its
-# historical matcher to the current canonical U.S. subtitle.
-v189=Path('tool/apply_premium_navigation_expansion_v189.py')
-u=v189.read_text(encoding='utf-8')
-old_sub="${widget.packageName} • live Connecticut intelligence with visible expansion markets"
-current_sub="${widget.packageName} • live U.S. property intelligence • property-linked signals and expansion coverage"
-if old_sub in u:
-    u=u.replace(old_sub,current_sub,1)
-elif current_sub not in u:
-    raise SystemExit('v189 map heading compatibility target not found')
-v189.write_text(u,encoding='utf-8')
-print('Repaired v189 national map heading compatibility')
-
-# v192 itself introduced the all-state suggestion RPC in an older release. Canonical
-# source already uses that RPC, so only its first matcher needs to be idempotent.
-v192=Path('tool/apply_global_search_location_v192.py')
-v=v192.read_text(encoding='utf-8')
-old_guard="""if old not in text: raise SystemExit('global CT search anchor missing')\ntext=text.replace(old,new,1)\n"""
-new_guard="""if old in text:\n    text=text.replace(old,new,1)\nelif new in text:\n    print('v192: global property suggestions RPC already present; continuing with location repairs')\nelse:\n    raise SystemExit('global property search anchor missing or ambiguous')\n"""
-if old_guard in v:
-    v=v.replace(old_guard,new_guard,1)
-elif new_guard not in v:
-    raise SystemExit('v192 global-search compatibility repair target not found')
-v192.write_text(v,encoding='utf-8')
-print('Repaired v192 global-search idempotency')
-
-# v271 enriches the U.S. map control so it explicitly turns on/loading NOAA radar. Its
-# old matcher still expects the v94 tooltip and zoom. Teach it the current canonical
-# "Show U.S. intelligence" control while preserving the v271 live-radar behavior.
-v271=Path('tool/fix_noaa_live_weather_v271.py')
-w=v271.read_text(encoding='utf-8')
-old_guard271="""if body.count(old_us_button)!=1:\n    raise SystemExit(f'v271 US weather button anchor {body.count(old_us_button)}')\nbody=body.replace(old_us_button,new_us_button,1)\n"""
-new_guard271="""if body.count(old_us_button)==1:\n    body=body.replace(old_us_button,new_us_button,1)\nelse:\n    current_us_button=\"\"\"                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show U.S. intelligence',onTap:()=>_mapController.move(const LatLng(39.50,-98.35),4.0)),\n\"\"\"\n    current_us_live=\"\"\"                            _MapControlButton(icon:Icons.public_rounded,tooltip:'Show U.S. intelligence',onTap:(){\n                              setState((){_showRadar=true;_radarPlaying=true;_radarFrameIndex=_radarFrames.length-1;_radarRevision++;});\n                              _mapController.move(const LatLng(39.50,-98.35),4.0);\n                              unawaited(_loadNoaaRadarFramesV271());\n                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(duration:Duration(seconds:2),content:Text('U.S. intelligence view on • loading the latest NOAA precipitation radar…')));\n                            }),\n\"\"\"\n    if body.count(current_us_button)!=1:\n        raise SystemExit(f'v271 U.S. map control missing or ambiguous: legacy={body.count(old_us_button)} current={body.count(current_us_button)}')\n    body=body.replace(current_us_button,current_us_live,1)\n"""
-if old_guard271 in w:
-    w=w.replace(old_guard271,new_guard271,1)
-elif new_guard271 not in w:
-    raise SystemExit('v271 U.S. map control compatibility repair target not found')
-v271.write_text(w,encoding='utf-8')
-print('Repaired v271 NOAA/U.S. map control compatibility')
+print('Repaired v94 supersession for canonical map + package + owner global truth v782')

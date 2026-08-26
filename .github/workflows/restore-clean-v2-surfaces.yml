@@ -1,0 +1,198 @@
+name: Restore Clean V2 Product Surfaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/restore-clean-v2-surfaces.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Restore navigation, map population, and clean backgrounds
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          app = Path('lib/v2/bridgepoint_app_v2.dart')
+          s = app.read_text()
+          s = s.replace("import 'bridgepoint_ai_v2.dart';\n", "import 'bridgepoint_ai_v2.dart';\nimport 'bridgepoint_buildings_v2.dart';\nimport 'bridgepoint_investor_v2.dart';\n")
+          s = s.replace("import 'bridgepoint_portfolio_risk_v2.dart';\n", "import 'bridgepoint_portfolio_risk_v2.dart';\nimport 'bridgepoint_properties_v2.dart';\n")
+          s = s.replace("enum _AreaV2 {\n  home,\n  property,\n  map,", "enum _AreaV2 {\n  home,\n  map,\n  properties,\n  investor,\n  property,\n  buildings,")
+          old_base = """const _baseAreasV2 = <_AreaSpecV2>[\n  _AreaSpecV2(_AreaV2.home, 'Home', Icons.space_dashboard_rounded),\n  _AreaSpecV2(_AreaV2.property, 'Property 360', Icons.home_work_rounded),\n  _AreaSpecV2(_AreaV2.map, 'Map & Weather', Icons.public_rounded),\n  _AreaSpecV2(_AreaV2.operations, 'Operations', Icons.track_changes_rounded),"""
+          new_base = """const _baseAreasV2 = <_AreaSpecV2>[\n  _AreaSpecV2(_AreaV2.home, 'Home', Icons.space_dashboard_rounded),\n  _AreaSpecV2(_AreaV2.map, 'Map & Weather', Icons.public_rounded),\n  _AreaSpecV2(_AreaV2.properties, 'Properties', Icons.holiday_village_rounded),\n  _AreaSpecV2(_AreaV2.investor, 'Investor', Icons.real_estate_agent_rounded),\n  _AreaSpecV2(_AreaV2.property, 'Property 360', Icons.home_work_rounded),\n  _AreaSpecV2(_AreaV2.operations, 'Operations', Icons.track_changes_rounded),"""
+          if old_base not in s: raise SystemExit('base area marker not found')
+          s = s.replace(old_base, new_base)
+          old_owner = """        if (owner)\n          const _AreaSpecV2(\n            _AreaV2.owner,\n            'Owner Control',\n            Icons.admin_panel_settings_rounded,\n          ),\n      ];"""
+          new_owner = """        if (owner)\n          const _AreaSpecV2(\n            _AreaV2.buildings,\n            'Buildings / Twin',\n            Icons.view_in_ar_rounded,\n          ),\n        if (owner)\n          const _AreaSpecV2(\n            _AreaV2.owner,\n            'Owner Backend',\n            Icons.admin_panel_settings_rounded,\n          ),\n      ];"""
+          if old_owner not in s: raise SystemExit('owner area marker not found')
+          s = s.replace(old_owner, new_owner)
+          old_pages = """  Widget _page() => switch (selected) {\n        _AreaV2.home => const BridgePointHomeV2(),\n        _AreaV2.property => const BridgePointProperty360V2(),\n        _AreaV2.map => const BridgePointMapWeatherV2(),"""
+          new_pages = """  Widget _page() => switch (selected) {\n        _AreaV2.home => const BridgePointHomeV2(),\n        _AreaV2.map => const BridgePointMapWeatherV2(),\n        _AreaV2.properties => const BridgePointPropertiesV2(),\n        _AreaV2.investor => const BridgePointInvestorV2(),\n        _AreaV2.property => const BridgePointProperty360V2(),\n        _AreaV2.buildings => const BridgePointBuildingsV2(),"""
+          if old_pages not in s: raise SystemExit('page switch marker not found')
+          s = s.replace(old_pages, new_pages)
+          s = s.replace("bool get _bounded => selected == _AreaV2.owner;", "bool get _bounded => selected == _AreaV2.owner;")
+          s = s.replace("const primary = [_AreaV2.home, _AreaV2.property, _AreaV2.map, _AreaV2.operations];", "const primary = [_AreaV2.home, _AreaV2.map, _AreaV2.properties, _AreaV2.investor];")
+          old_actions = """          actions: [\n            IconButton(\n              tooltip: 'Ask BridgePoint AI',"""
+          new_actions = """          actions: [\n            if (owner)\n              IconButton(\n                tooltip: 'Owner Backend',\n                onPressed: () => setState(() => selected = _AreaV2.owner),\n                icon: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF35D2E8)),\n              ),\n            IconButton(\n              tooltip: 'Ask BridgePoint AI',"""
+          if old_actions not in s: raise SystemExit('mobile action marker not found')
+          s = s.replace(old_actions, new_actions)
+          old_dest = """          destinations: const [\n            NavigationDestination(icon: Icon(Icons.space_dashboard_rounded), label: 'Home'),\n            NavigationDestination(icon: Icon(Icons.home_work_rounded), label: 'Property'),\n            NavigationDestination(icon: Icon(Icons.public_rounded), label: 'Map'),\n            NavigationDestination(icon: Icon(Icons.track_changes_rounded), label: 'Work'),"""
+          new_dest = """          destinations: const [\n            NavigationDestination(icon: Icon(Icons.space_dashboard_rounded), label: 'Home'),\n            NavigationDestination(icon: Icon(Icons.public_rounded), label: 'Map'),\n            NavigationDestination(icon: Icon(Icons.holiday_village_rounded), label: 'Properties'),\n            NavigationDestination(icon: Icon(Icons.real_estate_agent_rounded), label: 'Investor'),"""
+          if old_dest not in s: raise SystemExit('mobile destination marker not found')
+          s = s.replace(old_dest, new_dest)
+          old_titles = """String _title(_AreaV2 area) => switch (area) {\n      _AreaV2.home => 'BridgePoint Intelligence',\n      _AreaV2.property => 'Property 360',\n      _AreaV2.map => 'Geospatial Intelligence',"""
+          new_titles = """String _title(_AreaV2 area) => switch (area) {\n      _AreaV2.home => 'BridgePoint Intelligence',\n      _AreaV2.map => 'Geospatial Intelligence',\n      _AreaV2.properties => 'Properties',\n      _AreaV2.investor => 'BridgePoint Investor',\n      _AreaV2.property => 'Property 360',\n      _AreaV2.buildings => 'Buildings & Digital Twin',"""
+          if old_titles not in s: raise SystemExit('title switch marker not found')
+          s = s.replace(old_titles, new_titles)
+          app.write_text(s)
+
+          map_file = Path('lib/v2/bridgepoint_map_weather_v2.dart')
+          s = map_file.read_text()
+          method = r"  Future<void> _loadNationalIntelligence\(\) async \{.*?\n  \}\n\n  Future<void> _recenterToUser"
+          replacement = r'''  Future<void> _loadNationalIntelligence() async {
+    if (intelligenceBusy) return;
+    setState(() {
+      intelligenceBusy = true;
+      _intelligenceMessage = null;
+    });
+    try {
+      List<Map<String, dynamic>> nextOpportunities = const [];
+      List<Map<String, dynamic>> nextSignals = const [];
+      try {
+        final raw = await Supabase.instance.client.rpc(
+          'bridgepoint_flutter_intelligence_map_national_v346',
+          params: {
+            'p_model_key': 'all',
+            'p_min_lat': null,
+            'p_max_lat': null,
+            'p_min_lng': null,
+            'p_max_lng': null,
+            'p_min_score': 45,
+            'p_opportunity_limit': 240,
+            'p_signal_limit': 80,
+          },
+        );
+        final national = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+        nextOpportunities = _rows(national['opportunities']);
+        nextSignals = _rows(national['signals']);
+      } catch (_) {
+        // Fall through to the proven Connecticut feed below.
+      }
+
+      // The pre-V2 app used this production feed successfully. Keep it as a
+      // deliberate fallback so the map never becomes an empty shell merely
+      // because national balancing / entitlements return no overview points.
+      if (nextOpportunities.isEmpty) {
+        final legacy = await Supabase.instance.client.rpc(
+          'bridgepoint_flutter_intelligence_map',
+          params: {
+            'p_model_key': 'all',
+            'p_min_lat': null,
+            'p_max_lat': null,
+            'p_min_lng': null,
+            'p_max_lng': null,
+            'p_min_score': null,
+            'p_limit': 500,
+          },
+        );
+        final legacyMap = legacy is Map ? Map<String, dynamic>.from(legacy) : <String, dynamic>{};
+        nextOpportunities = _rows(legacyMap['points']);
+        _intelligenceMessage = 'Connecticut opportunity layer loaded from the proven BridgePoint map feed.';
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _opportunities = nextOpportunities;
+        _signals = nextSignals;
+      });
+
+      if (nextOpportunities.isNotEmpty) {
+        final visible = nextOpportunities.firstWhere(
+          (row) => '${row['state_code'] ?? 'CT'}'.toUpperCase() == 'CT' && _double(row['latitude']) != null && _double(row['longitude']) != null,
+          orElse: () => nextOpportunities.first,
+        );
+        final lat = _double(visible['latitude']);
+        final lng = _double(visible['longitude']);
+        if (lat != null && lng != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _mapController.move(LatLng(lat, lng), 8.2);
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _intelligenceMessage = 'Map intelligence unavailable: $e');
+    } finally {
+      if (mounted) setState(() => intelligenceBusy = false);
+    }
+  }
+
+  Future<void> _recenterToUser'''
+          s2, n = re.subn(method, replacement, s, flags=re.S)
+          if n != 1: raise SystemExit(f'map loader replacement count={n}')
+          s = s2
+          s = s.replace("final score = _double(row['score']) ?? 0;", "final score = _double(row['score'] ?? row['opportunity_score'] ?? row['final_score']) ?? 0;")
+          s = s.replace("Chip(label: Text('Score ${row['score'] ?? '—'}')),", "Chip(label: Text('Score ${row['score'] ?? row['opportunity_score'] ?? row['final_score'] ?? '—'}')),")
+          s = s.replace("Chip(label: Text('${row['confidence_score'] ?? '—'}% confidence')),", "Chip(label: Text('${row['confidence_score'] ?? row['opportunity_confidence_percent'] ?? '—'}% confidence')),")
+          s = s.replace("'${row['title'] ?? row['full_address'] ?? 'Opportunity'} • score ${row['score'] ?? '—'}',", "'${row['title'] ?? row['full_address'] ?? 'Opportunity'} • score ${row['score'] ?? row['opportunity_score'] ?? '—'}',")
+          s = s.replace("child: Icon(Icons.home_work_rounded, size: 17, color: color),", "child: Icon(_opportunityIcon(row), size: 17, color: color),")
+          s = s.replace("initialCenter: const LatLng(39.5, -98.35),\n                    initialZoom: 4,", "initialCenter: const LatLng(41.60, -72.70),\n                    initialZoom: 8.2,")
+          marker = "  List<Marker> _opportunityMarkers() => _opportunities.map((row) {"
+          icon_helper = '''  IconData _opportunityIcon(Map<String, dynamic> row) {
+    final text = '${row['opportunity_type'] ?? ''} ${row['top_signal_type'] ?? ''} ${row['title'] ?? ''}'.toLowerCase();
+    if (text.contains('storm') || text.contains('wind') || text.contains('hail') || text.contains('weather')) return Icons.thunderstorm_rounded;
+    if (text.contains('fire')) return Icons.local_fire_department_rounded;
+    if (text.contains('flood') || text.contains('water')) return Icons.water_rounded;
+    if (text.contains('solar')) return Icons.solar_power_rounded;
+    if (text.contains('roof')) return Icons.roofing_rounded;
+    if (text.contains('invest') || text.contains('transfer') || text.contains('sale')) return Icons.real_estate_agent_rounded;
+    if (text.contains('develop') || text.contains('redevelop')) return Icons.apartment_rounded;
+    if (text.contains('permit')) return Icons.description_outlined;
+    return Icons.home_work_rounded;
+  }
+
+'''
+          if marker not in s: raise SystemExit('map marker helper location not found')
+          s = s.replace(marker, icon_helper + marker)
+          map_file.write_text(s)
+
+          # Remove the equation/formula-style background asset from the two
+          # high-visibility hero panels. Real data, map motion, and cards now
+          # provide the visual energy instead.
+          for name in ['lib/v2/bridgepoint_home_v2.dart', 'lib/v2/bridgepoint_public_landing_v2.dart']:
+            p = Path(name)
+            t = p.read_text()
+            t = re.sub(
+              r"\s*Positioned\.fill\(\n\s*child: Image\.asset\(\n\s*'assets/images/bridgepoint-intelligence-background-v1\.webp',\n\s*fit: BoxFit\.cover,\n\s*errorBuilder: \(_, __, ___\) => const ColoredBox\(color: ([^)]+)\),\n\s*\),\n\s*\),",
+              "\n          Positioned.fill(child: ColoredBox(color: \\1)),",
+              t,
+              flags=re.S,
+            )
+            p.write_text(t)
+          PY
+          dart format lib/v2/bridgepoint_app_v2.dart lib/v2/bridgepoint_map_weather_v2.dart lib/v2/bridgepoint_home_v2.dart lib/v2/bridgepoint_public_landing_v2.dart lib/v2/bridgepoint_properties_v2.dart lib/v2/bridgepoint_investor_v2.dart lib/v2/bridgepoint_buildings_v2.dart lib/screens/bridgepoint_owner_overview_v2.dart lib/screens/bridgepoint_owner_command_center_v2.dart
+          git diff --check
+      - name: Commit restored product surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2 lib/screens/bridgepoint_owner_overview_v2.dart lib/screens/bridgepoint_owner_command_center_v2.dart
+          if git diff --cached --quiet; then
+            echo 'No restoration changes needed.'
+            exit 0
+          fi
+          git commit -m 'Restore BridgePoint product surfaces in Clean V2'
+          git push origin HEAD:main

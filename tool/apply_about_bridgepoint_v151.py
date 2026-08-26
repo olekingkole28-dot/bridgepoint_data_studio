@@ -11,7 +11,8 @@ def replace_once(old,new,label):
         raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
     text=text.replace(old,new,1)
 
-# apply_weather_home_community_v145 adds these three destinations to the shared nav.
+# v805: Weather/Home/Community now follow Studio + Integrations in the modern
+# route table. Add About after Community without rewinding any existing route.
 replace_once(
 """    _NavigationItem('Weather Center', Icons.cloud_outlined),
     _NavigationItem('My Home', Icons.home_rounded),
@@ -27,23 +28,25 @@ replace_once(
 'about-navigation')
 
 replace_once(
-"""      case 15:
+"""      case 17:
         return const _CommunityPage();
-      case 16:
-        if(widget.ownerMode)return const _OwnerCenterPage();
+      case 18:
+        if (widget.ownerMode) return const BridgePointOwnerCommandCenter();
 """,
-"""      case 15:
+"""      case 17:
         return const _CommunityPage();
-      case 16:
+      case 18:
         return const _AboutBridgePointPage();
-      case 17:
-        if(widget.ownerMode)return const _OwnerCenterPage();
+      case 19:
+        if (widget.ownerMode) return const BridgePointOwnerCommandCenter();
 """,
 'about-switch')
 
-marker='class _OwnerCenterPage extends StatefulWidget{'
+# Insert before Field Mode, a stable canonical boundary that remains after the
+# modern Weather/Home/Community adapter and does not depend on retired owner UI.
+marker='class _FieldModePage extends StatefulWidget {'
 if text.count(marker)!=1:
-    raise SystemExit('Owner Center marker missing for About BridgePoint insertion')
+    raise SystemExit(f'About BridgePoint insertion marker expected 1 match, found {text.count(marker)}')
 
 page=r'''
 class _AboutBridgePointPage extends StatelessWidget{
@@ -223,10 +226,15 @@ class _AboutBridgePointPage extends StatelessWidget{
       ]))),
       const SizedBox(height:18),
       Container(
-        width:double.infinity,padding:const EdgeInsets.all(19),
-        decoration:BoxDecoration(color:AppTheme.green.withOpacity(.055),borderRadius:BorderRadius.circular(14),border:Border.all(color:AppTheme.green.withOpacity(.17))),
+        width:double.infinity,
+        padding:const EdgeInsets.all(19),
+        decoration:BoxDecoration(
+          color:AppTheme.green.withOpacity(.055),
+          borderRadius:BorderRadius.circular(15),
+          border:Border.all(color:AppTheme.green.withOpacity(.15)),
+        ),
         child:const Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Text('THE LONG-TERM VISION',style:TextStyle(color:AppTheme.green,fontSize:9,fontWeight:FontWeight.w900,letterSpacing:1)),
+          Text('THE DIRECTION',style:TextStyle(color:AppTheme.green,fontSize:9,fontWeight:FontWeight.w900,letterSpacing:1)),
           SizedBox(height:7),
           Text('A living intelligence layer for properties.',style:TextStyle(fontSize:18,fontWeight:FontWeight.w900)),
           SizedBox(height:7),
@@ -240,7 +248,11 @@ class _AboutBridgePointPage extends StatelessWidget{
 '''
 text=text.replace(marker,page+marker,1)
 
+for required in ["_NavigationItem('About BridgePoint'",'class _AboutBridgePointPage','case 19:','BridgePointOwnerCommandCenter']:
+    if required not in text:
+        raise SystemExit(f'About BridgePoint v805 marker missing: {required}')
+
 if text==original:
     raise SystemExit('No About BridgePoint changes applied')
 path.write_text(text,encoding='utf-8')
-print('Applied About BridgePoint / Mission page v151')
+print('Applied About BridgePoint / Mission page v151/v805')

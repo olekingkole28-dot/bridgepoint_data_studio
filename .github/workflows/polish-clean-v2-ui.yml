@@ -1,0 +1,177 @@
+# BridgePoint V2 focused polish pass
+name: Polish Clean V2 UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/polish-clean-v2-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Polish map markers and customer details
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          map_path=Path('lib/v2/bridgepoint_map_weather_v2.dart')
+          s=map_path.read_text()
+
+          old="""            message:
+                '$code • ${row['build_status'] ?? 'BUILDING'} • ${_number(row['canonical_property_count'])} properties',"""
+          new="""            message:
+                '$code • ${row['build_status'] ?? 'BUILDING'} • ${_number(row['canonical_property_count'])} properties • ${_number(row['signal_count'])} signals • ${_number(row['opportunity_count'])} opportunities',"""
+          if old not in s: raise SystemExit('state tooltip block not found')
+          s=s.replace(old,new)
+
+          old="""          width: 50,
+          height: 42,"""
+          new="""          width: 68,
+          height: 54,"""
+          if old not in s: raise SystemExit('state marker size not found')
+          s=s.replace(old,new,1)
+
+          old="""                    Text(
+                      _shortCount(row['canonical_property_count']),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),"""
+          new="""                    Text(
+                      'P ${_shortCount(row['canonical_property_count'])}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 7.2,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'S ${_shortCount(row['signal_count'])}',
+                          style: const TextStyle(color: _cyan, fontSize: 6.6, fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'O ${_shortCount(row['opportunity_count'])}',
+                          style: const TextStyle(color: _amber, fontSize: 6.6, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),"""
+          if old not in s: raise SystemExit('state count body not found')
+          s=s.replace(old,new,1)
+
+          old="""                child: Icon(_opportunityIcon(row), size: 18, color: color),"""
+          new="""                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color,
+                        boxShadow: [BoxShadow(color: color.withValues(alpha: .55), blurRadius: 8)],
+                      ),
+                    ),
+                    Icon(_opportunityIcon(row), size: 17, color: Colors.white),
+                  ],
+                ),"""
+          if old not in s: raise SystemExit('opportunity marker body not found')
+          s=s.replace(old,new,1)
+
+          old="""                child: const Icon(Icons.bolt_rounded, size: 13, color: _cyan),"""
+          new="""                child: Center(
+                  child: Container(
+                    width: 9,
+                    height: 9,
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: _cyan),
+                  ),
+                ),"""
+          if old not in s: raise SystemExit('signal marker body not found')
+          s=s.replace(old,new,1)
+
+          old="""                for (final entry in row.entries)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      '${entry.key.replaceAll('_', ' ')}: ${entry.value}',
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 10,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),"""
+          new="""                for (final entry in row.entries.where((entry) {
+                  final key = entry.key.toLowerCase();
+                  const hidden = ['formula','expression','sql','query','function','rpc','schema','definition','weight','internal','raw','metadata'];
+                  if (hidden.any(key.contains)) return false;
+                  final value = entry.value;
+                  return value != null && value is! Map && value is! List;
+                }))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      '${entry.key.replaceAll('_', ' ')}: ${entry.value}',
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 10,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),"""
+          if old not in s: raise SystemExit('map raw detail block not found')
+          s=s.replace(old,new,1)
+          map_path.write_text(s)
+
+          details=Path('lib/v2/bridgepoint_intelligence_surfaces_v2.dart')
+          d=details.read_text()
+          old="""                for (final e in payload.entries)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      '${e.key.replaceAll('_', ' ')}: ${e.value}',
+                      style: const TextStyle(color: _bpMuted, fontSize: 10, height: 1.4),
+                    ),
+                  ),"""
+          new="""                for (final e in payload.entries.where((entry) {
+                  final key = entry.key.toLowerCase();
+                  const hidden = ['formula','expression','sql','query','function','rpc','schema','definition','weight','coefficient','internal','raw','metadata','config'];
+                  if (hidden.any(key.contains)) return false;
+                  final value = entry.value;
+                  return value != null && value is! Map && value is! List;
+                }))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      '${e.key.replaceAll('_', ' ')}: ${e.value}',
+                      style: const TextStyle(color: _bpMuted, fontSize: 10, height: 1.4),
+                    ),
+                  ),"""
+          if old not in d: raise SystemExit('generic raw detail block not found')
+          d=d.replace(old,new,1)
+          details.write_text(d)
+          PY
+          git diff --check
+      - name: Commit polish pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_map_weather_v2.dart lib/v2/bridgepoint_intelligence_surfaces_v2.dart
+          git commit -m 'Polish map intelligence markers and hide raw formulas'
+          git push origin HEAD:main

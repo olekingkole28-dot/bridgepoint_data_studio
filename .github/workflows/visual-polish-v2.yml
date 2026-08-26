@@ -1,0 +1,33 @@
+name: Polish BridgePoint V2 Visual System
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/visual-polish-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply systemic visual polish
+        run: python tool/visual_polish_v2.py
+      - name: Commit visual system
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Visual QA'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2 lib/screens/bridgepoint_owner*.dart lib/bridgepoint_intelligence_studio_v790.dart lib/bridgepoint_integrations_hub_v790.dart
+          if git diff --cached --quiet; then
+            echo 'No visual changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Upgrade V2 typography color and visual hierarchy'
+          git push origin HEAD:main

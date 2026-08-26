@@ -1,0 +1,20 @@
+# Final visual QA dispatch v1
+name: Run BridgePoint Final Visual QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/run-final-visual-qa.yml'
+
+permissions:
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch final visual QA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run final-visual-qa-v2.yml --ref main

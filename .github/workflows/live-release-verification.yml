@@ -1,72 +1,62 @@
-name: Verify BridgePoint Live Release
+name: Verify BridgePoint Clean V2 Live Release
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/live-release-verification.yml
-      - web/deployment-status.json
-      - web/release-pipeline-status.json
+  workflow_run:
+    workflows: ["BridgePoint Clean V2 Production"]
+    types: [completed]
 
 permissions:
   contents: read
 
 jobs:
   verify-live-release:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Fetch public production markers
+      - name: Fetch public Clean V2 production markers
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
-          curl -fsSL --retry 4 --retry-delay 3 \
-            https://bridgepointintelligence.online/bridgepoint-release.json \
-            -o /tmp/live-release.json
-          curl -fsSL --retry 4 --retry-delay 3 \
-            https://bridgepointintelligence.online/ \
+          ORIGIN="https://bridgepointintelligence.online"
+          curl -fsSL --retry 6 --retry-delay 3 -H 'Cache-Control: no-cache' \
+            "${ORIGIN}/bridgepoint-v2-release.json?verify=${EXPECTED_SHA:-manual}" \
+            -o /tmp/live-v2-release.json
+          curl -fsSL --retry 6 --retry-delay 3 -H 'Cache-Control: no-cache' \
+            "${ORIGIN}/?verify=${EXPECTED_SHA:-manual}" \
             -o /tmp/live-index.html
-          test -s /tmp/live-release.json
+          test -s /tmp/live-v2-release.json
           test -s /tmp/live-index.html
 
-      - name: Verify receipt matches public production artifact
+      - name: Verify public Clean V2 artifact
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          set -euo pipefail
           python - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
 
-          receipt_path = Path('web/deployment-status.json')
-          pipeline_path = Path('web/release-pipeline-status.json')
-          if not receipt_path.exists():
-              raise SystemExit('Missing web/deployment-status.json')
-          if not pipeline_path.exists():
-              raise SystemExit('Missing web/release-pipeline-status.json')
-
-          receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
-          pipeline = json.loads(pipeline_path.read_text(encoding='utf-8'))
-          live = json.loads(Path('/tmp/live-release.json').read_text(encoding='utf-8'))
+          marker = json.loads(Path('/tmp/live-v2-release.json').read_text(encoding='utf-8'))
           index = Path('/tmp/live-index.html').read_text(encoding='utf-8', errors='ignore')
+          expected = os.environ.get('EXPECTED_SHA', '').strip()
 
-          expected_origin = 'https://bridgepointintelligence.online/'
-          assert receipt.get('status') == 'PUBLISHED', receipt
-          assert pipeline.get('conclusion') == 'success', pipeline
-          assert receipt.get('public_origin') == expected_origin, receipt
-          assert receipt.get('source_sha'), receipt
-          assert receipt.get('version') == receipt.get('source_sha'), receipt
-          assert live.get('public_origin') == expected_origin, live
-          assert live.get('version') == receipt.get('version'), (live, receipt)
-          assert live.get('version') == pipeline.get('source_sha'), (live, pipeline)
-          assert receipt.get('deployed_at'), receipt
+          assert marker.get('architecture') == 'clean-v2', marker
+          assert marker.get('historical_patch_replay') is False, marker
+          assert marker.get('production_candidate') is True, marker
+          assert marker.get('version'), marker
+          if expected:
+              assert marker.get('version') == expected, (marker, expected)
           assert len(index.strip()) > 200, 'Public index.html unexpectedly small'
           assert ('flutter_bootstrap.js' in index or 'main.dart.js' in index), 'Flutter boot marker missing from public index.html'
+          assert 'Install BridgePoint' in index, 'Install CTA missing from public Clean V2 host'
+          assert 'bp-expansion-launcher' not in index, 'Legacy raw expansion overlay leaked into public host'
 
-          print('BridgePoint production verification passed')
           print(json.dumps({
-              'version': live.get('version'),
-              'deployed_at': receipt.get('deployed_at'),
-              'public_origin': live.get('public_origin'),
-              'source_workflow_run_id': receipt.get('source_workflow_run_id'),
+              'verified': True,
+              'architecture': marker.get('architecture'),
+              'version': marker.get('version'),
+              'built_at': marker.get('built_at'),
+              'public_origin': 'https://bridgepointintelligence.online/'
           }, indent=2))
           PY

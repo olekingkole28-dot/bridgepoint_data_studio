@@ -1,0 +1,68 @@
+name: Fix Clean V2 Polish Compile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-v2-polish-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Remove invalid const wrappers from polished V2 widgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          home = Path('lib/v2/bridgepoint_home_v2.dart')
+          s = home.read_text()
+          replacements = {
+            "if (owner) const _MiniPill(icon: Icons.admin_panel_settings_rounded, label: 'OWNER ACCESS'),": "if (owner) _MiniPill(icon: Icons.admin_panel_settings_rounded, label: 'OWNER ACCESS'),",
+            "Widget build(BuildContext context) => const _MiniPill(icon: Icons.circle, label: 'LIVE INTELLIGENCE', color: _BridgePointHomeV2State._green);": "Widget build(BuildContext context) => _MiniPill(icon: Icons.circle, label: 'LIVE INTELLIGENCE', color: _BridgePointHomeV2State._green);",
+            "const ConstrainedBox(\n                  constraints: BoxConstraints(maxWidth: 820),": "ConstrainedBox(\n                  constraints: const BoxConstraints(maxWidth: 820),",
+          }
+          for old,new in replacements.items():
+              if old not in s:
+                  print('home replacement not found:', old[:80])
+              s=s.replace(old,new)
+          home.write_text(s)
+
+          public = Path('lib/v2/bridgepoint_public_landing_v2.dart')
+          s = public.read_text()
+          replacements = {
+            "const Expanded(child: brand),": "Expanded(child: brand),",
+            "const Wrap(\n                  spacing: 8,\n                  runSpacing: 8,": "Wrap(\n                  spacing: 8,\n                  runSpacing: 8,",
+            "const ConstrainedBox(\n                  constraints: BoxConstraints(maxWidth: 860),": "ConstrainedBox(\n                  constraints: const BoxConstraints(maxWidth: 860),",
+            "const _HeroPill(icon: Icons.verified_user_outlined, label: 'EVIDENCE + PROVENANCE', color: _BridgePointPublicLandingV2State._amber),": "_HeroPill(icon: Icons.verified_user_outlined, label: 'EVIDENCE + PROVENANCE', color: _BridgePointPublicLandingV2State._amber),",
+          }
+          for old,new in replacements.items():
+              if old not in s:
+                  print('public replacement not found:', old[:80])
+              s=s.replace(old,new)
+          public.write_text(s)
+          PY
+          git diff --check
+          git diff -- lib/v2/bridgepoint_home_v2.dart lib/v2/bridgepoint_public_landing_v2.dart
+      - name: Commit compile fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_home_v2.dart lib/v2/bridgepoint_public_landing_v2.dart
+          if git diff --cached --quiet; then
+            echo 'No compile-fix changes needed.'
+            exit 0
+          fi
+          git commit -m 'Fix Clean V2 polish const expressions'
+          git push origin HEAD:main

@@ -35,3 +35,6 @@ print('Applied installed-app automatic update runtime v162')
 
 # The install guide must be part of every release that receives the PWA runtime.
 runpy.run_path('tool/apply_pwa_install_onboarding_v310.py',run_name='__main__')
+
+# Normalize only formatting boundaries used by the historical v164 generator.
+runpy.run_path('tool/repair_dashboard_widgets_compat_v813.py',run_name='__main__')
