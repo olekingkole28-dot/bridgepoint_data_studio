@@ -15,10 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply deterministic V852 repairs
-        run: python .github/scripts/product_release_repair_v852.py
-      - name: Apply V853 checkout repair
-        run: python .github/scripts/package_checkout_patch_v853.py
       - name: Wire hardened property RPCs
         run: python .github/scripts/harden_property_rpc_calls_v858.py
       - name: Run deep product regression audit
