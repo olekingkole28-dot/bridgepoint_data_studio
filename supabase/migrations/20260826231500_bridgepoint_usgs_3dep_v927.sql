@@ -1,67 +1,50 @@
--- BridgePoint Intelligence V927
--- Official USGS 3DEP national elevation adapter.
--- Uses the 3DEP ImageServer getSamples endpoint in bounded multipoint batches.
--- Provenance note: 3DEP dynamic elevation is LiDAR-derived where high-resolution
--- DEM is available and may fall back to lower-resolution elevation products.
-
 begin;
 
 create table if not exists analytics.us_property_elevation_v927(
-  property_id uuid primary key,
+  property_id uuid primary key references core.properties(property_id) on delete cascade,
   state_code text not null,
   longitude double precision not null,
   latitude double precision not null,
   elevation_m double precision,
-  sample_status text not null default 'OK',
+  sample_status text not null default 'NO_DATA',
   resolution_m double precision,
   raster_id bigint,
   dataset_id text,
   product_name text,
   vertical_datum text,
   acquisition_date text,
-  source_code text not null default 'USGS_3DEP_V918',
-  source_url text not null default 'https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer',
   attributes jsonb not null default '{}'::jsonb,
   sampled_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint us_property_elevation_v927_status_chk check(sample_status in('OK','NO_DATA','INVALID')),
-  constraint us_property_elevation_v927_lat_chk check(latitude between -90 and 90),
-  constraint us_property_elevation_v927_lon_chk check(longitude between -180 and 180)
+  constraint us_property_elevation_v927_status_check check(sample_status in('OK','NO_DATA','INVALID')),
+  constraint us_property_elevation_v927_lat_check check(latitude between -90 and 90),
+  constraint us_property_elevation_v927_lon_check check(longitude between -180 and 180),
+  constraint us_property_elevation_v927_elev_check check(elevation_m is null or elevation_m between -12000 and 10000)
 );
-create index if not exists us_property_elevation_v927_state_idx on analytics.us_property_elevation_v927(state_code,property_id);
-create index if not exists us_property_elevation_v927_resolution_idx on analytics.us_property_elevation_v927(resolution_m) where sample_status='OK';
+create index if not exists us_property_elevation_v927_state_property_idx on analytics.us_property_elevation_v927(state_code,property_id);
+create index if not exists us_property_elevation_v927_sampled_idx on analytics.us_property_elevation_v927(sampled_at desc);
 
 create table if not exists automation.usgs_3dep_state_v927(
   state_code text primary key,
-  priority integer not null default 100,
+  priority integer not null default 50,
   cursor_property_id uuid,
   claim_end_property_id uuid,
   lease_token uuid,
   lease_until timestamptz,
-  batch_size integer,
+  batch_size integer not null default 250,
   total_claimed bigint not null default 0,
   total_sampled bigint not null default 0,
   total_ok bigint not null default 0,
   total_no_data bigint not null default 0,
-  complete boolean not null default false,
-  last_run_at timestamptz,
-  last_success_at timestamptz,
   consecutive_failures integer not null default 0,
   last_error text,
+  last_run_at timestamptz,
+  last_success_at timestamptz,
+  complete boolean not null default false,
   metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
-insert into automation.usgs_3dep_state_v927(state_code,priority,metadata)
-select j.region_code,
-       case j.build_status when 'LIVE' then 1 when 'SCORING' then 10 when 'FOUNDATION' then 20 else 50 end,
-       jsonb_build_object('jurisdiction_key',j.jurisdiction_key,'jurisdiction_name',j.jurisdiction_name,'build_status_at_seed',j.build_status)
-from automation.jurisdictions_v675 j
-where j.country_code='US' and j.jurisdiction_kind in('SUBDIVISION','TERRITORY') and j.region_code is not null
-on conflict(state_code) do update
-set priority=least(automation.usgs_3dep_state_v927.priority,excluded.priority),
-    metadata=automation.usgs_3dep_state_v927.metadata||excluded.metadata,
-    updated_at=now();
 
 create table if not exists automation.usgs_3dep_dispatch_state_v927(
   singleton boolean primary key default true check(singleton),
@@ -76,6 +59,15 @@ create table if not exists automation.usgs_3dep_dispatch_state_v927(
   updated_at timestamptz not null default now()
 );
 insert into automation.usgs_3dep_dispatch_state_v927(singleton) values(true) on conflict(singleton) do nothing;
+
+insert into automation.usgs_3dep_state_v927(state_code,priority,metadata)
+select trim(p.state_code::text),
+       case trim(p.state_code::text) when 'CT' then 1 when 'FL' then 2 when 'OH' then 3 when 'TX' then 4 when 'NY' then 5 else 20 end,
+       jsonb_build_object('source_code','USGS_3DEP_V918','role','NATIONAL_TERRAIN_ELEVATION')
+from core.properties p
+where p.active and p.state_code is not null and p.latitude between -90 and 90 and p.longitude between -180 and 180
+group by trim(p.state_code::text)
+on conflict(state_code) do update set priority=excluded.priority,metadata=automation.usgs_3dep_state_v927.metadata||excluded.metadata,updated_at=now();
 
 create or replace function public.bridgepoint_3dep_claim_v927(p_task_token text,p_batch_size integer default 250)
 returns jsonb
@@ -103,16 +95,13 @@ begin
       into v_rows,v_end,v_count
     from (
       select property_id,state_code,longitude,latitude from core.properties
-      where active and state_code=s.state_code::bpchar
-        and latitude between -90 and 90 and longitude between -180 and 180
+      where active and state_code=s.state_code::bpchar and latitude between -90 and 90 and longitude between -180 and 180
         and (s.cursor_property_id is null or property_id>s.cursor_property_id)
       order by property_id limit p_batch_size
     ) p;
 
     if coalesce(v_count,0)=0 then
-      update automation.usgs_3dep_state_v927
-      set complete=true,lease_token=null,lease_until=null,claim_end_property_id=null,last_run_at=now(),last_error=null,updated_at=now(),metadata=metadata||jsonb_build_object('completed_at',now())
-      where state_code=s.state_code;
+      update automation.usgs_3dep_state_v927 set complete=true,lease_token=null,lease_until=null,claim_end_property_id=null,last_run_at=now(),last_error=null,updated_at=now(),metadata=metadata||jsonb_build_object('completed_at',now()) where state_code=s.state_code;
       if tries>=5 then return jsonb_build_object('complete',true,'version',927,'claimed',false,'reason','ADVANCED_COMPLETED_STATES'); end if;
       continue;
     end if;
@@ -174,9 +163,9 @@ begin
   where state_code=upper(p_state_code);
 
   update automation.source_registry
-  set source_url='https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer',access_method='ARCGIS_IMAGESERVER_GETSAMPLES',enabled=true,health_status='HEALTHY',last_checked_at=now(),last_successful_import_at=now(),total_records_ingested=coalesce(total_records_ingested,0)+v_ok,last_run_records_found=v_seen,last_run_records_inserted=v_ok,consecutive_failures=0,last_error=null,parser_version='v927',
-      configuration=coalesce(configuration,'{}'::jsonb)||jsonb_build_object('source_class','USGS_OFFICIAL','adapter_status','ACTIVE','batch_mode','MULTIPOINT_GETSAMPLES','max_batch_size',500),
-      metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('role','NATIONAL_TERRAIN_LIDAR_BASELINE','verified_service_at',now(),'service_data_type','esriImageServiceDataTypeElevation'),updated_at=now()
+  set source_url='https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer',access_method='ARCGIS_IMAGESERVER_WITH_EPQS_FALLBACK',enabled=true,health_status='HEALTHY',last_checked_at=now(),last_successful_import_at=now(),total_records_ingested=coalesce(total_records_ingested,0)+v_ok,last_run_records_found=v_seen,last_run_records_inserted=v_ok,consecutive_failures=0,last_error=null,parser_version='v927',
+      configuration=coalesce(configuration,'{}'::jsonb)||jsonb_build_object('source_class','INTELLIGENCE_ELIGIBLE','adapter_status','ACTIVE','batch_mode','MULTIPOINT_WITH_EPQS_FALLBACK','max_batch_size',100),
+      metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('role','NATIONAL_TERRAIN_LIDAR_BASELINE','official_provider','USGS','verified_service_at',now(),'service_data_type','esriImageServiceDataTypeElevation','fallback_service','USGS_EPQS','truth_note','3DEP elevation is evidence-gated; national coverage does not imply direct high-resolution LiDAR for every location'),updated_at=now()
   where source_code='USGS_3DEP_V918';
 
   return jsonb_build_object('complete',true,'version',927,'state_code',upper(p_state_code),'seen',v_seen,'ok',v_ok,'no_data_or_invalid',v_no_data,'cursor',s.claim_end_property_id);
@@ -214,7 +203,7 @@ set statement_timeout to '8s'
 as $$
 declare s automation.usgs_3dep_dispatch_state_v927%rowtype; hr net._http_response%rowtype; v_token text; v_request bigint; v_queue int:=0; v_still_queued boolean:=false;
 begin
-  p_batch_size:=greatest(1,least(coalesce(p_batch_size,150),500));
+  p_batch_size:=greatest(1,least(coalesce(p_batch_size,150),100));
   if not pg_try_advisory_xact_lock(hashtextextended('bridgepoint-usgs-3dep-v927',0)) then return jsonb_build_object('complete',true,'version',927,'skipped','LOCKED'); end if;
   select * into s from automation.usgs_3dep_dispatch_state_v927 where singleton=true for update;
   if s.in_flight_request_id is not null then
@@ -242,10 +231,10 @@ $$;
 
 update automation.source_registry
 set source_url='https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer',
-    access_method='ARCGIS_IMAGESERVER_GETSAMPLES',
+    access_method='ARCGIS_IMAGESERVER_WITH_EPQS_FALLBACK',
     health_status=case when last_successful_import_at is null then 'NOT_RUN' else health_status end,
-    configuration=coalesce(configuration,'{}'::jsonb)||jsonb_build_object('source_class','USGS_OFFICIAL','adapter_status',case when last_successful_import_at is null then 'READY_FOR_VALIDATION' else 'ACTIVE' end,'batch_mode','MULTIPOINT_GETSAMPLES','max_batch_size',500),
-    metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('role','NATIONAL_TERRAIN_LIDAR_BASELINE','service_data_type','esriImageServiceDataTypeElevation'),updated_at=now()
+    configuration=coalesce(configuration,'{}'::jsonb)||jsonb_build_object('source_class','INTELLIGENCE_ELIGIBLE','adapter_status',case when last_successful_import_at is null then 'READY_FOR_VALIDATION' else 'ACTIVE' end,'batch_mode','MULTIPOINT_WITH_EPQS_FALLBACK','max_batch_size',100),
+    metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('role','NATIONAL_TERRAIN_LIDAR_BASELINE','official_provider','USGS','service_data_type','esriImageServiceDataTypeElevation','fallback_service','USGS_EPQS','truth_note','3DEP elevation is evidence-gated; national coverage does not imply direct high-resolution LiDAR for every location'),updated_at=now()
 where source_code='USGS_3DEP_V918';
 
 commit;
