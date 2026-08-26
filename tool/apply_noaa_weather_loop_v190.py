@@ -19,17 +19,24 @@ if show_radar<0:
     raise SystemExit('v830 radar state field missing')
 
 def find_radar_condition(offset):
-    match=re.search(r'if\s*\(\s*_showRadar\b[^)]*\)',text[offset:])
-    if match is not None:
-        return offset+match.start()
-    # Formatting/generator fallback: bind the condition to the first radar WMS
-    # TileLayer, never to a later preview or unrelated control.
+    # Anchor to the first main-map WMS layer, then search backward for the
+    # condition governing that exact TileLayer. This avoids accidentally binding
+    # to refresh-timer or preview conditions earlier/later in generated source.
     seed_wms=text.find('WMSTileLayerOptions(',offset)
     seed_tile=text.rfind('TileLayer(',offset,seed_wms)
-    seed_if=text.rfind('if',max(offset,seed_tile-500),seed_tile)
-    if min(seed_wms,seed_tile,seed_if)>=0 and '_showRadar' in text[seed_if:seed_tile]:
-        return seed_if
-    return -1
+    if min(seed_wms,seed_tile)>=0:
+        window_start=max(offset,seed_tile-1400)
+        window=text[window_start:seed_tile]
+        matches=list(re.finditer(r'if\s*\([^)]*_showRadar[^)]*\)',window))
+        if matches:
+            return window_start+matches[-1].start()
+        show=text.rfind('_showRadar',window_start,seed_tile)
+        seed_if=text.rfind('if',window_start,show)
+        if show>=0 and seed_if>=0:
+            return seed_if
+    # Final compatibility fallback for older generated shapes.
+    match=re.search(r'if\s*\(\s*_showRadar\b[^)]*\)',text[offset:])
+    return offset+match.start() if match is not None else -1
 
 main_radar_if=find_radar_condition(show_radar)
 if main_radar_if<0:
