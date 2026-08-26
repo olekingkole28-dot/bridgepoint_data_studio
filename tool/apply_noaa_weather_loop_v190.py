@@ -19,6 +19,7 @@ if show_radar<0:
     raise SystemExit('v830 radar state field missing')
 
 def find_radar_condition(offset):
+    print('v844 radar locator',{'offset':offset,'show':text.find('_showRadar',offset),'guard_spaced':text.find('if (_showRadar',offset),'guard_compact':text.find('if(_showRadar',offset),'tile':text.find('TileLayer(',offset),'wms':text.find('WMSTileLayerOptions(',offset)})
     # Accept only a line-level _showRadar collection guard whose next widget is
     # a nearby TileLayer. This excludes timer callbacks and avoids provider URLs.
     cursor=offset
