@@ -3,6 +3,9 @@ from pathlib import Path
 p=Path('lib/main.dart')
 text=p.read_text(encoding='utf-8')
 original=text
+def checkpoint(label):
+    print('v847 v189 checkpoint',label,{'len':len(text),'wms':text.count('WMSTileLayerOptions('),'maps':text.count('class _IntelligenceMapPage')})
+checkpoint('start')
 
 # Section color system: controlled, repeatable accents instead of random colors.
 anchor='class _WorkspaceAtmosphere extends StatelessWidget{'
@@ -94,6 +97,7 @@ new_compact="""          final item = items[index];
 """
 if old_compact not in text: raise SystemExit('compact nav anchor missing')
 text=text.replace(old_compact,new_compact,1)
+checkpoint('navigation')
 
 # Expansion control center now loads adaptive ETAs with the live control response.
 old_load="""  Future<void> loadControl()async{
@@ -142,6 +146,7 @@ new_steps="""          const SizedBox(height:12),const Text('BUILD PROGRESS',sty
 """
 if old_steps not in text: raise SystemExit('expansion steps UI anchor missing')
 text=text.replace(old_steps,new_steps,1)
+checkpoint('expansion')
 
 # Intelligence map: visibly advertise markets actively being built.
 old_cov="""        final coverageMarkets=_detailList(coverage['markets']);
@@ -153,6 +158,7 @@ new_cov="""        final coverageMarkets=_detailList(coverage['markets']);
 """
 if old_cov not in text: raise SystemExit('coverage market anchor missing')
 text=text.replace(old_cov,new_cov,1)
+checkpoint('map_coverage')
 
 old_marker="""          final requested=market['interest_registered']==true;
           markers.add(Marker(point:center,width:74,height:56,child:Tooltip(
@@ -176,6 +182,7 @@ new_marker="""          final requested=market['interest_registered']==true;fina
 """
 if old_marker not in text: raise SystemExit('coverage marker anchor missing')
 text=text.replace(old_marker,new_marker,1)
+checkpoint('map_marker')
 
 old_heading="""            _PageHeading(
               title: 'Intelligence Map',
@@ -196,7 +203,10 @@ new_heading="""            _PageHeading(
 """
 if old_heading not in text: raise SystemExit('map heading anchor missing')
 text=text.replace(old_heading,new_heading,1)
+checkpoint('map_heading')
 
+if text.count('WMSTileLayerOptions(')<3 or len(text)<int(len(original)*0.8):
+    raise SystemExit(f'v189 destructive mutation blocked: before={len(original)} after={len(text)} wms={text.count("WMSTileLayerOptions(")}')
 for marker in ['_bridgePointPageAccent','bridgepoint_expansion_eta_v188','BUILDING NOW','Current step ETA:']:
     if marker not in text: raise SystemExit(f'missing v189 marker {marker}')
 if text==original: raise SystemExit('No v189 premium navigation/expansion changes applied')
