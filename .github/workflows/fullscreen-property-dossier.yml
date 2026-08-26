@@ -1,0 +1,28 @@
+name: Fullscreen Property Dossier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fullscreen-property-dossier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python tool/fullscreen_property_dossier.py
+      - name: Commit full-screen dossier
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Product QA'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_property_dossier_v2.dart lib/v2/bridgepoint_properties_v2.dart lib/v2/bridgepoint_investor_v2.dart
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Open properties as full-screen intelligence dossiers'
+          git push origin HEAD:main
