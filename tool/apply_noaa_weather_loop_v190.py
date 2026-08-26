@@ -19,7 +19,7 @@ if show_radar<0:
     raise SystemExit('v830 radar state field missing')
 
 def find_radar_condition(offset):
-    match=re.search(r'if\s*\(\s*_showRadar\s*\)',text[offset:])
+    match=re.search(r'if\s*\(\s*_showRadar\b[^)]*\)',text[offset:])
     return -1 if match is None else offset+match.start()
 
 main_radar_if=find_radar_condition(show_radar)
@@ -147,10 +147,13 @@ main_tile=text.find('TileLayer(',main_radar_if)
 if main_radar_if<0 or main_tile<0 or main_tile-main_radar_if>250:
     raise SystemExit('v830 main radar condition/tile adjacency missing')
 condition_segment=text[main_radar_if:main_tile]
-condition_segment,count=re.subn(r'if\s*\(\s*_showRadar\s*\)','if (_showRadar && _viewportZoom <= 10.5)',condition_segment,count=1)
-if count!=1:
-    raise SystemExit(f'v830 main radar condition replacement count={count}')
-text=text[:main_radar_if]+condition_segment+text[main_tile:]
+if '_viewportZoom <= 10.5' not in condition_segment:
+    condition_segment,count=re.subn(r'if\s*\(\s*_showRadar\s*\)','if (_showRadar && _viewportZoom <= 10.5)',condition_segment,count=1)
+    if count!=1:
+        raise SystemExit(f'v830 main radar condition replacement count={count}')
+    text=text[:main_radar_if]+condition_segment+text[main_tile:]
+else:
+    print('v830 main radar zoom gate already present; continuing')
 
 # Add the timeline immediately before the existing top-right map controls.
 controls=text.find('Positioned(',main_tile)
