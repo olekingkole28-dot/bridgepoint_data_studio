@@ -1,0 +1,1043 @@
+{
+  "files_scanned": 51,
+  "files_flagged": 35,
+  "results": [
+    {
+      "file": "lib/bridgepoint_integrations_hub_v790.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 287,
+            "text": "message: snapshot.error.toString(),"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/main.dart",
+      "hits": {
+        "raw_json_encoder": [
+          {
+            "line": 628,
+            "text": "body: jsonEncode(body),"
+          },
+          {
+            "line": 1344,
+            "text": "body: jsonEncode(body))"
+          },
+          {
+            "line": 1763,
+            "text": "body: jsonEncode({"
+          },
+          {
+            "line": 7305,
+            "text": "body: jsonEncode({"
+          },
+          {
+            "line": 8477,
+            "text": "body: jsonEncode({"
+          },
+          {
+            "line": 9005,
+            "text": "? const JsonEncoder.withIndent('  ').convert(evidence)"
+          },
+          {
+            "line": 9207,
+            "text": "body: jsonEncode({"
+          },
+          {
+            "line": 9789,
+            "text": "body: jsonEncode({'p_property_id': widget.propertyId}),"
+          },
+          {
+            "line": 10776,
+            "text": "body: jsonEncode({"
+          },
+          {
+            "line": 12797,
+            "text": "body: jsonEncode({"
+          }
+        ],
+        "raw_entries_render": [
+          {
+            "line": 4266,
+            "text": "...opportunities.take(5).toList().asMap().entries.map("
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 702,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 4007,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 4678,
+            "text": "_InlineError(message: snapshot.error.toString())"
+          },
+          {
+            "line": 4848,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 5768,
+            "text": "message: snapshot.error.toString(), onRetry: refresh)"
+          },
+          {
+            "line": 5885,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 6698,
+            "text": "setState(() => locationError = 'Location could not sync: $e');"
+          },
+          {
+            "line": 6894,
+            "text": "message: snapshot.error.toString(), onRetry: _reload)"
+          },
+          {
+            "line": 7721,
+            "text": "message: snapshot.error.toString(), onRetry: _reload)"
+          },
+          {
+            "line": 8695,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 9443,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 9853,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 10531,
+            "text": "(item['model_uses'] as List? ?? const []).map((e) => '$e').toList();"
+          },
+          {
+            "line": 10961,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 11764,
+            "text": "message: snapshot.error.toString(), onRetry: refresh)"
+          },
+          {
+            "line": 12505,
+            "text": "message: snapshot.error.toString(), onRetry: refresh)"
+          },
+          {
+            "line": 12652,
+            "text": "_InlineError(message: snapshot.error.toString())"
+          },
+          {
+            "line": 12914,
+            "text": "message: snapshot.error.toString(), onRetry: _refresh)"
+          },
+          {
+            "line": 13065,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 13553,
+            "text": "message: snapshot.error.toString(),"
+          },
+          {
+            "line": 13980,
+            "text": "_InlineError(message: snapshot.error.toString()),"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/screens/bridgepoint_owner_ai_cockpit.dart",
+      "hits": {
+        "raw_json_encoder": [
+          {
+            "line": 71,
+            "text": "const JsonEncoder.withIndent('  ').convert(value);"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 90,
+            "text": "if (mounted) setState(() => _output = error.toString());"
+          },
+          {
+            "line": 228,
+            "text": "Text(snapshot.error.toString(),"
+          }
+        ],
+        "debug_copy": [
+          {
+            "line": 319,
+            "text": "title: 'Live control-plane snapshot',"
+          },
+          {
+            "line": 321,
+            "text": "'This is raw owner-only status for debugging and verification. Customer surfaces remain plain-language and package-scoped.',"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/screens/bridgepoint_owner_global_control.dart",
+      "hits": {
+        "raw_json_encoder": [
+          {
+            "line": 77,
+            "text": "const JsonEncoder.withIndent('  ').convert(value);"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 107,
+            "text": "if (mounted) setState(() => _result = error.toString());"
+          },
+          {
+            "line": 131,
+            "text": "if (mounted) setState(() => _result = error.toString());"
+          },
+          {
+            "line": 238,
+            "text": "Text(snapshot.error.toString(),"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/screens/bridgepoint_owner_overview_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 33,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 353,
+            "text": "subtitle: complex ? null : Text('${e.value}', style: const TextStyle(color: _BridgePointOwnerOverviewV2State._muted)),"
+          },
+          {
+            "line": 359,
+            "text": "return SelectableText('$payload');"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 33,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/screens/bridgepoint_owner_surface_audit_v792.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 85,
+            "text": "child: Text(snapshot.error.toString(),"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/screens/bridgepoint_owner_v2_requirements_v832.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 238,
+            "text": "'Could not load V2 requirements: ${snapshot.error}',"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_ai_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 103,
+            "text": "..._answer.entries.map((entry) {"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 47,
+            "text": "if (mounted) setState(() => _error = '$e');"
+          },
+          {
+            "line": 83,
+            "text": "if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: Color(0xFFFF7E7E)))],"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 30,
+            "text": "return {'value': value};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_app_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 435,
+            "text": "if (mounted) setState(() => error = '$e');"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_buildings_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 610,
+            "text": "final entries = (payload as Map).entries.take(60).toList();"
+          }
+        ],
+        "raw_payload_widget": [
+          {
+            "line": 603,
+            "text": "class _Payload extends StatelessWidget {"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 49,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          },
+          {
+            "line": 161,
+            "text": "if (mounted) setState(() => _error = '$e');"
+          },
+          {
+            "line": 456,
+            "text": "_error!,"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 619,
+            "text": "'${e.key.toString().replaceAll('_', ' ')}: ${e.value}',"
+          },
+          {
+            "line": 653,
+            "text": "'$payload',"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 49,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_calendar_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 150,
+            "text": "if (mounted) setState(() => _message = 'Could not add calendar item: $e');"
+          },
+          {
+            "line": 165,
+            "text": "if (mounted) setState(() => _message = 'Could not remove item: $e');"
+          },
+          {
+            "line": 195,
+            "text": "if (mounted) setState(() => _message = 'Could not schedule route: $e');"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 29,
+            "text": "return {'value': value};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_claims_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 358,
+            "text": "Wrap(spacing: 8, runSpacing: 7, children: value.entries.map((entry) {"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 84,
+            "text": "if (mounted) setState(() => _message = 'Could not open claim: $e');"
+          },
+          {
+            "line": 143,
+            "text": "if (mounted) setState(() => _message = 'Could not update claim: $e');"
+          },
+          {
+            "line": 163,
+            "text": "if (mounted) setState(() { _busy = false; _message = 'Claim Intelligence unavailable: $e'; });"
+          },
+          {
+            "line": 187,
+            "text": "if (mounted) setState(() => _message = 'Supplement analysis unavailable: $e');"
+          },
+          {
+            "line": 198,
+            "text": "if (mounted) setState(() => _message = 'Supplement packet unavailable: $e');"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 29,
+            "text": "return {'value': value};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_global_search_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 307,
+            "text": "final entries = (payload as Map).entries.take(80).toList();"
+          }
+        ],
+        "raw_payload_widget": [
+          {
+            "line": 273,
+            "text": "class _PayloadPanel extends StatelessWidget {"
+          },
+          {
+            "line": 300,
+            "text": "class _Payload extends StatelessWidget {"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 77,
+            "text": "if (mounted) setState(() => _error = '$e');"
+          },
+          {
+            "line": 87,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          },
+          {
+            "line": 185,
+            "text": "Text(_error!, style: const TextStyle(color: _amber, fontSize: 10)),"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 350,
+            "text": "return Text('$payload', style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 11.5));"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 87,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_home_live_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 61,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 61,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_intelligence_live_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 391,
+            "text": "...payload.entries.map((entry) => Padding("
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 59,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          },
+          {
+            "line": 594,
+            "text": "_notice('Live Intelligence could not load: ${snapshot.error}')"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 37,
+            "text": "return {'value': value};"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 59,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_intelligence_surfaces_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 167,
+            "text": "_ErrorBox('${snapshot.error}')"
+          },
+          {
+            "line": 263,
+            "text": "_ErrorBox('${snapshot.error}')"
+          },
+          {
+            "line": 391,
+            "text": "_ErrorBox('${snapshot.error}')"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_investment_valuation_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 117,
+            "text": "child: Text('Valuation room unavailable: ${snapshot.error}'),"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 581,
+            "text": "'${e.key.replaceAll('_', ' ')}: ${e.value}',"
+          }
+        ],
+        "placeholder_driver": [
+          {
+            "line": 339,
+            "text": "'No driver rows returned.',"
+          },
+          {
+            "line": 508,
+            "text": "final factor = '${row['factor'] ?? 'driver'}'.replaceAll('_', ' ');"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_investor_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 38,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 38,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_map_weather_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 155,
+            "text": "return {'_error': '$e'};"
+          },
+          {
+            "line": 378,
+            "text": "if (mounted) setState(() => _locationMessage = '$e');"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_operations_workspace_v2.dart",
+      "hits": {
+        "raw_payload_widget": [
+          {
+            "line": 425,
+            "text": "class _CompactMap extends StatelessWidget {"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 37,
+            "text": "catch (e) { return {'available': false, 'rpc': name, 'error': '$e'}; }"
+          },
+          {
+            "line": 93,
+            "text": "if (mounted) setState(() => _message = 'Could not save: $e');"
+          },
+          {
+            "line": 113,
+            "text": "if (mounted) setState(() => _message = 'Feedback unavailable: $e');"
+          },
+          {
+            "line": 158,
+            "text": "if (mounted) setState(() => _message = 'Route build unavailable: $e');"
+          },
+          {
+            "line": 174,
+            "text": "if (mounted) setState(() => _message = 'Offline preparation unavailable: $e');"
+          },
+          {
+            "line": 225,
+            "text": "if (mounted) setState(() => _message = 'Route stop update unavailable: $e');"
+          },
+          {
+            "line": 239,
+            "text": "if (mounted) setState(() => _message = 'Could not mark read: $e');"
+          },
+          {
+            "line": 252,
+            "text": "if (mounted) setState(() => _message = 'Invite unavailable: $e');"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 58,
+            "text": "return {'value': value};"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 37,
+            "text": "catch (e) { return {'available': false, 'rpc': name, 'error': '$e'}; }"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_opportunities_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 43,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          },
+          {
+            "line": 170,
+            "text": "if (mounted) setState(() => _message = 'Could not save opportunity: $e');"
+          },
+          {
+            "line": 285,
+            "text": ".map((e) => '$e')"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 43,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_portfolio_risk_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 106,
+            "text": "Wrap(spacing: 10, runSpacing: 8, children: value.entries.take(45).map((e) {"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 53,
+            "text": "return {'available': false, 'rpc': name, 'error': '$e'};"
+          },
+          {
+            "line": 90,
+            "text": "if (mounted) setState(() => _error = '$e');"
+          },
+          {
+            "line": 136,
+            "text": "if (_error != null) Text(_error!, style: const TextStyle(color: Color(0xFFFF7E7E))),"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 34,
+            "text": "return {'value': value};"
+          },
+          {
+            "line": 107,
+            "text": "final raw = '${e.value}';"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 53,
+            "text": "return {'available': false, 'rpc': name, 'error': '$e'};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_properties_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 692,
+            "text": "final entries = (payload as Map).entries.take(50).toList();"
+          }
+        ],
+        "raw_payload_widget": [
+          {
+            "line": 634,
+            "text": "class _PayloadBlock extends StatelessWidget {"
+          },
+          {
+            "line": 673,
+            "text": "class _CompactPayload extends StatelessWidget {"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 326,
+            "text": "text: '${snapshot.error}',"
+          },
+          {
+            "line": 547,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          },
+          {
+            "line": 582,
+            "text": "'${snapshot.error}',"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 701,
+            "text": "'${e.key.toString().replaceAll('_', ' ')}: ${e.value}',"
+          },
+          {
+            "line": 731,
+            "text": "'$payload',"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 547,
+            "text": "return {'available': false, 'error': '$e', 'rpc': rpc};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_property_360_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 83,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          },
+          {
+            "line": 104,
+            "text": "if (mounted) setState(() => _error = '$e');"
+          },
+          {
+            "line": 197,
+            "text": "if (mounted) setState(() => _error = '$e');"
+          },
+          {
+            "line": 310,
+            "text": "setState(() => _message = 'Watchlist action unavailable: $e');"
+          },
+          {
+            "line": 399,
+            "text": "if (mounted) setState(() => _message = 'BridgePoint AI unavailable: $e');"
+          },
+          {
+            "line": 626,
+            "text": "Text(_error!, style: const TextStyle(color: Color(0xFFFF7E7E))),"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 51,
+            "text": "return {'value': value};"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 83,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_property_dossier_v2.dart",
+      "hits": {
+        "generic_value_render": [
+          {
+            "line": 619,
+            "text": "_Badge('${e.key.replaceAll('_', ' ')}: ${e.value}', _BridgePointPropertyDossierV2State._green),"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_property_presentation_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 179,
+            "text": "children: value.asMap().entries.map((entry) => Padding("
+          },
+          {
+            "line": 441,
+            "text": "Wrap(spacing: 8, runSpacing: 8, children: hazards.entries.map((entry) {"
+          },
+          {
+            "line": 513,
+            "text": "...readiness.entries.map((entry) => Padding("
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_public_landing_v2.dart",
+      "hits": {
+        "raw_entries_render": [
+          {
+            "line": 297,
+            "text": "return Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alp"
+          }
+        ],
+        "raw_payload_widget": [
+          {
+            "line": 288,
+            "text": "class _DataPanel extends StatelessWidget {"
+          }
+        ],
+        "exception_to_user": [
+          {
+            "line": 36,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          }
+        ],
+        "generic_value_render": [
+          {
+            "line": 297,
+            "text": "return Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: _BridgePointPublicLandingV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alp"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 36,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_saved_alerts_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 36,
+            "text": "return {'available': false, 'error': '$e', 'rpc': name};"
+          },
+          {
+            "line": 44,
+            "text": "return {'available': false, 'error': '$e', 'rpc': 'api.$name'};"
+          },
+          {
+            "line": 100,
+            "text": "if (mounted) setState(() => _message = 'Could not update notification: $e');"
+          },
+          {
+            "line": 112,
+            "text": "if (mounted) setState(() => _message = 'Could not update notifications: $e');"
+          },
+          {
+            "line": 196,
+            "text": "if (mounted) setState(() => _message = 'Could not save search: $e');"
+          },
+          {
+            "line": 259,
+            "text": "'Watchlists use a Company workspace. Could not create this one: $e');"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 36,
+            "text": "return {'available': false, 'error': '$e', 'rpc': name};"
+          },
+          {
+            "line": 44,
+            "text": "return {'available': false, 'error': '$e', 'rpc': 'api.$name'};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/bridgepoint_saved_opportunities_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 110,
+            "text": "if (mounted) setState(() => _message = 'Could not update saved opportunity: $e');"
+          },
+          {
+            "line": 312,
+            "text": "body: '${snapshot.error}',"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/settings/bridgepoint_account_support_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 48,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          },
+          {
+            "line": 100,
+            "text": "if (mounted) setState(() => message = 'Billing portal: $e');"
+          },
+          {
+            "line": 125,
+            "text": "if (mounted) setState(() => message = 'Could not send feedback: $e');"
+          }
+        ],
+        "raw_rpc_field": [
+          {
+            "line": 48,
+            "text": "return {'available': false, 'rpc': rpc, 'error': '$e'};"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/settings/bridgepoint_display_settings_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 57,
+            "text": "if (mounted) setState(() => _message = 'Display preferences unavailable: $e');"
+          },
+          {
+            "line": 81,
+            "text": "if (mounted) setState(() => _message = 'Could not save display preferences: $e');"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/settings/bridgepoint_legal_trust_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 98,
+            "text": "if (mounted) setState(() => _message = 'Could not record acceptance: $e');"
+          },
+          {
+            "line": 175,
+            "text": "if (mounted) setState(() => _message = 'Privacy request unavailable: $e');"
+          },
+          {
+            "line": 273,
+            "text": "if (mounted) setState(() => _message = 'Could not report concern: $e');"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/settings/bridgepoint_notifications_settings_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 57,
+            "text": "if (mounted) setState(() => _message = 'Notification preferences unavailable: $e');"
+          },
+          {
+            "line": 82,
+            "text": "if (mounted) setState(() => _message = 'Could not save notifications: $e');"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/settings/bridgepoint_package_fit_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 72,
+            "text": "..addAll(caps.map((e) => '$e').where(_capabilityOptions.contains));"
+          },
+          {
+            "line": 78,
+            "text": "_message = 'Onboarding state unavailable: $e';"
+          },
+          {
+            "line": 113,
+            "text": "if (mounted) setState(() => _message = 'Fit preview unavailable: $e');"
+          },
+          {
+            "line": 138,
+            "text": "if (mounted) setState(() => _message = 'Could not save package fit: $e');"
+          }
+        ]
+      }
+    },
+    {
+      "file": "lib/v2/settings/bridgepoint_packages_v2.dart",
+      "hits": {
+        "exception_to_user": [
+          {
+            "line": 73,
+            "text": ".map((e) => '$e'.trim())"
+          },
+          {
+            "line": 148,
+            "text": "if (mounted) setState(() => _message = 'Checkout unavailable: $e');"
+          },
+          {
+            "line": 175,
+            "text": "if (mounted) setState(() => _message = 'Could not request activation: $e');"
+          },
+          {
+            "line": 449,
+            "text": "Text('Package catalog unavailable: ${snapshot.error}')"
+          }
+        ]
+      }
+    }
+  ]
+}
