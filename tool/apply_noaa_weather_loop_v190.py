@@ -19,33 +19,11 @@ if show_radar<0:
     raise SystemExit('v830 radar state field missing')
 
 def find_radar_condition(offset):
-    # Anchor on the verified radar service token first. The generated WMS call
-    # can be much larger than a fixed look-ahead window, so token-first lookup
-    # remains deterministic across formatting and replay changes.
-    token_positions=[
-        pos for pos in (
-            text.find('conus_bref_qcd',offset),
-            text.find('radar_base_reflectivity',offset),
-            text.find('opengeo.ncep.noaa.gov',offset),
-        ) if pos>=0
-    ]
-    if not token_positions:
-        return -1
-    radar_token=min(token_positions)
-    seed_wms=text.rfind('WMSTileLayerOptions(',offset,radar_token)
-    if seed_wms<0:
-        return -1
-    seed_tile=text.rfind('TileLayer(',offset,seed_wms)
-    if seed_tile<0:
-        return -1
-    literal=text.rfind('if (_showRadar)',offset,seed_tile)
-    if literal>=0:
-        return literal
-    show=text.rfind('_showRadar',offset,seed_tile)
-    if show<0:
-        return -1
-    candidates=list(re.finditer(r'\\bif\\s*\\(',text[offset:show]))
-    return offset+candidates[-1].start() if candidates else -1
+    # The generated map's stable semantic contract is the visibility guard,
+    # while provider URLs and WMS formatting are intentionally replaceable.
+    # Bind to that guard directly and validate the following TileLayer/WMS below.
+    match=re.search(r'\\bif\\s*\\(\\s*_showRadar\\b',text[offset:])
+    return offset+match.start() if match else -1
 
 
 main_radar_if=find_radar_condition(show_radar)
