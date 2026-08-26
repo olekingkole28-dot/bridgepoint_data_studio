@@ -1,0 +1,110 @@
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path('.')
+LIB = ROOT / 'lib'
+errors = []
+notes = []
+
+def fail(msg):
+    errors.append(msg)
+
+def check(cond, msg):
+    if not cond:
+        fail(msg)
+
+def text(path):
+    return (ROOT / path).read_text(encoding='utf-8')
+
+# ---- Weather permanent regression contract ----
+weather_path = 'lib/v2/bridgepoint_map_weather_v2.dart'
+w = text(weather_path)
+check(w.count("import 'dart:convert';") == 1, 'Weather must import dart:convert exactly once')
+check(w.count("import 'package:http/http.dart' as http;") == 1, 'Weather must import package:http exactly once')
+check('_loadRadarFrames()' in w, 'Weather must load NOAA published frame catalog')
+check('idp_validtime' in w, 'Weather must use NOAA idp_validtime')
+check("_radarFrames.isEmpty\n                              ? const <String, String>{}" in w or "_radarFrames.isEmpty" in w and "otherParameters:" in w, 'Weather must omit TIME when no published frame exists')
+check('max: 48' not in w and 'frame >= 48' not in w, 'Weather must not hardcode a 49-frame radar history')
+check('_radarFrames.length - 1' in w, 'Weather slider/timer must use actual NOAA frame count')
+check('_radarMaxHonestZoom' in w, 'Weather must retain property-level radar truth zoom gate')
+
+# ---- 3D / digital twin permanent regression contract ----
+geom = text('lib/v2/bridgepoint_building_geometry_v2.dart')
+bldg = text('lib/v2/bridgepoint_buildings_v2.dart')
+check('L2_SOURCE_SURFACE_MODEL' in bldg, 'Buildings/Twin must surface L2 source-surface fidelity')
+check('source_surface' in (geom + bldg).lower() or 'xyz' in (geom + bldg).lower(), '3D viewer must contain source-surface/XYZ rendering path')
+check('exact replica' in bldg.lower(), 'Digital twin UI must preserve exact-replica truth disclosure')
+check('photoreal' in bldg.lower(), 'Digital twin UI must preserve photorealistic truth disclosure')
+
+# ---- Navigation contract ----
+app = text('lib/v2/bridgepoint_app_v2.dart')
+for marker in ['_AreaV2.home', '_AreaV2.map', '_AreaV2.properties', '_AreaV2.investor']:
+    check(marker in app, f'Mobile primary navigation missing {marker}')
+check("'Property Investor'" in app, 'Property Investor label missing from app shell')
+check("'Investment / Worth'" in app, 'Owner Investment / Worth destination missing')
+
+# ---- No old hard-coded formula shell regression ----
+home = text('lib/v2/bridgepoint_home_live_v2.dart') if (ROOT/'lib/v2/bridgepoint_home_live_v2.dart').exists() else ''
+landing = text('lib/v2/bridgepoint_public_landing_v2.dart')
+check('equation' not in home.lower(), 'Signed-in Home regressed to equation/formula presentation')
+check('equation' not in landing.lower(), 'Public landing regressed to equation/formula presentation')
+
+# ---- Deep customer-surface hygiene ----
+production_v2 = [p for p in (LIB/'v2').rglob('*.dart') if '/settings/' not in p.as_posix() or True]
+raw_exception_patterns = [
+    re.compile(r"snapshot\.error"),
+    re.compile(r"\$\{?e\}?"),
+    re.compile(r"\$\{?error\}?"),
+]
+# Catch only user-visible interpolation patterns around Text/message strings, not catch variable declarations.
+for p in production_v2:
+    s = p.read_text(encoding='utf-8')
+    rel = p.as_posix()
+    for i, line in enumerate(s.splitlines(), 1):
+        stripped = line.strip()
+        if ('Text(' in stripped or '_message =' in stripped or "return {'" in stripped) and ('${snapshot.error}' in line or '$snapshot.error' in line or "'$e'" in line or '"$e"' in line or "'$error'" in line or '"$error"' in line):
+            fail(f'Raw exception appears customer-visible: {rel}:{i}: {stripped[:160]}')
+        if 'TODO' in line or 'FIXME' in line:
+            fail(f'Production TODO/FIXME remains: {rel}:{i}: {stripped[:160]}')
+
+# Recursive generic payload presenters are disallowed on customer-facing V2 pages.
+# Property presentation may keep structured audit detail only when explicitly customer-safe.
+allowed_payload_files = {'lib/v2/bridgepoint_property_presentation_v2.dart'}
+for p in production_v2:
+    rel = p.as_posix()
+    if rel in allowed_payload_files:
+        continue
+    s = p.read_text(encoding='utf-8')
+    if re.search(r'class\s+_Payload\b', s) or re.search(r'class\s+_PayloadPanel\b', s):
+        fail(f'Generic recursive payload presenter remains in customer surface: {rel}')
+
+# Duplicate exact import lines in any Dart file.
+for p in LIB.rglob('*.dart'):
+    lines = p.read_text(encoding='utf-8').splitlines()
+    imports = [x.strip() for x in lines if x.strip().startswith('import ')]
+    dupes = sorted({x for x in imports if imports.count(x) > 1})
+    if dupes:
+        fail(f'Duplicate imports in {p.as_posix()}: {dupes}')
+
+# Required restored surfaces.
+required = [
+    'lib/v2/bridgepoint_properties_v2.dart',
+    'lib/v2/bridgepoint_investor_v2.dart',
+    'lib/v2/bridgepoint_buildings_v2.dart',
+    'lib/screens/bridgepoint_owner_overview_v2.dart',
+    'lib/v2/bridgepoint_portfolio_risk_v2.dart',
+    'lib/v2/bridgepoint_ai_v2.dart',
+    'lib/v2/bridgepoint_global_search_v2.dart',
+]
+for path in required:
+    check((ROOT/path).exists(), f'Restored product surface missing: {path}')
+
+print('BridgePoint V852 product release audit')
+print(f'Checked {len(list(LIB.rglob("*.dart")))} Dart files')
+if errors:
+    print('\nFAILURES:')
+    for err in errors:
+        print(f' - {err}')
+    sys.exit(1)
+print('PASS: weather, 3D/twin, navigation, customer-surface hygiene, and restored-surface contracts')
