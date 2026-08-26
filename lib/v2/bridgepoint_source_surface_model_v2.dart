@@ -26,6 +26,7 @@ class _BridgePointSourceSurfaceModelV2State
   double _yaw = -0.55;
   double _pitch = 0.72;
   double _zoom = 1.0;
+  double _gestureStartZoom = 1.0;
 
   Map<String, dynamic> get _geometry {
     final raw = widget.payload['geometry_3d'];
@@ -138,18 +139,15 @@ class _BridgePointSourceSurfaceModelV2State
               final height = constraints.maxWidth < 450 ? 360.0 : 480.0;
               return GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onPanUpdate: (details) {
-                  setState(() {
-                    _yaw += details.delta.dx * .012;
-                    _pitch = (_pitch - details.delta.dy * .007).clamp(.18, 1.28);
-                  });
-                },
+                onScaleStart: (_) => _gestureStartZoom = _zoom,
                 onScaleUpdate: (details) {
-                  if (details.pointerCount > 1) {
-                    setState(() {
-                      _zoom = (_zoom * details.scale).clamp(.65, 2.4);
-                    });
-                  }
+                  setState(() {
+                    _yaw += details.focalPointDelta.dx * .012;
+                    _pitch = (_pitch - details.focalPointDelta.dy * .007).clamp(.18, 1.28);
+                    if (details.pointerCount > 1) {
+                      _zoom = (_gestureStartZoom * details.scale).clamp(.65, 2.4);
+                    }
+                  });
                 },
                 child: Container(
                   height: height,
