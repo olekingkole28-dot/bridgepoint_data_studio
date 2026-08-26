@@ -325,7 +325,6 @@ class BridgePointPropertyOverviewV2 extends StatelessWidget {
       const _Notice(
         'Verified opportunity means BridgePoint’s evidence gate passed. It is still a prioritization/review candidate—not confirmed damage, a guaranteed project, or a guaranteed sale.',
       ),
-      _AllFields(title: 'All property detail fields', value: payload),
     ]);
   }
 }
@@ -403,7 +402,6 @@ class BridgePointPropertyTimelineV2 extends StatelessWidget {
           );
         }),
       if (_text(payload['explanation'], '').isNotEmpty) _Notice(_text(payload['explanation']), color: _bpCyan),
-      _AllFields(title: 'All timeline fields', value: payload),
     ]);
   }
 }
@@ -469,7 +467,6 @@ class BridgePointClimateProfileV2 extends StatelessWidget {
                 : _text(future['reason'], 'Future scenario status unavailable.'),
             color: _bpCyan,
           ),
-          _AllFields(title: 'All climate profile fields', value: payload),
         ]),
       ),
     );
@@ -519,7 +516,6 @@ class BridgePointTwinSummaryV2 extends StatelessWidget {
               ]),
             )),
           ],
-          _AllFields(title: 'All Digital Twin fields', value: payload),
         ]),
       ),
     );
@@ -563,7 +559,6 @@ class BridgePointPermitContextV2 extends StatelessWidget {
                 ),
               ),
             )),
-          _AllFields(title: 'All permit context fields', value: payload),
         ]),
       ),
     );
@@ -656,10 +651,87 @@ class BridgePointMediaHistoryV2 extends StatelessWidget {
             const SizedBox(height: 8),
             Text(_text(payload['priority_rule'], 'Property media is ordered by BridgePoint source/usefulness policy.'), style: const TextStyle(color: _bpMuted, fontSize: 13, height: 1.4)),
           ],
-          _AllFields(title: 'All imagery / media fields', value: payload),
         ]),
       ),
     );
+  }
+}
+
+class _CustomerSafeSummary extends StatelessWidget {
+  const _CustomerSafeSummary({required this.value});
+  final dynamic value;
+
+  List<Map<String, dynamic>> _records(dynamic raw) {
+    if (raw is List) {
+      return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    if (raw is Map) {
+      for (final key in const ['items', 'notes', 'watchlists', 'results', 'rows', 'events']) {
+        if (raw[key] is List) return _records(raw[key]);
+      }
+    }
+    return const [];
+  }
+
+  bool _technical(String key) {
+    final k = key.toLowerCase();
+    return k == 'metadata' || k == 'payload' || k == 'raw' || k == 'rpc' ||
+        k.endsWith('_id') || k.contains('internal') || k.contains('secret') ||
+        k.contains('token') || k.contains('version');
+  }
+
+  String _title(Map<String, dynamic> row) {
+    for (final key in const ['title', 'watchlist_name', 'name', 'note_text', 'label', 'headline', 'address']) {
+      final text = '${row[key] ?? ''}'.trim();
+      if (text.isNotEmpty && text != 'null') return text;
+    }
+    return 'BridgePoint record';
+  }
+
+  String _subtitle(Map<String, dynamic> row) {
+    final parts = <String>[];
+    for (final key in const ['status', 'description', 'summary', 'created_at', 'follow_up_at', 'updated_at']) {
+      final text = '${row[key] ?? ''}'.trim();
+      if (text.isNotEmpty && text != 'null') parts.add(text);
+      if (parts.length == 2) break;
+    }
+    return parts.join(' • ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final records = _records(value);
+    if (records.isNotEmpty) {
+      return Column(
+        children: records.take(25).map((row) {
+          final subtitle = _subtitle(row);
+          return ListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.check_circle_outline_rounded, color: _bpCyan, size: 18),
+            title: Text(_title(row), maxLines: 3, overflow: TextOverflow.ellipsis),
+            subtitle: subtitle.isEmpty ? null : Text(subtitle, maxLines: 3, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: _bpMuted, fontSize: 11.5)),
+          );
+        }).toList(),
+      );
+    }
+    if (value is Map) {
+      final entries = (value as Map).entries
+          .where((entry) => entry.value is! Map && entry.value is! List && !_technical('${entry.key}'))
+          .take(16)
+          .toList();
+      if (entries.isEmpty) {
+        return const Text('No customer-facing records are available yet.', style: TextStyle(color: _bpMuted));
+      }
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: entries.map((entry) => _Metric(_labelKey('${entry.key}'), _text(entry.value))).toList(),
+      );
+    }
+    return Text(_text(value, 'No customer-facing records are available yet.'),
+        style: const TextStyle(color: _bpMuted));
   }
 }
 
@@ -677,7 +749,7 @@ class BridgePointGenericWorkspaceSectionV2 extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [Icon(icon, color: _bpCyan), const SizedBox(width: 8), Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)))]),
             const SizedBox(height: 9),
-            _StructuredValue(value: payload),
+            _CustomerSafeSummary(value: payload),
           ]),
         ),
       );

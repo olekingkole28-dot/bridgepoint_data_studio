@@ -147,7 +147,7 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
       });
       if (mounted) setState(() { _message = 'Calendar item added.'; _request = _load(); });
     } catch (e) {
-      if (mounted) setState(() => _message = 'Could not add calendar item: $e');
+      if (mounted) setState(() => _message = 'Could not add this calendar item. Check the date/time and try again.');
     } finally {
       title.dispose(); start.dispose(); end.dispose(); notes.dispose();
       if (mounted) setState(() => _busy = false);
@@ -162,7 +162,7 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
       await Supabase.instance.client.rpc('bridgepoint_calendar_event_delete_v835', params: {'p_calendar_event_id': id});
       if (mounted) setState(() { _message = 'Calendar item removed.'; _request = _load(); });
     } catch (e) {
-      if (mounted) setState(() => _message = 'Could not remove item: $e');
+      if (mounted) setState(() => _message = 'Could not remove this calendar item right now.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -192,7 +192,7 @@ class _BridgePointCalendarV2State extends State<BridgePointCalendarV2> {
       });
       if (mounted) setState(() { _message = 'Route scheduled.'; _request = _load(); });
     } catch (e) {
-      if (mounted) setState(() => _message = 'Could not schedule route: $e');
+      if (mounted) setState(() => _message = 'Could not schedule this route. Check the date/time and try again.');
     } finally {
       input.dispose();
       if (mounted) setState(() => _busy = false);

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'bridgepoint_building_geometry_v2.dart';
+import 'bridgepoint_property_presentation_v2.dart';
+
 class BridgePointGlobalSearchV2 extends StatefulWidget {
   const BridgePointGlobalSearchV2({super.key, this.initialQuery});
   final String? initialQuery;
@@ -73,8 +76,11 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
         params: {'p_query': q, 'p_limit': 40},
       );
       if (mounted) setState(() => _results = _rows(raw));
-    } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error =
+            'Property search is temporarily unavailable. Try a more specific address, parcel, owner or municipality.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -83,8 +89,8 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
   Future<dynamic> _safe(String rpc, Map<String, dynamic> params) async {
     try {
       return await Supabase.instance.client.rpc(rpc, params: params);
-    } catch (e) {
-      return {'available': false, 'error': '$e', 'rpc': rpc};
+    } catch (_) {
+      return const <String, dynamic>{'available': false};
     }
   }
 
@@ -126,15 +132,19 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
                 style: const TextStyle(color: _cyan, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 14),
-              _PayloadPanel(title: 'Property intelligence', icon: Icons.home_work_outlined, payload: detail),
+              BridgePointPropertyOverviewV2(payload: detail),
               const SizedBox(height: 10),
-              _PayloadPanel(title: 'Timeline', icon: Icons.timeline_rounded, payload: timeline),
+              BridgePointPropertyTimelineV2(payload: timeline),
               const SizedBox(height: 10),
-              _PayloadPanel(title: '2D / 3D geometry', icon: Icons.view_in_ar_rounded, payload: geometry),
+              BridgePointTwinSummaryV2(payload: twin),
               const SizedBox(height: 10),
-              _PayloadPanel(title: 'Digital twin', icon: Icons.account_tree_rounded, payload: twin),
+              BridgePointBuildingGeometryV2(payload: geometry),
               const SizedBox(height: 10),
-              _PayloadPanel(title: 'Notes & follow-ups', icon: Icons.note_alt_outlined, payload: notes),
+              BridgePointGenericWorkspaceSectionV2(
+                title: 'Notes & follow-ups',
+                payload: notes,
+                icon: Icons.note_alt_outlined,
+              ),
             ],
           ),
         ),

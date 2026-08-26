@@ -45,8 +45,8 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
   Future<dynamic> _safe(String rpc, [Map<String, dynamic>? params]) async {
     try {
       return await Supabase.instance.client.rpc(rpc, params: params);
-    } catch (e) {
-      return {'available': false, 'error': '$e', 'rpc': rpc};
+    } catch (_) {
+      return const <String, dynamic>{'available': false};
     }
   }
 
@@ -149,16 +149,27 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
     });
     try {
       final raw = await Supabase.instance.client.rpc(
-        'bridgepoint_property_suggestions_v192',
-        params: {'p_query': q, 'p_limit': 20},
+        'bridgepoint_flutter_properties_state_browse_v840',
+        params: <String, dynamic>{
+          'p_state_code': _state,
+          'p_search': q,
+          'p_municipality': null,
+          'p_property_type': null,
+          'p_limit': 12,
+          'p_offset': 0,
+        },
       );
-      final rows = _rows(raw).where((row) {
-        final state = '${row['state_code'] ?? ''}'.toUpperCase();
-        return state.isEmpty || state == _state;
-      }).take(12).toList();
-      if (mounted) setState(() => _results = rows);
-    } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      final rows = _rows(raw).take(12).toList();
+      if (!mounted) return;
+      setState(() {
+        _results = rows;
+        if (rows.isEmpty) _error = 'No matching $_state properties were found.';
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error =
+            'Property search is temporarily unavailable. Try a shorter address or parcel search.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -422,7 +433,7 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Search a property, then switch between source footprint and schematic massing in the interactive geometry viewer. If the selected property has no geometry yet, the payload stays explicit about that instead of inventing a model.',
+                    'Search a property, then inspect the highest-fidelity verified geometry BridgePoint has for it. Properties with source XYZ surfaces open the rotatable source-surface model; footprint and massing remain truthful fallbacks when stronger geometry is not available.',
                     style: TextStyle(color: _muted, fontSize: 10),
                   ),
                   const SizedBox(height: 12),
@@ -433,7 +444,7 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
                           controller: _query,
                           onSubmitted: (_) => _search(),
                           decoration: InputDecoration(
-                            labelText: '$_state address, parcel, owner or municipality',
+                            labelText: '$_state address, parcel or municipality',
                             prefixIcon: const Icon(Icons.search_rounded),
                           ),
                         ),
@@ -536,7 +547,7 @@ class _BridgePointBuildingsV2State extends State<BridgePointBuildingsV2> {
                       ],
                     ),
                     const SizedBox(height: 9),
-                    _Payload(payload: _twin),
+                    _TwinSummary(payload: _twin),
                   ],
                 ),
               ),
@@ -598,6 +609,111 @@ class _BuildingMetric extends StatelessWidget {
           ],
         ),
       );
+}
+
+class _TwinSummary extends StatelessWidget {
+  const _TwinSummary({required this.payload});
+  final dynamic payload;
+
+  Map<String, dynamic> _map(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return const <String, dynamic>{};
+  }
+
+  String _label(String value) => value
+      .replaceAll('L0_PROPERTY_SHELL', 'Property shell')
+      .replaceAll('L1_BUILDING_MASSING', 'Building massing')
+      .replaceAll('L2_SOURCE_SURFACE_MODEL', 'Source XYZ surface model')
+      .replaceAll('L2_ROOF_FACADE', 'Roof + facade model')
+      .replaceAll('L3_SEMANTIC_BIM', 'Semantic BIM')
+      .replaceAll('L4_OPERATIONAL_TWIN', 'Operational twin');
+
+  String _pct(dynamic value) {
+    final n = value is num ? value.toDouble() : double.tryParse('${value ?? ''}');
+    if (n == null) return '—';
+    return '${(n * 100).clamp(0, 100).toStringAsFixed(0)}%';
+  }
+
+  Widget _metric(String label, String value, IconData icon, Color color) => Container(
+        constraints: const BoxConstraints(minWidth: 155, maxWidth: 265),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF081625),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: .18)),
+        ),
+        child: Row(children: [
+          Icon(icon, color: color, size: 19),
+          const SizedBox(width: 9),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(color: _BridgePointBuildingsV2State._muted, fontSize: 11.5)),
+          ])),
+        ]),
+      );
+
+  Widget _readiness(String label, dynamic raw) {
+    final value = _map(raw);
+    final ready = value['ready'] == true;
+    return Chip(
+      avatar: Icon(ready ? Icons.check_circle_rounded : Icons.pending_outlined,
+          size: 16,
+          color: ready ? _BridgePointBuildingsV2State._green : _BridgePointBuildingsV2State._muted),
+      label: Text('$label • ${ready ? 'ready' : 'needs more evidence'}'),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final twin = _map(payload);
+    if (twin.isEmpty || twin['available'] == false) {
+      return const Text('Digital-twin intelligence is not available for this property yet.',
+          style: TextStyle(color: _BridgePointBuildingsV2State._muted));
+    }
+    final fidelity = _label('${twin['fidelity_level'] ?? 'Not classified'}');
+    final sourceSurface = twin['source_surface_geometry'] == true ||
+        '${twin['fidelity_level'] ?? ''}' == 'L2_SOURCE_SURFACE_MODEL';
+    final exact = twin['exact_replica_claim_allowed'] == true;
+    final readiness = _map(twin['simulation_readiness']);
+    final upgrades = twin['upgrade_path'] is List
+        ? List<dynamic>.from(twin['upgrade_path'])
+        : const <dynamic>[];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        _metric('Fidelity', fidelity, Icons.view_in_ar_rounded, _BridgePointBuildingsV2State._cyan),
+        _metric('Overall confidence', _pct(twin['overall_confidence']), Icons.verified_outlined, _BridgePointBuildingsV2State._green),
+        _metric('Source XYZ surfaces', sourceSurface ? 'Available' : 'Not linked yet', Icons.layers_rounded,
+            sourceSurface ? _BridgePointBuildingsV2State._green : _BridgePointBuildingsV2State._muted),
+        _metric('Exact replica claim', exact ? 'Verified' : 'Not claimed', Icons.fact_check_outlined,
+            exact ? _BridgePointBuildingsV2State._green : _BridgePointBuildingsV2State._amber),
+      ]),
+      if (readiness.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        const Text('Simulation readiness', style: TextStyle(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 7),
+        Wrap(spacing: 7, runSpacing: 7, children: [
+          _readiness('Wind envelope', readiness['wind_envelope']),
+          _readiness('Roof water pooling', readiness['roof_water_pooling']),
+          _readiness('Flood site flow', readiness['flood_site_flow']),
+          _readiness('Window retrofit', readiness['thermal_window_retrofit']),
+        ]),
+      ],
+      if (upgrades.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        const Text('What would raise fidelity', style: TextStyle(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        Text(upgrades.take(4).map((e) => '${e ?? ''}'.replaceAll('_', ' ')).where((e) => e.trim().isNotEmpty).join(' • '),
+            style: const TextStyle(color: _BridgePointBuildingsV2State._muted, fontSize: 12, height: 1.45)),
+      ],
+      const SizedBox(height: 10),
+      const Text(
+        'Source-surface geometry can reproduce observed roof and wall form, but BridgePoint does not call it photorealistic or an exact replica until imagery, mesh, or other verified facade evidence supports that claim.',
+        style: TextStyle(color: _BridgePointBuildingsV2State._muted, fontSize: 11.5, height: 1.4),
+      ),
+    ]);
+  }
 }
 
 class _Payload extends StatelessWidget {

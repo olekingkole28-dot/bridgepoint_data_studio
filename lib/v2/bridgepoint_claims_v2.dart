@@ -81,7 +81,7 @@ class _BridgePointClaimsV2State extends State<BridgePointClaimsV2> {
       final result = _map(raw);
       if (mounted) setState(() { _message = '${result['message'] ?? 'Claim opened.'}'; _request = _load(); });
     } catch (e) {
-      if (mounted) setState(() => _message = 'Could not open claim: $e');
+      if (mounted) setState(() => _message = 'Could not open this claim workflow right now. Please try again.');
     } finally {
       carrier.dispose(); damage.dispose(); lossDate.dispose();
       if (mounted) setState(() => _busy = false);
@@ -140,7 +140,7 @@ class _BridgePointClaimsV2State extends State<BridgePointClaimsV2> {
       final result = _map(raw);
       if (mounted) setState(() { _message = 'Claim ${result['status'] ?? 'updated'}.'; _request = _load(); });
     } catch (e) {
-      if (mounted) setState(() => _message = 'Could not update claim: $e');
+      if (mounted) setState(() => _message = 'Could not update this claim right now. Please try again.');
     } finally {
       number.dispose(); adjuster.dispose(); estimate.dispose(); approvedAmount.dispose(); nextAction.dispose(); notes.dispose();
       if (mounted) setState(() => _busy = false);
@@ -160,7 +160,7 @@ class _BridgePointClaimsV2State extends State<BridgePointClaimsV2> {
     try {
       intelligence = await _claimIntelligence(claimId);
     } catch (e) {
-      if (mounted) setState(() { _busy = false; _message = 'Claim Intelligence unavailable: $e'; });
+      if (mounted) setState(() { _busy = false; _message = 'Claim Intelligence is temporarily unavailable.'; });
       return;
     }
     if (!mounted) return;
@@ -184,7 +184,7 @@ class _BridgePointClaimsV2State extends State<BridgePointClaimsV2> {
             setLocal(() {});
             if (mounted) setState(() => _message = 'Supplement analysis: ${result['status'] ?? 'complete'}');
           } catch (e) {
-            if (mounted) setState(() => _message = 'Supplement analysis unavailable: $e');
+            if (mounted) setState(() => _message = 'Supplement analysis is temporarily unavailable.');
           }
         }
         Future<void> createPacket() async {
@@ -195,7 +195,7 @@ class _BridgePointClaimsV2State extends State<BridgePointClaimsV2> {
             setLocal(() {});
             if (mounted) setState(() => _message = 'Supplement packet: ${result['status'] ?? 'created'}');
           } catch (e) {
-            if (mounted) setState(() => _message = 'Supplement packet unavailable: $e');
+            if (mounted) setState(() => _message = 'Supplement packet creation is temporarily unavailable.');
           }
         }
         return AlertDialog(
@@ -347,19 +347,80 @@ class _ClaimSection extends StatelessWidget {
   final String title;
   final Map<String, dynamic> value;
 
+  String _label(String key) => key
+      .replaceAll('_', ' ')
+      .split(' ')
+      .where((part) => part.isNotEmpty)
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
+
+  bool _technical(String key) {
+    final k = key.toLowerCase();
+    return k.endsWith('_id') || k == 'metadata' || k == 'payload' ||
+        k == 'raw' || k.contains('internal') || k.contains('token');
+  }
+
+  List<Map<String, dynamic>> _records() {
+    for (final key in const ['items', 'runs', 'documents', 'findings', 'gaps', 'packets']) {
+      final raw = value[key];
+      if (raw is List) {
+        return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    }
+    return const [];
+  }
+
+  String _recordTitle(Map<String, dynamic> row) {
+    for (final key in const ['title', 'name', 'document_name', 'finding', 'gap_type', 'damage_type', 'status', 'label']) {
+      final text = '${row[key] ?? ''}'.trim();
+      if (text.isNotEmpty && text != 'null') return text.replaceAll('_', ' ');
+    }
+    return 'Claim intelligence record';
+  }
+
+  String _recordDetail(Map<String, dynamic> row) {
+    for (final key in const ['summary', 'description', 'reason', 'recommended_action', 'created_at', 'updated_at']) {
+      final text = '${row[key] ?? ''}'.trim();
+      if (text.isNotEmpty && text != 'null') return text;
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scalars = value.entries
+        .where((entry) => entry.value is! Map && entry.value is! List && !_technical(entry.key))
+        .take(14)
+        .toList();
+    final records = _records();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 7),
-          Wrap(spacing: 8, runSpacing: 7, children: value.entries.map((entry) {
-            final raw = '${entry.value}';
-            final text = raw.length > 1200 ? '${raw.substring(0, 1200)}…' : raw;
-            return ConstrainedBox(constraints: const BoxConstraints(maxWidth: 680), child: SelectableText('${entry.key.replaceAll('_', ' ')}: $text', style: const TextStyle(fontSize: 11.5, height: 1.4)));
-          }).toList()),
+          if (scalars.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(spacing: 7, runSpacing: 7, children: scalars.map((entry) => Chip(
+              label: Text('${_label(entry.key)}: ${entry.value ?? '—'}'),
+            )).toList()),
+          ],
+          if (records.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...records.take(20).map((row) {
+              final detail = _recordDetail(row);
+              return ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.fact_check_outlined, color: Color(0xFF48E1FF), size: 18),
+                title: Text(_recordTitle(row), maxLines: 2, overflow: TextOverflow.ellipsis),
+                subtitle: detail.isEmpty ? null : Text(detail, maxLines: 3, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 11.5)),
+              );
+            }),
+          ],
+          if (scalars.isEmpty && records.isEmpty)
+            const Text('No customer-facing claim intelligence records are available yet.',
+                style: TextStyle(color: Color(0xFFB5C6D9))),
         ]),
       ),
     );

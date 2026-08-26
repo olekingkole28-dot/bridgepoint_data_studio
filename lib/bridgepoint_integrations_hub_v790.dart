@@ -128,7 +128,7 @@ class _BridgePointIntegrationsHubState
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not record request: $error')),
+          const SnackBar(content: Text('Could not record this integration request right now. Please try again.')),
         );
       }
     } finally {
@@ -284,7 +284,7 @@ class _BridgePointIntegrationsHubState
               _MessageCard(
                 icon: Icons.error_outline_rounded,
                 title: 'Integration catalog unavailable',
-                message: snapshot.error.toString(),
+                message: 'BridgePoint could not load the integration catalog right now. Please try refresh in a moment.',
               )
             else if (visible.isEmpty)
               const _MessageCard(

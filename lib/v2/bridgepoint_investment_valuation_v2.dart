@@ -114,7 +114,7 @@ class _BridgePointInvestmentValuationV2State
           return Card(
             child: Padding(
               padding: const EdgeInsets.all(18),
-              child: Text('Valuation room unavailable: ${snapshot.error}'),
+              child: const Text('The owner valuation room is temporarily unavailable. Live product data is unaffected.'),
             ),
           );
         }

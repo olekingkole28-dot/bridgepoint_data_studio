@@ -36,9 +36,11 @@ class BridgePointV2App extends StatelessWidget {
       theme: _theme(),
       builder: (context, child) {
         final media = MediaQuery.of(context);
-        final scale = media.size.width < 820 ? 1.06 : 1.04;
+        final appBump = media.size.width < 820 ? 1.06 : 1.04;
+        final userScale = media.textScaler.scale(1.0);
+        final effectiveScale = (userScale * appBump).clamp(0.8, 2.5);
         return MediaQuery(
-          data: media.copyWith(textScaler: TextScaler.linear(scale)),
+          data: media.copyWith(textScaler: TextScaler.linear(effectiveScale)),
           child: child ?? const SizedBox.shrink(),
         );
       },
@@ -432,7 +434,12 @@ class _AuthPageV2State extends State<_AuthPageV2> {
         );
       }
     } catch (e) {
-      if (mounted) setState(() => error = '$e');
+      if (mounted) {
+        final message = e is AuthException
+            ? e.message
+            : 'BridgePoint could not complete authentication right now. Please try again.';
+        setState(() => error = message);
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -732,20 +739,24 @@ class _WorkspaceV2State extends State<_WorkspaceV2> {
           ),
       ];
 
-  List<_AreaV2> get _primary => [
+  List<_AreaV2> get _primary => const [
         _AreaV2.home,
         _AreaV2.map,
         _AreaV2.properties,
-        owner ? _AreaV2.investment : _AreaV2.investor,
+        _AreaV2.investor,
       ];
 
   void _navigateFromStudio(int oldIndex) {
     final target = switch (oldIndex) {
-      1 || 4 || 8 => _AreaV2.property,
+      1 => _AreaV2.opportunities,
       3 => _AreaV2.map,
-      5 => _AreaV2.sources,
-      6 => _AreaV2.products,
-      7 => _AreaV2.models,
+      4 => _AreaV2.property,
+      5 => _AreaV2.signals,
+      6 => _AreaV2.sources,
+      7 => _AreaV2.operations,
+      8 => _AreaV2.sources,
+      9 => _AreaV2.map,
+      11 => _AreaV2.models,
       14 => _AreaV2.integrations,
       _ => _AreaV2.studio,
     };

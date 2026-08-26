@@ -80,7 +80,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
     try {
       return await Supabase.instance.client.rpc(rpc, params: params);
     } catch (e) {
-      return {'available': false, 'rpc': rpc, 'error': '$e'};
+      return const <String, dynamic>{'available': false};
     }
   }
 
@@ -101,7 +101,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       );
       if (mounted) setState(() => _results = _list(raw));
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = 'This BridgePoint action is temporarily unavailable. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -194,7 +194,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = 'This BridgePoint action is temporarily unavailable. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -307,7 +307,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _message = 'Watchlist action unavailable: $e');
+        setState(() => _message = 'Watchlist action is temporarily unavailable.');
       }
     } finally {
       newName.dispose();
@@ -396,7 +396,7 @@ class _BridgePointProperty360V2State extends State<BridgePointProperty360V2> {
         ),
       );
     } catch (e) {
-      if (mounted) setState(() => _message = 'BridgePoint AI unavailable: $e');
+      if (mounted) setState(() => _message = 'BridgePoint AI is temporarily unavailable.');
     } finally {
       prompt.dispose();
       if (mounted) setState(() => _busy = false);
