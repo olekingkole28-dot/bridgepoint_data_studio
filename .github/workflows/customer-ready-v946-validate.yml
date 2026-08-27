@@ -1,0 +1,36 @@
+name: Customer Ready V946 Validation
+
+on:
+  push:
+    branches: [customer-ready-v946]
+    paths:
+      - 'lib/main_v2.dart'
+      - 'lib/v2/bridgepoint_customer_ready_app_v946.dart'
+      - '.github/workflows/customer-ready-v946-validate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze customer-ready shell
+        run: flutter analyze lib/main_v2.dart lib/v2/bridgepoint_customer_ready_app_v946.dart --no-fatal-infos --no-fatal-warnings
+      - name: Run release tests
+        run: flutter test
+      - name: Build customer-ready web
+        run: flutter build web --release -t lib/main_v2.dart --base-href '/app/'
+      - name: Verify artifact
+        run: |
+          set -euo pipefail
+          test -s build/web/index.html
+          test -s build/web/main.dart.js
+          grep -q '<base href="/app/">' build/web/index.html
