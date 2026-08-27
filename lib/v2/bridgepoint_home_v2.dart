@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../v2/bridgepoint_chrome_v2.dart';
-import '../v2/bridgepoint_map_weather_v2.dart';
-import '../v2/bridgepoint_opportunities_v2.dart';
-import '../v2/bridgepoint_properties_v2.dart';
-import '../v2/bridgepoint_property_360_v2.dart';
+import 'bridgepoint_chrome_v2.dart';
+import 'bridgepoint_map_weather_v2.dart';
+import 'bridgepoint_opportunities_v2.dart';
+import 'bridgepoint_properties_v2.dart';
+import 'bridgepoint_property_360_v2.dart';
 
 class BridgePointHomeV2 extends StatefulWidget {
   const BridgePointHomeV2({super.key});
@@ -158,10 +158,7 @@ class _BridgePointHomeV2State extends State<BridgePointHomeV2> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Know where to look next.',
-                    style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, height: 1.04, letterSpacing: -.6),
-                  ),
+                  const Text('Know where to look next.', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, height: 1.04, letterSpacing: -.6)),
                   const SizedBox(height: 9),
                   const ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: 760),
@@ -175,21 +172,9 @@ class _BridgePointHomeV2State extends State<BridgePointHomeV2> {
                     spacing: 9,
                     runSpacing: 9,
                     children: [
-                      FilledButton.icon(
-                        onPressed: () => _open('Property Map & Weather', const BridgePointMapWeatherV2()),
-                        icon: const Icon(Icons.public_rounded),
-                        label: const Text('Open map'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => _open('Properties', const BridgePointPropertiesV2()),
-                        icon: const Icon(Icons.holiday_village_rounded),
-                        label: const Text('Find a property'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () => _open('Opportunities', const BridgePointOpportunitiesV2()),
-                        icon: const Icon(Icons.location_searching_rounded),
-                        label: const Text('View opportunities'),
-                      ),
+                      FilledButton.icon(onPressed: () => _open('Property Map & Weather', const BridgePointMapWeatherV2()), icon: const Icon(Icons.public_rounded), label: const Text('Open map')),
+                      OutlinedButton.icon(onPressed: () => _open('Properties', const BridgePointPropertiesV2()), icon: const Icon(Icons.holiday_village_rounded), label: const Text('Find a property')),
+                      OutlinedButton.icon(onPressed: () => _open('Opportunities', const BridgePointOpportunitiesV2()), icon: const Icon(Icons.location_searching_rounded), label: const Text('View opportunities')),
                     ],
                   ),
                 ],
@@ -207,11 +192,7 @@ class _BridgePointHomeV2State extends State<BridgePointHomeV2> {
                   _Metric('STATES WITH PROPERTY DATA', '$propertyStates', 'Property coverage is progressive; state depth varies', Icons.map_outlined, _blue),
                   _Metric('STATES WITH OPPORTUNITIES', '$opportunityStates', 'Only states with actual scored opportunity output count here', Icons.flag_outlined, _gold),
                 ];
-                return Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [for (final card in cards) SizedBox(width: width, child: card)],
-                );
+                return Wrap(spacing: 10, runSpacing: 10, children: [for (final card in cards) SizedBox(width: width, child: card)]);
               },
             ),
             const SizedBox(height: 14),
@@ -221,24 +202,12 @@ class _BridgePointHomeV2State extends State<BridgePointHomeV2> {
             const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: _panel,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: .08)),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.verified_user_outlined, color: _green, size: 19),
-                  SizedBox(width: 9),
-                  Expanded(
-                    child: Text(
-                      'BridgePoint is evidence-first. A score or signal helps prioritize review; it is not proof of property damage, claim coverage, legal status or a guaranteed outcome.',
-                      style: TextStyle(color: _muted, fontSize: 12.2, height: 1.45),
-                    ),
-                  ),
-                ],
-              ),
+              decoration: BoxDecoration(color: _panel, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: .08))),
+              child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.verified_user_outlined, color: _green, size: 19),
+                SizedBox(width: 9),
+                Expanded(child: Text('BridgePoint is evidence-first. A score or signal helps prioritize review; it is not proof of property damage, claim coverage, legal status or a guaranteed outcome.', style: TextStyle(color: _muted, fontSize: 12.2, height: 1.45))),
+              ]),
             ),
           ],
         );
@@ -258,29 +227,16 @@ class _Metric extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _BridgePointHomeV2State._panel,
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: color.withValues(alpha: .17)),
-          boxShadow: [BoxShadow(color: color.withValues(alpha: .04), blurRadius: 20)],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(color: color.withValues(alpha: .11), borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(height: 12),
-            Text(label, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: .6)),
-            const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 5),
-            Text(detail, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 12, height: 1.38)),
-          ],
-        ),
+        decoration: BoxDecoration(color: _BridgePointHomeV2State._panel, borderRadius: BorderRadius.circular(17), border: Border.all(color: color.withValues(alpha: .17)), boxShadow: [BoxShadow(color: color.withValues(alpha: .04), blurRadius: 20)]),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 42, height: 42, decoration: BoxDecoration(color: color.withValues(alpha: .11), borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: color, size: 22)),
+          const SizedBox(height: 12),
+          Text(label, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: .6)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 5),
+          Text(detail, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 12, height: 1.38)),
+        ]),
       );
 }
 
@@ -298,50 +254,19 @@ class _HowItWorks extends StatelessWidget {
     ];
     return Container(
       padding: const EdgeInsets.all(17),
-      decoration: BoxDecoration(
-        color: _BridgePointHomeV2State._panel,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('How BridgePoint thinks about a property', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-              SizedBox(height: 3),
-              Text('The complicated backend stays underneath this simple flow.', style: TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 12.2)),
-            ])),
-            TextButton.icon(onPressed: onProperty, icon: const Icon(Icons.arrow_forward_rounded), label: const Text('Open property view')),
-          ]),
-          const SizedBox(height: 13),
-          LayoutBuilder(builder: (context, c) {
-            final columns = c.maxWidth >= 900 ? 4 : c.maxWidth >= 520 ? 2 : 1;
-            final width = (c.maxWidth - (columns - 1) * 8) / columns;
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final step in steps)
-                  SizedBox(
-                    width: width,
-                    child: Container(
-                      padding: const EdgeInsets.all(13),
-                      decoration: BoxDecoration(color: step.$4.withValues(alpha: .06), borderRadius: BorderRadius.circular(14), border: Border.all(color: step.$4.withValues(alpha: .14))),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Icon(step.$1, color: step.$4, size: 22),
-                        const SizedBox(height: 9),
-                        Text(step.$2, style: const TextStyle(fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 4),
-                        Text(step.$3, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 11.5, height: 1.35)),
-                      ]),
-                    ),
-                  ),
-              ],
-            );
-          }),
-        ],
-      ),
+      decoration: BoxDecoration(color: _BridgePointHomeV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alpha: .08))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('How BridgePoint thinks about a property', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)), SizedBox(height: 3), Text('The complicated backend stays underneath this simple flow.', style: TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 12.2))])),
+          TextButton.icon(onPressed: onProperty, icon: const Icon(Icons.arrow_forward_rounded), label: const Text('Open property view')),
+        ]),
+        const SizedBox(height: 13),
+        LayoutBuilder(builder: (context, c) {
+          final columns = c.maxWidth >= 900 ? 4 : c.maxWidth >= 520 ? 2 : 1;
+          final width = (c.maxWidth - (columns - 1) * 8) / columns;
+          return Wrap(spacing: 8, runSpacing: 8, children: [for (final step in steps) SizedBox(width: width, child: Container(padding: const EdgeInsets.all(13), decoration: BoxDecoration(color: step.$4.withValues(alpha: .06), borderRadius: BorderRadius.circular(14), border: Border.all(color: step.$4.withValues(alpha: .14))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(step.$1, color: step.$4, size: 22), const SizedBox(height: 9), Text(step.$2, style: const TextStyle(fontWeight: FontWeight.w900)), const SizedBox(height: 4), Text(step.$3, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 11.5, height: 1.35))])))]);
+        }),
+      ]),
     );
   }
 }
@@ -353,11 +278,7 @@ class _OpportunityPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(17),
-        decoration: BoxDecoration(
-          color: _BridgePointHomeV2State._panel,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: .08)),
-        ),
+        decoration: BoxDecoration(color: _BridgePointHomeV2State._panel, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.white.withValues(alpha: .08))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('What deserves attention now', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
           const SizedBox(height: 3),
@@ -387,14 +308,11 @@ class _OpportunityPreview extends StatelessWidget {
 
 class _LivePill extends StatelessWidget {
   const _LivePill();
+
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
         decoration: BoxDecoration(color: _BridgePointHomeV2State._green.withValues(alpha: .10), borderRadius: BorderRadius.circular(999), border: Border.all(color: _BridgePointHomeV2State._green.withValues(alpha: .24))),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.circle, color: _BridgePointHomeV2State._green, size: 7),
-          SizedBox(width: 5),
-          Text('LIVE', style: TextStyle(color: _BridgePointHomeV2State._green, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .7)),
-        ]),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.circle, color: _BridgePointHomeV2State._green, size: 7), SizedBox(width: 5), Text('LIVE', style: TextStyle(color: _BridgePointHomeV2State._green, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .7))]),
       );
 }
