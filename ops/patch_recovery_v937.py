@@ -11,6 +11,20 @@ def replace_once(path: Path, old: str, new: str, label: str) -> None:
 shell = Path('lib/v2/bridgepoint_recovery_shell_v3.dart')
 dossier = Path('lib/v2/bridgepoint_property_dossier_recovered_v7.dart')
 
+shell_before = shell.read_text(encoding='utf-8')
+dossier_before = dossier.read_text(encoding='utf-8')
+primary_before = shell_before.split('const _primary = <_AreaSpec>[', 1)[1].split('];', 1)[0]
+if (
+    primary_before.count('_AreaSpec(') == 4
+    and "'Opportunities'" not in primary_before
+    and "_AreaSpec(_Area.opportunities, 'Opportunities'" in shell_before
+    and "'Structure 3D'" in dossier_before
+    and '_TwinView _view = _TwinView.front;' in dossier_before
+    and 'PROPERTY VISUAL + INTELLIGENCE' in dossier_before
+):
+    print('Recovery V937 already applied; contract remains satisfied.')
+    raise SystemExit(0)
+
 replace_once(
     shell,
     '/// Recovery V3 deliberately limits permanent navigation to five entrances.',
@@ -79,10 +93,12 @@ replace_once(
     'truthful empty 3d message',
 )
 
-# Guardrails: keep property capability contextual and truthful.
 shell_text = shell.read_text(encoding='utf-8')
 dossier_text = dossier.read_text(encoding='utf-8')
-assert "_AreaSpec(_Area.opportunities, 'Opportunities'" not in shell_text.split('const _primary = <_AreaSpec>[',1)[1].split('];',1)[0]
+primary = shell_text.split('const _primary = <_AreaSpec>[', 1)[1].split('];', 1)[0]
+assert primary.count('_AreaSpec(') == 4
+assert "'Opportunities'" not in primary
+assert "_AreaSpec(_Area.opportunities, 'Opportunities'" in shell_text
 assert "_AreaSpec(_Area.work, 'Work'" in shell_text
 assert "'Structure 3D'" in dossier_text
 assert 'PROPERTY VISUAL + INTELLIGENCE' in dossier_text
