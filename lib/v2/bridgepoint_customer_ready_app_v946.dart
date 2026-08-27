@@ -830,7 +830,7 @@ class _CustomerWorkspaceState extends State<_CustomerWorkspace> {
         _CustomerArea.map => 'Intelligence Map',
         _CustomerArea.opportunities => 'Opportunities',
         _CustomerArea.work => 'Work',
-        _CustomerArea.plans => 'Plans & Access',
+        _CustomerArea.plans => 'Packages & Access',
         _CustomerArea.properties => 'Properties',
         _CustomerArea.search => 'Search',
         _CustomerArea.saved => 'Saved & Alerts',
@@ -1063,7 +1063,7 @@ class _CustomerWorkspaceState extends State<_CustomerWorkspace> {
             NavigationDestination(
               icon: Icon(Icons.workspace_premium_outlined),
               selectedIcon: Icon(Icons.workspace_premium_rounded),
-              label: 'Plans',
+              label: 'Packages',
             ),
           ],
         ),
@@ -1132,7 +1132,7 @@ class _CustomerWorkspaceState extends State<_CustomerWorkspace> {
         _CustomerArea.map => 'Map',
         _CustomerArea.opportunities => 'Opportunities',
         _CustomerArea.work => 'Work',
-        _CustomerArea.plans => 'Plans & Access',
+        _CustomerArea.plans => 'Packages & Access',
         _ => 'More',
       };
 
