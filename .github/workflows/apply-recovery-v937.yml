@@ -1,0 +1,63 @@
+name: Apply Recovery V937 Unified Property
+
+on:
+  push:
+    branches:
+      - podcast-product-recovery-v3
+    paths:
+      - '.github/workflows/apply-recovery-v937.yml'
+      - 'ops/patch_recovery_v937.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-recovery-v937-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: podcast-product-recovery-v3
+          fetch-depth: 0
+
+      - name: Apply guarded V937 patch
+        run: python ops/patch_recovery_v937.py
+
+      - name: Verify structural UX contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          shell=Path('lib/v2/bridgepoint_recovery_shell_v3.dart').read_text()
+          dossier=Path('lib/v2/bridgepoint_property_dossier_recovered_v7.dart').read_text()
+          primary=shell.split('const _primary = <_AreaSpec>[',1)[1].split('];',1)[0]
+          assert primary.count('_AreaSpec(') == 4, primary
+          assert "'Home'" in primary and "'Map'" in primary and "'Properties'" in primary and "'Work'" in primary
+          assert "'Opportunities'" not in primary
+          assert "_AreaSpec(_Area.opportunities, 'Opportunities'" in shell
+          assert "'Structure 3D'" in dossier
+          assert '_TwinView _view = _TwinView.front;' in dossier
+          assert 'BridgePoint will not manufacture a house photo' in dossier
+          print('V937 UX contract checks passed.')
+          PY
+
+      - name: Commit recovery source update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Recovery Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_recovery_shell_v3.dart lib/v2/bridgepoint_property_dossier_recovered_v7.dart
+          if git diff --cached --quiet; then
+            echo 'V937 changes already applied.'
+          else
+            git commit -m 'Unify property experience and reduce permanent navigation V937'
+            git push origin HEAD:podcast-product-recovery-v3
+          fi
