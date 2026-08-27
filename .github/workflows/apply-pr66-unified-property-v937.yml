@@ -1,0 +1,78 @@
+name: Apply PR66 Unified Property V937
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-pr66-unified-property-v937.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-pr66-unified-property-v937
+  cancel-in-progress: false
+
+jobs:
+  patch-analyze-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout PR66 recovery branch
+        uses: actions/checkout@v4
+        with:
+          ref: podcast-product-recovery-v3
+          fetch-depth: 0
+
+      - name: Apply V937 guarded patch
+        run: python ops/patch_recovery_v937.py
+
+      - name: Verify V937 source contract before Flutter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          shell=Path('lib/v2/bridgepoint_recovery_shell_v3.dart').read_text()
+          dossier=Path('lib/v2/bridgepoint_property_dossier_recovered_v7.dart').read_text()
+          primary=shell.split('const _primary = <_AreaSpec>[',1)[1].split('];',1)[0]
+          assert primary.count('_AreaSpec(') == 4, primary
+          assert all(label in primary for label in ["'Home'","'Map'","'Properties'","'Work'"])
+          assert "'Opportunities'" not in primary
+          assert "_AreaSpec(_Area.opportunities, 'Opportunities'" in shell
+          assert "'Structure 3D'" in dossier
+          assert '_TwinView _view = _TwinView.front;' in dossier
+          assert 'PROPERTY VISUAL + INTELLIGENCE' in dossier
+          assert 'BridgePoint will not manufacture a house photo' in dossier
+          print('V937 structural contract passed.')
+          PY
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format V937 source
+        run: dart format lib/v2/bridgepoint_recovery_shell_v3.dart lib/v2/bridgepoint_property_dossier_recovered_v7.dart
+
+      - name: Analyze Clean V2 recovery
+        run: flutter analyze --no-fatal-infos
+
+      - name: Commit only after analyze passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Recovery Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_recovery_shell_v3.dart lib/v2/bridgepoint_property_dossier_recovered_v7.dart
+          if git diff --cached --quiet; then
+            echo 'V937 source already present and analyzed.'
+          else
+            git commit -m 'Unify Property and reduce permanent navigation V937'
+            git push origin HEAD:podcast-product-recovery-v3
+          fi
