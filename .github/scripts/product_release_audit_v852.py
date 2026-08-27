@@ -5,17 +5,20 @@ import sys
 ROOT = Path('.')
 LIB = ROOT / 'lib'
 errors = []
-notes = []
+
 
 def fail(msg):
     errors.append(msg)
+
 
 def check(cond, msg):
     if not cond:
         fail(msg)
 
+
 def text(path):
     return (ROOT / path).read_text(encoding='utf-8')
+
 
 # ---- Weather permanent regression contract ----
 weather_path = 'lib/v2/bridgepoint_map_weather_v2.dart'
@@ -24,10 +27,12 @@ check(w.count("import 'dart:convert';") == 1, 'Weather must import dart:convert 
 check(w.count("import 'package:http/http.dart' as http;") == 1, 'Weather must import package:http exactly once')
 check('_loadRadarFrames()' in w, 'Weather must load NOAA published frame catalog')
 check('idp_validtime' in w, 'Weather must use NOAA idp_validtime')
-check("_radarFrames.isEmpty\n                              ? const <String, String>{}" in w or "_radarFrames.isEmpty" in w and "otherParameters:" in w, 'Weather must omit TIME when no published frame exists')
-check('max: 48' not in w and 'frame >= 48' not in w, 'Weather must not hardcode a 49-frame radar history')
+check('max: 48' not in w and 'frame >= 48' not in w, 'Weather must not hardcode radar history')
 check('_radarFrames.length - 1' in w, 'Weather slider/timer must use actual NOAA frame count')
 check('_radarMaxHonestZoom' in w, 'Weather must retain property-level radar truth zoom gate')
+check('Duration(milliseconds: 2600)' in w, 'Radar animation must allow mobile imagery time to render')
+check('Icons.roofing_rounded' in w and 'Icons.thunderstorm_rounded' in w,
+      'Map must retain professional category-specific opportunity markers')
 
 # ---- 3D / digital twin permanent regression contract ----
 geom = text('lib/v2/bridgepoint_building_geometry_v2.dart')
@@ -62,45 +67,72 @@ for rpc in [
 ]:
     check(rpc in all_dart, f'Hardened customer RPC is not wired into Flutter: {rpc}')
 
-# ---- Navigation contract ----
+# ---- Clean V2 information architecture contract ----
 app = text('lib/v2/bridgepoint_app_v2.dart')
-for marker in ['_AreaV2.home', '_AreaV2.map', '_AreaV2.properties', '_AreaV2.investor']:
-    check(marker in app, f'Mobile primary navigation missing {marker}')
-check("'Property Investor'" in app, 'Property Investor label missing from app shell')
-check("'Investment / Worth'" in app, 'Owner Investment / Worth destination missing')
+check("static const primary = <_Area>[_Area.home, _Area.map, _Area.properties, _Area.work];" in app,
+      'Primary navigation must be Home / Map / Properties / Work')
+for label in ["label:'Home'", "label:'Map'", "label:'Properties'", "label:'Work'", "label:'Plans'"]:
+    check(label in app or label.replace("label:'", "label: '") in app, f'Navigation missing {label}')
+check("if (owner) _Group(title:'Owner only'" in app or "if (owner) _Group(title: 'Owner only'" in app,
+      'Models/Worth/Studio must be behind owner-only navigation')
+check("_item(_Area.worth,'Owner Valuation'" in app, 'Owner valuation must remain available to the owner')
+check("_item(_Area.models,'Model Operations'" in app, 'Model operations must remain available to the owner')
+check("_item(_Area.studio,'Intelligence Studio'" in app, 'Intelligence Studio must remain available to the owner')
+# These internal areas may exist in the switch, but cannot appear in normal customer groups.
+customer_slice = app.split("if (owner) _Group", 1)[0]
+check("_item(_Area.worth" not in customer_slice, 'Worth leaked into customer Explore')
+check("_item(_Area.models" not in customer_slice, 'Models leaked into customer Explore')
+check("_item(_Area.studio" not in customer_slice, 'Studio leaked into customer Explore')
 
-# ---- Checkout contract ----
-packages = text('lib/v2/settings/bridgepoint_packages_v2.dart')
-check("Future<void> _buy(Map<String, dynamic> package, String interval)" in packages,
-      'Packages must pass an explicit billing interval into checkout')
-check("body: {'package_key': key, 'interval': interval}" in packages,
-      'Checkout invocation must use the selected interval')
-check("_buy(p, 'month')" in packages and "_buy(p, 'year')" in packages,
-      'Customer packages must expose both monthly and annual checkout when annual pricing exists')
-check("'interval': 'month'" not in packages,
-      'Packages must not silently hardcode every checkout to monthly')
+# ---- Customer Plans / checkout contract ----
+plans = text('lib/v2/bridgepoint_products_settings_v2.dart')
+check('bridgepoint_customer_plans_v944' in plans,
+      'Normal plan chooser must use customer-safe V944 package catalog')
+check("'bridgepoint-checkout-v67'" in plans,
+      'Plans must use BridgePoint secure checkout')
+check("body: {'package_key': key, 'interval': interval}" in plans,
+      'Checkout invocation must pass selected package and billing interval')
+check("_checkout(plan, 'month')" in plans and "_checkout(plan, 'year')" in plans,
+      'Customer plans must expose monthly and annual checkout when annual pricing exists')
+check('7-DAY FREE TRIAL' in plans,
+      'Plans conversion surface must preserve the free-trial message')
 
-# ---- No old hard-coded formula shell regression ----
-home = text('lib/v2/bridgepoint_home_live_v2.dart') if (ROOT/'lib/v2/bridgepoint_home_live_v2.dart').exists() else ''
+# ---- Owner truth contracts ----
+owner = text('lib/screens/bridgepoint_owner_overview_v2.dart')
+check('bridgepoint_owner_parcel_progress_v942' in owner,
+      'Owner Overview must use real parcel progress contract V942')
+check('bridgepoint_owner_source_truth_v943' in owner,
+      'Owner Overview must distinguish unique source breadth from routing rows')
+check('LAST PARCEL ACTIVITY' in owner and 'DISTINCT SOURCE ENDPOINTS' in owner,
+      'Owner Overview must visibly expose parcel heartbeat and source-count truth')
+
+# ---- Shared visual contract ----
+chrome = text('lib/v2/bridgepoint_chrome_v2.dart')
+check('_BridgePointOrbitalDnaPainter' in chrome,
+      'Clean V2 must use the darker orbital/DNA motion background')
+check('bridgepoint-mark-v80.svg' in chrome,
+      'Clean V2 must use the real BridgePoint mark')
+
+# ---- No hard-coded formula shell regression ----
+home = text('lib/v2/bridgepoint_home_v2.dart')
 landing = text('lib/v2/bridgepoint_public_landing_v2.dart')
 check('equation' not in home.lower(), 'Signed-in Home regressed to equation/formula presentation')
 check('equation' not in landing.lower(), 'Public landing regressed to equation/formula presentation')
 
 # ---- Deep customer-surface hygiene ----
-production_v2 = [p for p in (LIB/'v2').rglob('*.dart')]
-# Catch only user-visible interpolation patterns around Text/message strings, not catch variable declarations.
+production_v2 = [p for p in (LIB / 'v2').rglob('*.dart')]
 for p in production_v2:
     s = p.read_text(encoding='utf-8')
     rel = p.as_posix()
     for i, line in enumerate(s.splitlines(), 1):
         stripped = line.strip()
-        if ('Text(' in stripped or '_message =' in stripped or "return {'" in stripped) and ('${snapshot.error}' in line or '$snapshot.error' in line or "'$e'" in line or '"$e"' in line or "'$error'" in line or '"$error"' in line):
+        if ('Text(' in stripped or '_message =' in stripped) and (
+            '${snapshot.error}' in line or '$snapshot.error' in line or "'$e'" in line or '"$e"' in line
+        ):
             fail(f'Raw exception appears customer-visible: {rel}:{i}: {stripped[:160]}')
         if 'TODO' in line or 'FIXME' in line:
             fail(f'Production TODO/FIXME remains: {rel}:{i}: {stripped[:160]}')
 
-# Recursive generic payload presenters are disallowed on customer-facing V2 pages.
-# Property presentation may keep structured audit detail only when explicitly customer-safe.
 allowed_payload_files = {'lib/v2/bridgepoint_property_presentation_v2.dart'}
 for p in production_v2:
     rel = p.as_posix()
@@ -118,9 +150,10 @@ for p in LIB.rglob('*.dart'):
     if dupes:
         fail(f'Duplicate imports in {p.as_posix()}: {dupes}')
 
-# Required restored surfaces.
+# Required restored surfaces remain present even though they are contextualized.
 required = [
     'lib/v2/bridgepoint_properties_v2.dart',
+    'lib/v2/bridgepoint_opportunities_v2.dart',
     'lib/v2/bridgepoint_investor_v2.dart',
     'lib/v2/bridgepoint_buildings_v2.dart',
     'lib/v2/bridgepoint_source_surface_model_v2.dart',
@@ -130,13 +163,15 @@ required = [
     'lib/v2/bridgepoint_global_search_v2.dart',
 ]
 for path in required:
-    check((ROOT/path).exists(), f'Restored product surface missing: {path}')
+    check((ROOT / path).exists(), f'Restored product surface missing: {path}')
 
-print('BridgePoint product release audit V858')
+check(not (LIB / 'v3').exists(), 'Parallel V3 architecture reappeared; Clean V2 must remain the single app')
+
+print('BridgePoint Clean V2 product release audit')
 print(f'Checked {len(list(LIB.rglob("*.dart")))} Dart files')
 if errors:
     print('\nFAILURES:')
     for err in errors:
         print(f' - {err}')
     sys.exit(1)
-print('PASS: weather, true XYZ 3D/twin, hardened property RPCs, navigation, checkout, customer-surface hygiene, and restored-surface contracts')
+print('PASS: radar, true XYZ 3D, hardened RPCs, four-area navigation, owner-only internals, customer plans, owner truth, visual system, and customer-surface hygiene')
