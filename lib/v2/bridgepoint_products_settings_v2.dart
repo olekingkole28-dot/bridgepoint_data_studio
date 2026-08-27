@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../v2/settings/bridgepoint_package_fit_v2.dart';
+import 'settings/bridgepoint_package_fit_v2.dart';
 
 class BridgePointProductsSettingsV2 extends StatefulWidget {
   const BridgePointProductsSettingsV2({super.key});
@@ -171,11 +171,7 @@ class _BridgePointProductsSettingsV2State extends State<BridgePointProductsSetti
               LayoutBuilder(builder: (context, c) {
                 final columns = c.maxWidth >= 1050 ? 3 : c.maxWidth >= 650 ? 2 : 1;
                 final width = (c.maxWidth - (columns - 1) * 10) / columns;
-                return Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [for (final plan in plans) SizedBox(width: width, child: _planCard(plan))],
-                );
+                return Wrap(spacing: 10, runSpacing: 10, children: [for (final plan in plans) SizedBox(width: width, child: _planCard(plan))]);
               }),
             const SizedBox(height: 14),
             Container(
@@ -214,10 +210,7 @@ class _BridgePointProductsSettingsV2State extends State<BridgePointProductsSetti
           const SizedBox(width: 11),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${plan['package_name'] ?? key}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-            if (featured) ...[
-              const SizedBox(height: 3),
-              Text('FEATURED', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .7)),
-            ],
+            if (featured) ...[const SizedBox(height: 3), Text('FEATURED', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .7))],
           ])),
         ]),
         const SizedBox(height: 14),
@@ -226,27 +219,12 @@ class _BridgePointProductsSettingsV2State extends State<BridgePointProductsSetti
           const Padding(padding: EdgeInsets.only(bottom: 4, left: 3), child: Text('/mo', style: TextStyle(color: _muted, fontSize: 11))),
         ]),
         if (plan['trial_days'] != null) ...[const SizedBox(height: 4), Text('${plan['trial_days']}-day free trial', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12))],
-        if ('${plan['description'] ?? ''}'.trim().isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Text('${plan['description']}', maxLines: 4, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.42)),
-        ],
-        if ('${plan['best_for'] ?? ''}'.trim().isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Text('BEST FOR', style: TextStyle(color: color, fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: .6)),
-          const SizedBox(height: 3),
-          Text('${plan['best_for']}', style: const TextStyle(fontSize: 12.2, height: 1.4)),
-        ],
+        if ('${plan['description'] ?? ''}'.trim().isNotEmpty) ...[const SizedBox(height: 10), Text('${plan['description']}', maxLines: 4, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.42))],
+        if ('${plan['best_for'] ?? ''}'.trim().isNotEmpty) ...[const SizedBox(height: 10), Text('BEST FOR', style: TextStyle(color: color, fontSize: 10.5, fontWeight: FontWeight.w900, letterSpacing: .6)), const SizedBox(height: 3), Text('${plan['best_for']}', style: const TextStyle(fontSize: 12.2, height: 1.4))],
         if (includes.isNotEmpty) ...[
           const SizedBox(height: 10),
           for (final item in includes.take(4))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Icon(Icons.check_rounded, color: color, size: 16),
-                const SizedBox(width: 6),
-                Expanded(child: Text(item, style: const TextStyle(color: _muted, fontSize: 11.7, height: 1.35))),
-              ]),
-            ),
+            Padding(padding: const EdgeInsets.only(bottom: 5), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(Icons.check_rounded, color: color, size: 16), const SizedBox(width: 6), Expanded(child: Text(item, style: const TextStyle(color: _muted, fontSize: 11.7, height: 1.35)))])),
         ],
         const SizedBox(height: 14),
         FilledButton.icon(
@@ -255,10 +233,7 @@ class _BridgePointProductsSettingsV2State extends State<BridgePointProductsSetti
           icon: const Icon(Icons.credit_card_rounded),
           label: const Text('Start monthly'),
         ),
-        if (yearly != null) ...[
-          const SizedBox(height: 7),
-          OutlinedButton(onPressed: _busy ? null : () => _checkout(plan, 'year'), child: Text('Annual • ${_money(yearly)}')),
-        ],
+        if (yearly != null) ...[const SizedBox(height: 7), OutlinedButton(onPressed: _busy ? null : () => _checkout(plan, 'year'), child: Text('Annual • ${_money(yearly)}'))],
       ]),
     );
   }
