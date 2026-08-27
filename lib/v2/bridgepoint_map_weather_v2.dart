@@ -91,8 +91,6 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
     super.initState();
     _loadRadarFrames();
     _loadOverview();
-    // 850ms was faster than NOAA WMS tiles could reliably paint on phones.
-    // 2.6s leaves each frame visible long enough to load and be understood.
     _radarTimer = Timer.periodic(const Duration(milliseconds: 2600), (_) {
       if (mounted && radar && playing && _radarFrames.length > 1) {
         setState(() => frame = frame >= _radarFrames.length - 1 ? 0 : frame + 1);
@@ -554,68 +552,65 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
 
   Widget _filter(String label, IconData icon, bool value, ValueChanged<bool> onChanged) => FilterChip(
         selected: value,
-        avatar: Icon(icon, size: 16, color: value ? _cyan : _muted),
         label: Text(label),
+        avatar: Icon(icon, size: 16),
         onSelected: onChanged,
       );
 
   @override
   Widget build(BuildContext context) {
-    final readyStates = _states.where((r) => _int(r['canonical_property_count']) > 0).length;
-    final height = MediaQuery.sizeOf(context).height;
-    final mapHeight = math.max(520.0, math.min(820.0, height * .68));
+    final markers = <Marker>[
+      if (_showStates) ..._stateMarkers(),
+      if (properties) ..._propertyMarkers(),
+      if (signals) ..._signalMarkers(),
+      if (opportunities) ..._opportunityMarkers(),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(children: [
-          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Property Map & Weather', style: TextStyle(fontSize: 29, fontWeight: FontWeight.w900)),
-            SizedBox(height: 4),
-            Text('Properties, prioritized opportunities, verified signals and regional NOAA radar in one view.', style: TextStyle(color: _muted, height: 1.4)),
-          ])),
-          IconButton.filledTonal(onPressed: busy ? null : () => _loadOverview(), icon: const Icon(Icons.refresh_rounded), tooltip: 'Refresh map'),
-        ]),
-        const SizedBox(height: 10),
-        Wrap(spacing: 7, runSpacing: 7, children: [
-          _Metric('STATES', '$readyStates', _blue),
-          _Metric('PROPERTIES IN VIEW', '${_properties.length}', Colors.white),
-          _Metric('OPPORTUNITIES', '${_opportunities.length}', _amber),
-          _Metric('SIGNALS', '${_signals.length}', _cyan),
-          _Metric('RADAR FRAMES', '${_radarFrames.length}', _green),
-        ]),
-        if (busy || viewportBusy) ...[const SizedBox(height: 8), const LinearProgressIndicator()],
-        if (_message != null) ...[const SizedBox(height: 7), Text(_message!, style: const TextStyle(color: _muted, fontSize: 11.5))],
-        if (_locationMessage != null) ...[const SizedBox(height: 4), Text(_locationMessage!, style: const TextStyle(color: _muted, fontSize: 11.5))],
-        const SizedBox(height: 10),
-        Wrap(spacing: 7, runSpacing: 7, children: [
-          _filter('Satellite', Icons.satellite_alt_outlined, satellite, (v) => setState(() => satellite = v)),
-          _filter('Radar', Icons.cloud_outlined, radar, (v) => setState(() => radar = v)),
-          _filter('States', Icons.map_outlined, stateReadiness, (v) => setState(() => stateReadiness = v)),
-          _filter('Properties', Icons.home_outlined, properties, (v) => setState(() => properties = v)),
-          _filter('Opportunities', Icons.location_searching_rounded, opportunities, (v) => setState(() => opportunities = v)),
-          _filter('Signals', Icons.bolt_outlined, signals, (v) => setState(() => signals = v)),
-          ActionChip(avatar: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 17), label: Text(playing ? 'Pause radar' : 'Play radar'), onPressed: () => setState(() => playing = !playing)),
-          ActionChip(avatar: const Icon(Icons.my_location_rounded, size: 17), label: Text(locating ? 'Locating…' : 'My location'), onPressed: locating ? null : _recenterToUser),
-          ActionChip(avatar: const Icon(Icons.flag_outlined, size: 17), label: const Text('Connecticut'), onPressed: () => _mapController.move(const LatLng(41.60, -72.70), 8.2)),
-        ]),
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          children: [
+            _filter('Satellite', Icons.satellite_alt_rounded, satellite, (v) => setState(() => satellite = v)),
+            _filter('Radar', Icons.radar_rounded, radar, (v) => setState(() => radar = v)),
+            _filter('Properties', Icons.home_rounded, properties, (v) => setState(() => properties = v)),
+            _filter('Opportunities', Icons.location_searching_rounded, opportunities, (v) => setState(() => opportunities = v)),
+            _filter('Signals', Icons.bolt_rounded, signals, (v) => setState(() => signals = v)),
+            ActionChip(
+              avatar: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded, size: 16),
+              label: Text(playing ? 'Pause weather' : 'Play weather'),
+              onPressed: () => setState(() => playing = !playing),
+            ),
+            ActionChip(
+              avatar: const Icon(Icons.my_location_rounded, size: 16),
+              label: Text(locating ? 'Locating…' : 'My location'),
+              onPressed: locating ? null : _recenterToUser,
+            ),
+          ],
+        ),
+        if (_message != null || _locationMessage != null) ...[
+          const SizedBox(height: 7),
+          Text([if (_message != null) _message!, if (_locationMessage != null) _locationMessage!].join('  •  '), style: const TextStyle(color: _muted, fontSize: 11.2, height: 1.35)),
+        ],
         const SizedBox(height: 10),
         SizedBox(
-          height: mapHeight,
+          height: 720,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(18),
             child: Stack(children: [
               FlutterMap(
                 mapController: _mapController,
                 options: MapOptions(
-                  initialCenter: const LatLng(39.50, -98.35),
+                  initialCenter: const LatLng(39.4, -98.3),
                   initialZoom: 4,
                   minZoom: 3,
                   maxZoom: 18,
-                  onMapReady: () => _scheduleViewport(_mapController.camera),
                   onPositionChanged: (camera, hasGesture) {
-                    if ((camera.zoom - _zoom).abs() > .02 && mounted) setState(() => _zoom = camera.zoom);
-                    _scheduleViewport(camera);
+                    _zoom = camera.zoom;
+                    if (hasGesture) _scheduleViewport(camera);
+                    if (mounted) setState(() {});
                   },
                 ),
                 children: [
@@ -633,7 +628,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                     ),
                   if (_showRadar)
                     TileLayer(
-                      key: ValueKey(_radarFrames.isEmpty ? 'bp-radar-latest-v3' : 'bp-radar-${_radarTime.millisecondsSinceEpoch}'),
+                      key: ValueKey(_radarFrames.isEmpty ? 'bp-radar-latest-v2' : 'bp-radar-${_radarTime.millisecondsSinceEpoch}'),
                       wmsOptions: WMSTileLayerOptions(
                         baseUrl: 'https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/ImageServer/WMSServer?',
                         layers: const ['0'],
@@ -645,10 +640,7 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
                       maxNativeZoom: 10,
                       userAgentPackageName: 'com.bridgepoint.data_studio',
                     ),
-                  if (_showStates && _states.isNotEmpty) MarkerLayer(markers: _stateMarkers()),
-                  if (properties && _properties.isNotEmpty) MarkerLayer(markers: _propertyMarkers()),
-                  if (signals && _signals.isNotEmpty) MarkerLayer(markers: _signalMarkers()),
-                  if (opportunities && _opportunities.isNotEmpty) MarkerLayer(markers: _opportunityMarkers()),
+                  if (markers.isNotEmpty) MarkerLayer(markers: markers),
                   if (_userLocation != null)
                     MarkerLayer(markers: [
                       Marker(
@@ -730,22 +722,4 @@ class _BridgePointMapWeatherV2State extends State<BridgePointMapWeatherV2> {
       ],
     );
   }
-}
-
-class _Metric extends StatelessWidget {
-  const _Metric(this.label, this.value, this.color);
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-        decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(11), border: Border.all(color: color.withValues(alpha: .16))),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(label, style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 8, fontWeight: FontWeight.w900)),
-          const SizedBox(width: 6),
-          Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11.5)),
-        ]),
-      );
 }
