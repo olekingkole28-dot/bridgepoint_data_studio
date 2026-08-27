@@ -9,23 +9,75 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: bridgepoint-recovery-v3-analyze-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && 'podcast-product-recovery-v3' || github.head_ref }}
+          fetch-depth: 0
+
+      - name: Apply idempotent V937 unified-property patch
+        run: python ops/patch_recovery_v937.py
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
+
       - name: Flutter version
         run: flutter --version
+
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Format changed recovery sources
+        run: dart format lib/v2/bridgepoint_recovery_shell_v3.dart lib/v2/bridgepoint_property_dossier_recovered_v7.dart
+
+      - name: Verify V937 UX contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          shell=Path('lib/v2/bridgepoint_recovery_shell_v3.dart').read_text()
+          dossier=Path('lib/v2/bridgepoint_property_dossier_recovered_v7.dart').read_text()
+          primary=shell.split('const _primary = <_AreaSpec>[',1)[1].split('];',1)[0]
+          assert primary.count('_AreaSpec(') == 4, primary
+          assert all(label in primary for label in ["'Home'","'Map'","'Properties'","'Work'"])
+          assert "'Opportunities'" not in primary
+          assert "_AreaSpec(_Area.opportunities, 'Opportunities'" in shell
+          assert "'Structure 3D'" in dossier
+          assert '_TwinView _view = _TwinView.front;' in dossier
+          assert 'PROPERTY VISUAL + INTELLIGENCE' in dossier
+          assert 'BridgePoint will not manufacture a house photo' in dossier
+          print('V937 unified-property UX contract passed.')
+          PY
+
       - name: Analyze recovery app
         run: flutter analyze --no-fatal-infos
+
+      - name: Commit validated V937 source on recovery branch
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Recovery Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_recovery_shell_v3.dart lib/v2/bridgepoint_property_dossier_recovered_v7.dart
+          if git diff --cached --quiet; then
+            echo 'Recovery V937 source already validated/current.'
+          else
+            git commit -m 'Validate unified property experience V937 [skip ci]'
+            git push origin HEAD:podcast-product-recovery-v3
+          fi
