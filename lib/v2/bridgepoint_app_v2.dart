@@ -656,11 +656,11 @@ class _WorkHub extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(item.$2, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                              Text(item.$2, style: const TextStyle(fontWeight: FontWeight.w900)),
                               const SizedBox(height: 3),
-                              Text(item.$3, style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 12.2, height: 1.35)),
+                              Text(item.$3, style: const TextStyle(color: Color(0xFFB5C6D9), fontSize: 11.7, height: 1.35)),
                             ])),
-                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFFB5C6D9)),
+                            const Icon(Icons.chevron_right_rounded, color: Color(0xFF48E1FF)),
                           ],
                         ),
                       ),
@@ -676,19 +676,26 @@ class _WorkHub extends StatelessWidget {
 }
 
 class _Group extends StatelessWidget {
-  const _Group({required this.title, required this.children, this.accent});
+  const _Group({required this.title, required this.children, this.accent = const Color(0xFF48E1FF)});
   final String title;
   final List<Widget> children;
-  final Color? accent;
+  final Color accent;
 
   @override
-  Widget build(BuildContext context) => Card(
-        margin: const EdgeInsets.only(bottom: 10),
-        child: ExpansionTile(
-          initiallyExpanded: title == 'Use BridgePoint',
-          leading: Icon(Icons.folder_open_outlined, color: accent ?? const Color(0xFF48E1FF)),
-          title: Text(title, style: TextStyle(color: accent ?? Colors.white, fontWeight: FontWeight.w900)),
-          children: children,
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 6),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(title.toUpperCase(), style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .9)),
+              ),
+              const SizedBox(height: 6),
+              ...children,
+            ]),
+          ),
         ),
       );
 }
@@ -699,27 +706,26 @@ class _GoldAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
+        borderRadius: BorderRadius.circular(17),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFFFFD86B), Color(0xFFFFB83F)]),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [BoxShadow(color: Color(0x44FFC95E), blurRadius: 22)],
+            gradient: const LinearGradient(colors: [Color(0xFF3A2A08), Color(0xFF201B16)]),
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: const Color(0xFFFFC95E), width: 1.2),
+            boxShadow: const [BoxShadow(color: Color(0x22FFC95E), blurRadius: 24)],
           ),
-          child: const Row(
-            children: [
-              Icon(Icons.workspace_premium_rounded, color: Color(0xFF241700)),
-              SizedBox(width: 10),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Choose a BridgePoint plan', style: TextStyle(color: Color(0xFF241700), fontWeight: FontWeight.w900, fontSize: 16)),
-                SizedBox(height: 2),
-                Text('Trial, package access and billing', style: TextStyle(color: Color(0xCC241700), fontWeight: FontWeight.w700, fontSize: 12)),
-              ])),
-              Icon(Icons.arrow_forward_rounded, color: Color(0xFF241700)),
-            ],
-          ),
+          child: const Row(children: [
+            Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC95E), size: 28),
+            SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Plans & access', style: TextStyle(color: Color(0xFFFFE6A1), fontSize: 17, fontWeight: FontWeight.w900)),
+              SizedBox(height: 3),
+              Text('See customer-ready BridgePoint plans and start checkout.', style: TextStyle(color: Color(0xFFD8C58C), fontSize: 12.2)),
+            ])),
+            Icon(Icons.arrow_forward_rounded, color: Color(0xFFFFC95E)),
+          ]),
         ),
       );
 }
