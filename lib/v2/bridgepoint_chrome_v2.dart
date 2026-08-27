@@ -82,7 +82,7 @@ class _BridgePointMotionBackgroundV2State
     super.initState();
     controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 22),
+      duration: const Duration(seconds: 30),
     )..repeat();
   }
 
@@ -92,7 +92,7 @@ class _BridgePointMotionBackgroundV2State
     final disable = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (disable && controller.isAnimating) {
       controller.stop();
-      controller.value = .15;
+      controller.value = .18;
     } else if (!disable && !controller.isAnimating) {
       controller.repeat();
     }
@@ -108,128 +108,191 @@ class _BridgePointMotionBackgroundV2State
   Widget build(BuildContext context) => AnimatedBuilder(
         animation: controller,
         builder: (context, child) => CustomPaint(
-          painter: _BridgePointNetworkPainter(progress: controller.value),
+          painter: _BridgePointDnaVortexPainter(progress: controller.value),
           child: Padding(padding: widget.padding, child: child),
         ),
         child: widget.child,
       );
 }
 
-class _BridgePointNetworkPainter extends CustomPainter {
-  _BridgePointNetworkPainter({required this.progress});
+class _BridgePointDnaVortexPainter extends CustomPainter {
+  _BridgePointDnaVortexPainter({required this.progress});
   final double progress;
 
-  static const _nodes = <Offset>[
-    Offset(.05, .13),
-    Offset(.16, .29),
-    Offset(.31, .09),
-    Offset(.46, .21),
-    Offset(.63, .08),
-    Offset(.82, .19),
-    Offset(.95, .07),
-    Offset(.09, .58),
-    Offset(.25, .46),
-    Offset(.41, .61),
-    Offset(.58, .44),
-    Offset(.73, .58),
-    Offset(.91, .42),
-    Offset(.18, .86),
-    Offset(.38, .77),
-    Offset(.58, .89),
-    Offset(.79, .79),
-    Offset(.96, .91),
-  ];
+  static const _cyan = Color(0xFF48E1FF);
+  static const _blue = Color(0xFF526CFF);
+  static const _violet = Color(0xFF8B5CF6);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final glowRectA = Rect.fromCircle(
-      center: Offset(size.width * .16, size.height * .12),
-      radius: size.shortestSide * .38,
-    );
-    final glowRectB = Rect.fromCircle(
-      center: Offset(size.width * .84, size.height * .18),
-      radius: size.shortestSide * .34,
-    );
-    final glowRectC = Rect.fromCircle(
-      center: Offset(size.width * .62, size.height * .82),
-      radius: size.shortestSide * .30,
-    );
-    canvas.drawCircle(
-      glowRectA.center,
-      glowRectA.width / 2,
-      Paint()..shader = const RadialGradient(
-        colors: [Color(0x1748E1FF), Colors.transparent],
-      ).createShader(glowRectA),
-    );
-    canvas.drawCircle(
-      glowRectB.center,
-      glowRectB.width / 2,
-      Paint()..shader = const RadialGradient(
-        colors: [Color(0x126C83FF), Colors.transparent],
-      ).createShader(glowRectB),
-    );
-    canvas.drawCircle(
-      glowRectC.center,
-      glowRectC.width / 2,
-      Paint()..shader = const RadialGradient(
-        colors: [Color(0x118B5CF6), Colors.transparent],
-      ).createShader(glowRectC),
+    if (size.isEmpty) return;
+    final phase = progress * math.pi * 2;
+    final rect = Offset.zero & size;
+
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF02060D), Color(0xFF06101C), Color(0xFF040713)],
+        ).createShader(rect),
     );
 
-    final phase = progress * math.pi * 2;
-    final points = <Offset>[];
-    for (var i = 0; i < _nodes.length; i++) {
-      final base = _nodes[i];
-      final dx = math.sin(phase + i * .71) * .018;
-      final dy = math.cos(phase * .83 + i * .49) * .014;
-      points.add(Offset((base.dx + dx) * size.width, (base.dy + dy) * size.height));
+    _drawVortex(
+      canvas,
+      size,
+      center: Offset(size.width * (.78 + math.sin(phase * .33) * .025), size.height * (.20 + math.cos(phase * .29) * .02)),
+      radius: size.shortestSide * .46,
+      phase: phase,
+      clockwise: true,
+    );
+    _drawVortex(
+      canvas,
+      size,
+      center: Offset(size.width * (.23 + math.cos(phase * .27) * .02), size.height * (.78 + math.sin(phase * .31) * .018)),
+      radius: size.shortestSide * .34,
+      phase: -phase * .72,
+      clockwise: false,
+      opacity: .62,
+    );
+
+    _drawDna(canvas, size, phase);
+    _drawFineStars(canvas, size, phase);
+  }
+
+  void _drawVortex(
+    Canvas canvas,
+    Size size, {
+    required Offset center,
+    required double radius,
+    required double phase,
+    required bool clockwise,
+    double opacity = 1,
+  }) {
+    final dir = clockwise ? 1.0 : -1.0;
+    final haloRect = Rect.fromCircle(center: center, radius: radius * 1.18);
+    canvas.drawCircle(
+      center,
+      radius * 1.18,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Colors.black.withValues(alpha: .78 * opacity),
+            const Color(0xFF050916).withValues(alpha: .72 * opacity),
+            _blue.withValues(alpha: .055 * opacity),
+            Colors.transparent,
+          ],
+          stops: const [0, .20, .63, 1],
+        ).createShader(haloRect),
+    );
+
+    for (var ring = 0; ring < 14; ring++) {
+      final t = ring / 13;
+      final rx = radius * (.18 + t * .92);
+      final ry = rx * (.32 + t * .12);
+      final ringRect = Rect.fromCenter(center: center, width: rx * 2, height: ry * 2);
+      final start = phase * dir * (.35 + t * .55) + ring * .73;
+      final sweep = math.pi * (1.15 + .5 * math.sin(phase + ring));
+      final color = ring % 3 == 0 ? _cyan : ring % 3 == 1 ? _blue : _violet;
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(dir * (.20 + .08 * math.sin(phase * .4)));
+      canvas.translate(-center.dx, -center.dy);
+      canvas.drawArc(
+        ringRect,
+        start,
+        sweep,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = .7 + (1 - t) * .7
+          ..color = color.withValues(alpha: (.025 + (1 - t) * .035) * opacity),
+      );
+      canvas.restore();
     }
 
-    final linePaint = Paint()
-      ..strokeWidth = 1
-      ..color = const Color(0xFF48E1FF).withValues(alpha: .055);
-    for (var i = 0; i < points.length; i++) {
-      for (var j = i + 1; j < points.length; j++) {
-        final distance = (points[i] - points[j]).distance;
-        if (distance < size.shortestSide * .28) {
-          final alpha = (1 - distance / (size.shortestSide * .28)) * .09;
-          linePaint.color = const Color(0xFF6C83FF).withValues(alpha: alpha);
-          canvas.drawLine(points[i], points[j], linePaint);
-        }
+    final coreRect = Rect.fromCircle(center: center, radius: radius * .18);
+    canvas.drawCircle(
+      center,
+      radius * .18,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Colors.black.withValues(alpha: .98),
+            Colors.black.withValues(alpha: .96),
+            _cyan.withValues(alpha: .11 * opacity),
+            Colors.transparent,
+          ],
+          stops: const [0, .58, .82, 1],
+        ).createShader(coreRect),
+    );
+  }
+
+  void _drawDna(Canvas canvas, Size size, double phase) {
+    final baseY = size.height * .50;
+    final amplitude = math.min(44.0, size.height * .055);
+    final span = size.width;
+    final a = Path();
+    final b = Path();
+    const steps = 90;
+
+    for (var i = 0; i <= steps; i++) {
+      final t = i / steps;
+      final x = t * span;
+      final wave = math.sin(t * math.pi * 5.5 + phase * .75);
+      final drift = math.sin(t * math.pi * 1.2 - phase * .22) * 18;
+      final y1 = baseY + drift + wave * amplitude;
+      final y2 = baseY + drift - wave * amplitude;
+      if (i == 0) {
+        a.moveTo(x, y1);
+        b.moveTo(x, y2);
+      } else {
+        a.lineTo(x, y1);
+        b.lineTo(x, y2);
+      }
+      if (i % 6 == 0) {
+        canvas.drawLine(
+          Offset(x, y1),
+          Offset(x, y2),
+          Paint()
+            ..strokeWidth = .75
+            ..color = _violet.withValues(alpha: .045),
+        );
       }
     }
 
-    for (var i = 0; i < points.length; i++) {
-      final pulse = (math.sin(phase * 1.6 + i) + 1) / 2;
-      final glow = Paint()
-        ..color = (i % 3 == 0 ? const Color(0xFF48E1FF) : const Color(0xFF6C83FF))
-            .withValues(alpha: .035 + pulse * .035);
-      canvas.drawCircle(points[i], 11 + pulse * 7, glow);
-      final dot = Paint()
-        ..color = (i % 3 == 0 ? const Color(0xFF48E1FF) : const Color(0xFF6C83FF))
-            .withValues(alpha: .18 + pulse * .18);
-      canvas.drawCircle(points[i], 1.8 + pulse, dot);
-    }
+    canvas.drawPath(
+      a,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1
+        ..color = _cyan.withValues(alpha: .075),
+    );
+    canvas.drawPath(
+      b,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1
+        ..color = _blue.withValues(alpha: .07),
+    );
+  }
 
-    final sweep = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          Colors.transparent,
-          const Color(0xFF48E1FF).withValues(alpha: .035),
-          Colors.transparent,
-        ],
-      ).createShader(
-        Rect.fromLTWH(
-          -size.width + progress * size.width * 2.5,
-          0,
-          size.width * .8,
-          size.height,
-        ),
+  void _drawFineStars(Canvas canvas, Size size, double phase) {
+    for (var i = 0; i < 34; i++) {
+      final x = ((i * 73) % 101) / 101 * size.width;
+      final y = ((i * 47 + 19) % 97) / 97 * size.height;
+      final pulse = (math.sin(phase * .8 + i * 1.71) + 1) / 2;
+      canvas.drawCircle(
+        Offset(x, y),
+        .45 + pulse * .65,
+        Paint()..color = Colors.white.withValues(alpha: .025 + pulse * .035),
       );
-    canvas.drawRect(Offset.zero & size, sweep);
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _BridgePointNetworkPainter oldDelegate) =>
+  bool shouldRepaint(covariant _BridgePointDnaVortexPainter oldDelegate) =>
       oldDelegate.progress != progress;
 }
