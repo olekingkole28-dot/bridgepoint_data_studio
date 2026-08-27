@@ -9,7 +9,7 @@ on:
       - '.github/workflows/customer-ready-v946-validate.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -17,6 +17,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: customer-ready-v946
+      - name: Apply deterministic customer-surface repairs
+        run: python .github/scripts/product_release_repair_v852.py
+      - name: Run full product release audit
+        run: python .github/scripts/product_release_audit_v852.py
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -34,3 +40,15 @@ jobs:
           test -s build/web/index.html
           test -s build/web/main.dart.js
           grep -q '<base href="/app/">' build/web/index.html
+      - name: Persist deterministic repairs after successful validation
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No deterministic repair changes were needed.'
+            exit 0
+          fi
+          git config user.name 'bridgepoint-release-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2 lib/v2/settings
+          git commit -m 'Apply deterministic customer-surface repairs v852'
+          git push origin HEAD:customer-ready-v946
