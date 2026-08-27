@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'bridgepoint_building_geometry_v2.dart';
 import 'bridgepoint_property_presentation_v2.dart';
+import 'bridgepoint_property_timeline_explained_v951.dart';
 
 class BridgePointGlobalSearchV2 extends StatefulWidget {
   const BridgePointGlobalSearchV2({super.key, this.initialQuery});
@@ -73,13 +74,13 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
     try {
       final raw = await Supabase.instance.client.rpc(
         'bridgepoint_property_suggestions_v192',
-        params: {'p_query': q, 'p_limit': 40},
+        params: {'p_query': q, 'p_limit': 20},
       );
       if (mounted) setState(() => _results = _rows(raw));
     } catch (_) {
       if (mounted) {
         setState(() => _error =
-            'Property search is temporarily unavailable. Try a more specific address, parcel, owner or municipality.');
+            'BridgePoint could not finish that property search. Try the full street address, parcel number, owner name, or municipality.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -118,7 +119,7 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: FractionallySizedBox(
-          heightFactor: .9,
+          heightFactor: .94,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
             children: [
@@ -131,10 +132,15 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
                 '${row['municipality'] ?? ''} ${row['state_code'] ?? ''} • ${row['parcel_number'] ?? 'parcel unavailable'}',
                 style: const TextStyle(color: _cyan, fontWeight: FontWeight.w700),
               ),
+              const SizedBox(height: 8),
+              const Text(
+                'Start with the property identity, then open any timeline event for a plain-language explanation of what BridgePoint found and how to interpret it.',
+                style: TextStyle(color: _muted, fontSize: 11.5, height: 1.4),
+              ),
               const SizedBox(height: 14),
               BridgePointPropertyOverviewV2(payload: detail),
               const SizedBox(height: 10),
-              BridgePointPropertyTimelineV2(payload: timeline),
+              BridgePointExplainedTimelineV951(payload: timeline),
               const SizedBox(height: 10),
               BridgePointTwinSummaryV2(payload: twin),
               const SizedBox(height: 10),
@@ -160,7 +166,7 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
         const Text('Search BridgePoint', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
         const SizedBox(height: 5),
         const Text(
-          'Nationwide property search across the BridgePoint foundation. Search by address, parcel, owner or municipality, then open the connected property intelligence record.',
+          'Search by full street address, parcel number, owner name or municipality. Open a result to see the property record and a timeline that explains each signal in plain language.',
           style: TextStyle(color: _muted, height: 1.45),
         ),
         const SizedBox(height: 14),
@@ -173,7 +179,8 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => _search(),
                 decoration: const InputDecoration(
-                  labelText: 'Address, parcel, owner or municipality',
+                  labelText: 'Full address, parcel, owner or municipality',
+                  hintText: 'Example: 123 Main St, Middletown, CT',
                   prefixIcon: Icon(Icons.search_rounded),
                 ),
               ),
@@ -192,7 +199,7 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
         ],
         if (_error != null) ...[
           const SizedBox(height: 8),
-          Text(_error!, style: const TextStyle(color: _amber, fontSize: 10)),
+          Text(_error!, style: const TextStyle(color: _amber, fontSize: 11.5)),
         ],
         const SizedBox(height: 14),
         if (_results.isEmpty && !_busy)
@@ -209,7 +216,7 @@ class _BridgePointGlobalSearchV2State extends State<BridgePointGlobalSearchV2> {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Search the national BridgePoint property foundation. Results appear as underlying property data becomes available in each state.',
+                    'Search the BridgePoint property foundation. Exact street addresses and parcel numbers are the fastest path to a specific property; municipality and owner searches can return several candidates.',
                     style: TextStyle(color: _muted, height: 1.45),
                   ),
                 ),
