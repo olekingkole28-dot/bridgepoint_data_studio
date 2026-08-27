@@ -1,0 +1,1 @@
+Retired by Clean V2 control-plane consolidation V945. Historical workflow file names were removed from `.github/workflows` so they cannot mutate the current application. Git history preserves the old implementations if forensic reference is ever needed.
