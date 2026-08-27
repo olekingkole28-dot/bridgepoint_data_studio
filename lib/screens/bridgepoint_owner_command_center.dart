@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'bridgepoint_owner_command_center_v2.dart';
+import 'bridgepoint_owner_command_center_recovered_v3.dart';
 
-/// Compatibility entry point used by the clean BridgePoint shell.
-/// The implementation lives in modular V2 owner-control surfaces.
+/// Recovery branch compatibility entry point. Production stays on its own
+/// branch until V3 is verified.
 class BridgePointOwnerCommandCenter extends StatelessWidget {
   const BridgePointOwnerCommandCenter({super.key});
 
   @override
-  Widget build(BuildContext context) => const BridgePointOwnerCommandCenterV2();
+  Widget build(BuildContext context) => const BridgePointOwnerCommandCenterV3();
 }
