@@ -11,10 +11,7 @@ class BridgePointMarkV2 extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
         width: size,
         height: size,
-        child: SvgPicture.asset(
-          'assets/brand/bridgepoint-mark-v80.svg',
-          fit: BoxFit.contain,
-        ),
+        child: SvgPicture.asset('assets/brand/bridgepoint-mark-v80.svg', fit: BoxFit.contain),
       );
 }
 
@@ -29,20 +26,10 @@ class BridgePointBrandLockupV2 extends StatelessWidget {
           BridgePointMarkV2(size: compact ? 34 : 42),
           if (!compact) ...[
             const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'BRIDGEPOINT',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1.1),
-                ),
-                Text(
-                  'INTELLIGENCE',
-                  style: TextStyle(color: Color(0xFF48E1FF), fontSize: 12.5, fontWeight: FontWeight.w900, letterSpacing: 1.8),
-                ),
-              ],
-            ),
+            const Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text('BRIDGEPOINT', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+              Text('INTELLIGENCE', style: TextStyle(color: Color(0xFF48E1FF), fontSize: 12.5, fontWeight: FontWeight.w900, letterSpacing: 1.8)),
+            ]),
           ],
         ],
       );
@@ -57,8 +44,7 @@ class BridgePointMotionBackgroundV2 extends StatefulWidget {
   State<BridgePointMotionBackgroundV2> createState() => _BridgePointMotionBackgroundV2State();
 }
 
-class _BridgePointMotionBackgroundV2State extends State<BridgePointMotionBackgroundV2>
-    with SingleTickerProviderStateMixin {
+class _BridgePointMotionBackgroundV2State extends State<BridgePointMotionBackgroundV2> with SingleTickerProviderStateMixin {
   late final AnimationController controller;
 
   @override
@@ -118,11 +104,7 @@ class _BridgePointOrbitalDnaPainter extends CustomPainter {
         ..shader = const RadialGradient(
           center: Alignment(.34, -.22),
           radius: 1.22,
-          colors: [
-            Color(0xFF0A1830),
-            Color(0xFF050C18),
-            Color(0xFF02060D),
-          ],
+          colors: [Color(0xFF0A1830), Color(0xFF050C18), Color(0xFF02060D)],
           stops: [0, .48, 1],
         ).createShader(rect),
     );
@@ -133,12 +115,7 @@ class _BridgePointOrbitalDnaPainter extends CustomPainter {
       shortest * .34,
       Paint()
         ..shader = RadialGradient(
-          colors: [
-            const Color(0xFF000000).withValues(alpha: .94),
-            violet.withValues(alpha: .09),
-            blue.withValues(alpha: .035),
-            Colors.transparent,
-          ],
+          colors: [const Color(0xFF000000).withValues(alpha: .94), violet.withValues(alpha: .09), blue.withValues(alpha: .035), Colors.transparent],
           stops: const [0, .28, .62, 1],
         ).createShader(depthRect),
     );
@@ -148,19 +125,9 @@ class _BridgePointOrbitalDnaPainter extends CustomPainter {
     canvas.rotate(phase * .16);
     for (var i = 0; i < 5; i++) {
       final scale = .62 + i * .17;
-      final orbit = Rect.fromCenter(
-        center: Offset.zero,
-        width: shortest * scale * 1.7,
-        height: shortest * scale * .62,
-      );
+      final orbit = Rect.fromCenter(center: Offset.zero, width: shortest * scale * 1.7, height: shortest * scale * .62);
       canvas.rotate(.18 + i * .07);
-      canvas.drawOval(
-        orbit,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = i == 0 ? 1.4 : .8
-          ..color = (i.isEven ? cyan : violet).withValues(alpha: .035 + i * .006),
-      );
+      canvas.drawOval(orbit, Paint()..style = PaintingStyle.stroke..strokeWidth = i == 0 ? 1.4 : .8..color = (i.isEven ? cyan : violet).withValues(alpha: .035 + i * .006));
     }
     canvas.restore();
 
@@ -175,9 +142,6 @@ class _BridgePointOrbitalDnaPainter extends CustomPainter {
       canvas.drawCircle(p, 1.1 + pulse * .45, Paint()..color = color.withValues(alpha: .24 + pulse * .16));
     }
 
-    final dnaPaint = Paint()
-      ..strokeWidth = .9
-      ..strokeCap = StrokeCap.round;
     final dnaA = Path();
     final dnaB = Path();
     final pointsA = <Offset>[];
@@ -201,9 +165,9 @@ class _BridgePointOrbitalDnaPainter extends CustomPainter {
         dnaB.lineTo(b.dx, b.dy);
       }
     }
+    final dnaPaint = Paint()..strokeWidth = .9..strokeCap = StrokeCap.round;
     canvas.drawPath(dnaA, dnaPaint..color = cyan.withValues(alpha: .075));
     canvas.drawPath(dnaB, dnaPaint..color = blue.withValues(alpha: .065));
-
     for (var i = 0; i < steps; i += 3) {
       final alpha = .035 + .025 * ((math.sin(phase + i) + 1) / 2);
       canvas.drawLine(pointsA[i], pointsB[i], Paint()..color = violet.withValues(alpha: alpha)..strokeWidth = .7);
@@ -211,15 +175,8 @@ class _BridgePointOrbitalDnaPainter extends CustomPainter {
       canvas.drawCircle(pointsB[i], 1.6, Paint()..color = blue.withValues(alpha: .22));
     }
 
-    final edgeGlow = Rect.fromCircle(center: Offset(size.width * .08, size.height * .14), radius: shortest * .42);
-    canvas.drawCircle(
-      edgeGlow.center,
-      edgeGlow.width / 2,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [cyan.withValues(alpha: .055), Colors.transparent],
-        ).createShader(edgeGlow),
-    );
+    final glow = Rect.fromCircle(center: Offset(size.width * .08, size.height * .14), radius: shortest * .42);
+    canvas.drawCircle(glow.center, glow.width / 2, Paint()..shader = RadialGradient(colors: [cyan.withValues(alpha: .055), Colors.transparent]).createShader(glow));
   }
 
   @override
