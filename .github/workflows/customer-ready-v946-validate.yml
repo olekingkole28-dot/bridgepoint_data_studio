@@ -6,6 +6,10 @@ on:
     paths:
       - 'lib/main_v2.dart'
       - 'lib/v2/bridgepoint_customer_ready_app_v946.dart'
+      - 'lib/v2/bridgepoint_products_settings_v2.dart'
+      - 'lib/v2/bridgepoint_global_search_v2.dart'
+      - 'lib/v2/bridgepoint_property_timeline_explained_v951.dart'
+      - 'lib/v2/bridgepoint_map_weather_v2.dart'
       - '.github/workflows/customer-ready-v946-validate.yml'
 
 permissions:
@@ -29,7 +33,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Analyze customer-ready shell
-        run: flutter analyze lib/main_v2.dart lib/v2/bridgepoint_customer_ready_app_v946.dart --no-fatal-infos --no-fatal-warnings
+        run: flutter analyze lib/main_v2.dart lib/v2/bridgepoint_customer_ready_app_v946.dart lib/v2/bridgepoint_products_settings_v2.dart lib/v2/bridgepoint_global_search_v2.dart lib/v2/bridgepoint_property_timeline_explained_v951.dart lib/v2/bridgepoint_map_weather_v2.dart --no-fatal-infos --no-fatal-warnings
       - name: Run release tests
         run: flutter test
       - name: Build customer-ready web
