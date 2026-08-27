@@ -1,0 +1,26 @@
+import { createClient } from "npm:@supabase/supabase-js@2.55.0";
+const U=Deno.env.get("SUPABASE_URL")!, S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const db=createClient(U,S,{auth:{persistSession:false,autoRefreshToken:false}});
+const H={"content-type":"application/json","cache-control":"no-store"};
+const T=(x:any,n=5000)=>String(x??"").trim().slice(0,n);
+const j=(b:any,s=200)=>new Response(JSON.stringify(b),{status:s,headers:H});
+async function sha(s:string){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("");}
+async function nodeAuth(req:Request,body:any){const token=req.headers.get("x-bridgepoint-node-token")||T(body?.node_token,256);const nodeId=T(body?.node_id,80);if(token.length<48||!nodeId)return null;const {data,error}=await db.schema("automation").from("local_reasoning_nodes_v584").select("node_id,token_hash,enabled,status,primary_model,reviewer_model,capabilities").eq("node_id",nodeId).maybeSingle();if(error||!data||!data.enabled||data.status==="REVOKED")return null;return (await sha(token))===data.token_hash?data:null;}
+async function rpc(name:string,args:any={}){const {data,error}=await db.rpc(name,args);if(error)throw new Error(`${name}: ${error.message}`);return data;}
+Deno.serve(async(req:Request)=>{if(req.method!=="POST")return j({ok:false,error:"POST_REQUIRED"},405);const body=await req.json().catch(()=>({}));const action=T(body.action||"",40).toLowerCase();try{
+ if(action==="enroll"){const code=T(body.enrollment_code,128),name=T(body.node_name||"BridgePoint Local AI",120);if(code.length<24)return j({ok:false,error:"ENROLLMENT_CODE_REQUIRED"},400);const r=await rpc("bridgepoint_internal_local_reasoning_enroll_v584",{p_code:code,p_node_name:name,p_capabilities:body.capabilities||{},p_hardware:body.hardware||{}});return j({...r,version:936});}
+ const node=await nodeAuth(req,body);if(!node)return j({ok:false,error:"UNAUTHORIZED_NODE",version:936},401);const nodeId=String(node.node_id);
+ if(action==="heartbeat"){const r=await rpc("bridgepoint_internal_local_reasoning_heartbeat_v584",{p_node_id:nodeId,p_capabilities:body.capabilities||{},p_hardware:body.hardware||{}});return j({...r,version:936,provider_mode:"LOCAL_FIRST"});}
+ if(action==="claim"){const r=await rpc("bridgepoint_internal_local_reasoning_claim_v584",{p_node_id:nodeId,p_limit:Math.max(1,Math.min(Number(body.limit||2),4))});return j({...r,version:936});}
+ if(action==="submit"){if(!body.task_id||!body.primary)return j({ok:false,error:"TASK_AND_PRIMARY_REQUIRED"},400);const r=await rpc("bridgepoint_internal_local_reasoning_submit_v584",{p_node_id:nodeId,p_task_id:body.task_id,p_primary:body.primary,p_reviewer:body.reviewer||{},p_models:body.models||{}});return j({...r,version:936});}
+ if(action==="fail"){const r=await rpc("bridgepoint_internal_local_reasoning_fail_v584",{p_node_id:nodeId,p_task_id:body.task_id,p_error:T(body.error||"LOCAL_REASONING_FAILED",1800)});return j({...r,version:936});}
+ if(action==="backup_claim"){const r=await rpc("bridgepoint_internal_local_backup_claim_v717",{p_node_id:nodeId});return j({...r,version:936});}
+ if(action==="backup_complete"){if(!body.job_id)return j({ok:false,error:"BACKUP_JOB_REQUIRED"},400);const r=await rpc("bridgepoint_internal_local_backup_complete_v717",{p_node_id:nodeId,p_job_id:body.job_id,p_result:body.result||{}});return j({...r,version:936});}
+ if(action==="backup_fail"){if(!body.job_id)return j({ok:false,error:"BACKUP_JOB_REQUIRED"},400);const r=await rpc("bridgepoint_internal_local_backup_fail_v717",{p_node_id:nodeId,p_job_id:body.job_id,p_error:T(body.error||"LOCAL_BACKUP_FAILED",1800),p_result:body.result||{}});return j({...r,version:936});}
+ if(action==="backup_report"){const typ=T(body.report_type,40).toUpperCase(),status=T(body.status,40).toUpperCase();const r=await rpc("bridgepoint_internal_local_backup_report_v616",{p_node_id:nodeId,p_report_type:typ,p_status:status,p_payload:body.payload||{}});return j({...r,version:936});}
+ if(action==="export_claim"){const r=await rpc("bridgepoint_internal_portable_export_claim_v936",{p_node_id:nodeId});return j({...r,version:936});}
+ if(action==="export_complete"){if(!body.request_id)return j({ok:false,error:"EXPORT_REQUEST_REQUIRED"},400);const r=await rpc("bridgepoint_internal_portable_export_complete_v936",{p_node_id:nodeId,p_request_id:body.request_id,p_result:body.result||{}});return j({...r,version:936});}
+ if(action==="export_fail"){if(!body.request_id)return j({ok:false,error:"EXPORT_REQUEST_REQUIRED"},400);const r=await rpc("bridgepoint_internal_portable_export_fail_v936",{p_node_id:nodeId,p_request_id:body.request_id,p_error:T(body.error||"PORTABLE_EXPORT_FAILED",1800),p_result:body.result||{}});return j({...r,version:936});}
+ if(action==="status"){return j({ok:true,version:936,node_id:nodeId,status:node.status,primary_model:node.primary_model,reviewer_model:node.reviewer_model,provider_mode:"LOCAL_FIRST",backup_reporting:true,backup_jobs:true,backup_authority:Boolean(node.capabilities?.backup_authority),portable_export_jobs:true,portable_export_authority:Boolean(node.capabilities?.portable_export_authority)});}
+ return j({ok:false,error:"UNKNOWN_ACTION",version:936},400);
+}catch(e){return j({ok:false,error:T((e as any)?.message||e,1800),version:936},500);}});
