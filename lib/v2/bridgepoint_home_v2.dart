@@ -215,9 +215,7 @@ class _BridgePointHomeV2State extends State<BridgePointHomeV2> {
               },
             ),
             const SizedBox(height: 14),
-            _HowItWorks(
-              onProperty: () => _open('Property Intelligence', const BridgePointProperty360V2()),
-            ),
+            _HowItWorks(onProperty: () => _open('Property Intelligence', const BridgePointProperty360V2())),
             const SizedBox(height: 14),
             _OpportunityPreview(rows: opportunities),
             const SizedBox(height: 14),
@@ -318,25 +316,29 @@ class _HowItWorks extends StatelessWidget {
           ]),
           const SizedBox(height: 13),
           LayoutBuilder(builder: (context, c) {
-            final columns = c.maxWidth >= 850 ? 4 : c.maxWidth >= 500 ? 2 : 1;
-            final width = (c.maxWidth - (columns - 1) * 9) / columns;
-            return Wrap(spacing: 9, runSpacing: 9, children: [
-              for (final step in steps)
-                SizedBox(
-                  width: width,
-                  child: Container(
-                    padding: const EdgeInsets.all(13),
-                    decoration: BoxDecoration(color: step.$4.withValues(alpha: .07), borderRadius: BorderRadius.circular(14), border: Border.all(color: step.$4.withValues(alpha: .13))),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Icon(step.$1, color: step.$4),
-                      const SizedBox(height: 8),
-                      Text(step.$2, style: const TextStyle(fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 3),
-                      Text(step.$3, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 11.8, height: 1.38)),
-                    ]),
+            final columns = c.maxWidth >= 900 ? 4 : c.maxWidth >= 520 ? 2 : 1;
+            final width = (c.maxWidth - (columns - 1) * 8) / columns;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final step in steps)
+                  SizedBox(
+                    width: width,
+                    child: Container(
+                      padding: const EdgeInsets.all(13),
+                      decoration: BoxDecoration(color: step.$4.withValues(alpha: .06), borderRadius: BorderRadius.circular(14), border: Border.all(color: step.$4.withValues(alpha: .14))),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Icon(step.$1, color: step.$4, size: 22),
+                        const SizedBox(height: 9),
+                        Text(step.$2, style: const TextStyle(fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 4),
+                        Text(step.$3, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 11.5, height: 1.35)),
+                      ]),
+                    ),
                   ),
-                ),
-            ]);
+              ],
+            );
           }),
         ],
       ),
@@ -354,54 +356,45 @@ class _OpportunityPreview extends StatelessWidget {
         decoration: BoxDecoration(
           color: _BridgePointHomeV2State._panel,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _BridgePointHomeV2State._green.withValues(alpha: .13)),
+          border: Border.all(color: Colors.white.withValues(alpha: .08)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Highest-ranked examples right now', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 3),
-            const Text('A quick look at real ranked output—not every backend record.', style: TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 12.2)),
-            const SizedBox(height: 12),
-            if (rows.isEmpty)
-              const Text('BridgePoint is refreshing the opportunity feed.', style: TextStyle(color: _BridgePointHomeV2State._muted))
-            else
-              for (final row in rows.take(5))
-                Container(
-                  margin: const EdgeInsets.only(bottom: 7),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: const Color(0xAA112B45), borderRadius: BorderRadius.circular(13)),
-                  child: Row(children: [
-                    const Icon(Icons.location_searching_rounded, color: _BridgePointHomeV2State._green, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('${row['full_address'] ?? row['title'] ?? 'Property opportunity'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 2),
-                      Text('${row['title'] ?? 'Opportunity'} • ${row['priority'] ?? 'ranked'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 11.5)),
-                    ])),
-                    if (row['score'] != null) Text('${row['score']}', style: const TextStyle(color: _BridgePointHomeV2State._gold, fontWeight: FontWeight.w900)),
-                  ]),
-                ),
-          ],
-        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('What deserves attention now', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 3),
+          const Text('A short preview, not another giant dashboard.', style: TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 12.2)),
+          const SizedBox(height: 12),
+          if (rows.isEmpty)
+            const Text('BridgePoint is loading prioritized opportunities.', style: TextStyle(color: _BridgePointHomeV2State._muted))
+          else
+            for (final row in rows.take(5))
+              Container(
+                margin: const EdgeInsets.only(bottom: 7),
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(color: const Color(0xFF10243A), borderRadius: BorderRadius.circular(12)),
+                child: Row(children: [
+                  const Icon(Icons.location_searching_rounded, color: _BridgePointHomeV2State._green, size: 20),
+                  const SizedBox(width: 9),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('${row['full_address'] ?? row['title'] ?? 'Property opportunity'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2),
+                    Text('${row['reason'] ?? row['explanation'] ?? 'Evidence-backed property intelligence'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _BridgePointHomeV2State._muted, fontSize: 11.2, height: 1.3)),
+                  ])),
+                ]),
+              ),
+        ]),
       );
 }
 
 class _LivePill extends StatelessWidget {
   const _LivePill();
-
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-        decoration: BoxDecoration(
-          color: _BridgePointHomeV2State._green.withValues(alpha: .09),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: _BridgePointHomeV2State._green.withValues(alpha: .18)),
-        ),
+        decoration: BoxDecoration(color: _BridgePointHomeV2State._green.withValues(alpha: .10), borderRadius: BorderRadius.circular(999), border: Border.all(color: _BridgePointHomeV2State._green.withValues(alpha: .24))),
         child: const Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.circle, color: _BridgePointHomeV2State._green, size: 7),
           SizedBox(width: 5),
-          Text('LIVE', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900)),
+          Text('LIVE', style: TextStyle(color: _BridgePointHomeV2State._green, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .7)),
         ]),
       );
 }
