@@ -1,0 +1,77 @@
+name: Control Podcast UI V940
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/control-podcast-ui-v940.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-control-podcast-ui-v940
+  cancel-in-progress: false
+
+jobs:
+  validate-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout V940 branch
+        uses: actions/checkout@v4
+        with:
+          ref: bridgepoint/podcast-ui-v940
+          fetch-depth: 0
+
+      - name: Apply guarded V940 patch
+        run: python ops/patch_podcast_ui_v940.py
+
+      - name: Verify four-entrance contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('lib/v2/bridgepoint_app_v2.dart').read_text()
+          primary=s.split('List<_AreaV2> get _primary => const [',1)[1].split('];',1)[0]
+          assert primary.count('_AreaV2.') == 4, primary
+          assert all(x in primary for x in ['_AreaV2.home','_AreaV2.map','_AreaV2.properties','_AreaV2.work'])
+          assert "label: 'More'" not in s
+          assert 'class _WorkHubV940' in s
+          assert s.count("tooltip: 'Explore all capabilities'") >= 2
+          print('V940 source contract passed.')
+          PY
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format V940 source
+        run: dart format lib/v2/bridgepoint_app_v2.dart
+
+      - name: Analyze app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Commit validated source to V940 branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Recovery Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_app_v2.dart
+          if git diff --cached --quiet; then
+            echo 'V940 source already current.'
+          else
+            git commit -m 'Reduce permanent navigation to Home Map Properties Work V940 [skip ci]'
+            git push origin HEAD:bridgepoint/podcast-ui-v940
+          fi
