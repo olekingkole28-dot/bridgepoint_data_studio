@@ -25,6 +25,46 @@ import 'bridgepoint_public_landing_v2.dart';
 import 'bridgepoint_saved_alerts_v2.dart';
 import 'settings/bridgepoint_account_support_v2.dart';
 
+const _bridgePointLanguagesV2 = <(String, String)>[
+  ('en', 'English'),
+  ('es', 'Español'),
+  ('fr', 'Français'),
+  ('pt-BR', 'Português (Brasil)'),
+  ('de', 'Deutsch'),
+  ('it', 'Italiano'),
+  ('nl', 'Nederlands'),
+  ('pl', 'Polski'),
+  ('ro', 'Română'),
+  ('ru', 'Русский'),
+  ('uk', 'Українська'),
+  ('tr', 'Türkçe'),
+  ('ar', 'العربية'),
+  ('he', 'עברית'),
+  ('hi', 'हिन्दी'),
+  ('bn', 'বাংলা'),
+  ('pa', 'ਪੰਜਾਬੀ'),
+  ('ur', 'اردو'),
+  ('zh-Hans', '简体中文'),
+  ('zh-Hant', '繁體中文'),
+  ('ja', '日本語'),
+  ('ko', '한국어'),
+  ('vi', 'Tiếng Việt'),
+  ('id', 'Bahasa Indonesia'),
+  ('tl', 'Filipino / Tagalog'),
+  ('th', 'ไทย'),
+  ('ht', 'Kreyòl ayisyen'),
+];
+
+const _bridgePointStatesV2 = <String>[
+  'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'
+];
+
+String _bridgePointLanguageNameV2(String code) => _bridgePointLanguagesV2
+    .where((item) => item.$1 == code)
+    .map((item) => item.$2)
+    .firstOrNull ??
+    'English';
+
 class BridgePointV2App extends StatelessWidget {
   const BridgePointV2App({super.key});
 
@@ -66,18 +106,451 @@ ThemeData _theme() {
   );
 }
 
-class _Root extends StatefulWidget { const _Root(); @override State<_Root> createState() => _RootState(); }
-class _RootState extends State<_Root> {
-  bool auth = false;
-  @override Widget build(BuildContext context) => StreamBuilder<AuthState>(stream: Supabase.instance.client.auth.onAuthStateChange,builder: (context, snapshot) {if (Supabase.instance.client.auth.currentSession != null) return const _Workspace();if (auth) return _AuthPage(onBack: () => setState(() => auth = false));return BridgePointPublicLandingV2(onSignIn: () => setState(() => auth = true));});
+class _Root extends StatefulWidget {
+  const _Root();
+  @override
+  State<_Root> createState() => _RootState();
 }
 
-class _AuthPage extends StatefulWidget { const _AuthPage({required this.onBack}); final VoidCallback onBack; @override State<_AuthPage> createState() => _AuthPageState(); }
+class _RootState extends State<_Root> {
+  bool auth = false;
+  String locale = 'en';
+
+  Future<void> _pickLanguage() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: FractionallySizedBox(
+          heightFactor: .76,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
+            children: [
+              const Text(
+                'Choose your language',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '27 languages are available before you enter BridgePoint. Your account creation flow remembers this choice.',
+                style: TextStyle(color: Color(0xFFB5C6D9)),
+              ),
+              const SizedBox(height: 12),
+              for (final item in _bridgePointLanguagesV2)
+                ListTile(
+                  leading: Icon(
+                    item.$1 == locale
+                        ? Icons.check_circle_rounded
+                        : Icons.language_rounded,
+                    color: item.$1 == locale
+                        ? const Color(0xFF48E1FF)
+                        : const Color(0xFFB5C6D9),
+                  ),
+                  title: Text(item.$2),
+                  subtitle: Text(item.$1),
+                  onTap: () => Navigator.pop(context, item.$1),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null && mounted) setState(() => locale = selected);
+  }
+
+  @override
+  Widget build(BuildContext context) => StreamBuilder<AuthState>(
+        stream: Supabase.instance.client.auth.onAuthStateChange,
+        builder: (context, snapshot) {
+          if (Supabase.instance.client.auth.currentSession != null) {
+            return const _Workspace();
+          }
+          if (auth) {
+            return _AuthPage(
+              onBack: () => setState(() => auth = false),
+              initialLocale: locale,
+              onLocaleChanged: (value) => setState(() => locale = value),
+            );
+          }
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: BridgePointPublicLandingV2(
+                  onSignIn: () => setState(() => auth = true),
+                ),
+              ),
+              Positioned(
+                right: 12,
+                top: MediaQuery.paddingOf(context).top + 10,
+                child: Material(
+                  color: const Color(0xE6071321),
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: _pickLanguage,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.language_rounded,
+                            color: Color(0xFF48E1FF),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 7),
+                          Text(
+                            _bridgePointLanguageNameV2(locale),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+}
+
+class _AuthPage extends StatefulWidget {
+  const _AuthPage({
+    required this.onBack,
+    required this.initialLocale,
+    required this.onLocaleChanged,
+  });
+  final VoidCallback onBack;
+  final String initialLocale;
+  final ValueChanged<String> onLocaleChanged;
+  @override
+  State<_AuthPage> createState() => _AuthPageState();
+}
+
 class _AuthPageState extends State<_AuthPage> {
-  final email = TextEditingController(); final password = TextEditingController(); bool create = false; bool busy = false; bool showPassword = false; String? error;
-  @override void dispose() { email.dispose(); password.dispose(); super.dispose(); }
-  Future<void> submit() async {setState(() {busy = true; error = null;});try {if (create) {await Supabase.instance.client.auth.signUp(email: email.text.trim(), password: password.text);} else {await Supabase.instance.client.auth.signInWithPassword(email: email.text.trim(), password: password.text);}} catch (e) {if (mounted) setState(() => error = e is AuthException ? e.message : 'BridgePoint could not sign in right now.');} finally {if (mounted) setState(() => busy = false);}}
-  @override Widget build(BuildContext context) => Scaffold(body: BridgePointMotionBackgroundV2(child: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(20),child: Container(width: 470,padding: const EdgeInsets.all(26),decoration: BoxDecoration(color: const Color(0xF00A192A),borderRadius: BorderRadius.circular(22),border: Border.all(color: const Color(0x3348E1FF)),boxShadow: const [BoxShadow(color: Color(0x77000000), blurRadius: 42, offset: Offset(0, 18))]),child: Column(crossAxisAlignment: CrossAxisAlignment.stretch,children: [Align(alignment: Alignment.centerLeft,child: IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back_rounded))),const Center(child: BridgePointMarkV2(size: 68)),const SizedBox(height: 13),const Text('BridgePoint Intelligence', textAlign: TextAlign.center, style: TextStyle(fontSize: 27, fontWeight: FontWeight.w900)),const SizedBox(height: 4),const Text('Property intelligence, without the backend maze.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFB5C6D9))),const SizedBox(height: 24),TextField(controller: email,keyboardType: TextInputType.emailAddress,decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.mail_outline_rounded))),const SizedBox(height: 12),TextField(controller: password,obscureText: !showPassword,onSubmitted: (_) => busy ? null : submit(),decoration: InputDecoration(labelText: 'Password',prefixIcon: const Icon(Icons.lock_outline_rounded),suffixIcon: IconButton(onPressed: () => setState(() => showPassword = !showPassword),icon: Icon(showPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded)))),if (error != null) ...[const SizedBox(height: 10),Text(error!, style: const TextStyle(color: Color(0xFFFF7E7E)))],const SizedBox(height: 18),FilledButton(onPressed: busy ? null : submit, child: Text(create ? 'Create account' : 'Sign in')),TextButton(onPressed: busy ? null : () => setState(() => create = !create),child: Text(create ? 'Already have an account? Sign in' : 'New to BridgePoint? Create account'))]))))));
+  final email = TextEditingController();
+  final password = TextEditingController();
+  bool create = false;
+  bool busy = false;
+  bool showPassword = false;
+  String? error;
+  late String locale;
+  String industry = 'Roofing';
+  String role = 'Owner / Founder';
+  String goal = 'Find the best opportunities';
+  String stateCode = 'CT';
+  String experience = 'Growing business';
+
+  @override
+  void initState() {
+    super.initState();
+    locale = widget.initialLocale;
+  }
+
+  @override
+  void dispose() {
+    email.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  Future<void> submit() async {
+    if (email.text.trim().isEmpty || !email.text.contains('@')) {
+      setState(() => error = 'Enter a valid email address.');
+      return;
+    }
+    if (password.text.length < 6) {
+      setState(() => error = 'Use a password with at least 6 characters.');
+      return;
+    }
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      if (create) {
+        await Supabase.instance.client.auth.signUp(
+          email: email.text.trim(),
+          password: password.text,
+          data: {
+            'preferred_locale': locale,
+            'onboarding_version': 'clean_v2_v974',
+            'industry': industry,
+            'role': role,
+            'primary_goal': goal,
+            'primary_state': stateCode,
+            'experience': experience,
+          },
+        );
+      } else {
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: email.text.trim(),
+          password: password.text,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => error = e is AuthException
+              ? e.message
+              : 'BridgePoint could not sign in right now.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Widget _drop(
+    String label,
+    String value,
+    List<String> values,
+    ValueChanged<String> onChanged,
+  ) => DropdownButtonFormField<String>(
+        value: value,
+        isExpanded: true,
+        decoration: InputDecoration(labelText: label),
+        items: values
+            .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+            .toList(),
+        onChanged: busy
+            ? null
+            : (v) {
+                if (v != null) onChanged(v);
+              },
+      );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        body: BridgePointMotionBackgroundV2(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 260),
+                width: create ? 720 : 500,
+                padding: const EdgeInsets.all(26),
+                decoration: BoxDecoration(
+                  color: const Color(0xEE0A192A),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0x3348E1FF)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x77000000),
+                      blurRadius: 42,
+                      offset: Offset(0, 18),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: widget.onBack,
+                        icon: const Icon(Icons.arrow_back_rounded),
+                      ),
+                    ),
+                    const Center(child: BridgePointMarkV2(size: 68)),
+                    const SizedBox(height: 13),
+                    Text(
+                      create ? 'Create your BridgePoint account' : 'BridgePoint Intelligence',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 27,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      create
+                          ? 'Language and a few onboarding questions come first so your workspace starts in the right context.'
+                          : 'Property intelligence, without the backend maze.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Color(0xFFB5C6D9)),
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      value: locale,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Language',
+                        prefixIcon: Icon(Icons.language_rounded),
+                      ),
+                      items: _bridgePointLanguagesV2
+                          .map(
+                            (item) => DropdownMenuItem(
+                              value: item.$1,
+                              child: Text(item.$2),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: busy
+                          ? null
+                          : (value) {
+                              if (value == null) return;
+                              setState(() => locale = value);
+                              widget.onLocaleChanged(value);
+                            },
+                    ),
+                    const SizedBox(height: 12),
+                    if (create) ...[
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final wide = constraints.maxWidth >= 570;
+                          final fields = <Widget>[
+                            _drop(
+                              'Industry',
+                              industry,
+                              const [
+                                'Roofing',
+                                'Restoration / Mitigation',
+                                'Public Adjusting',
+                                'Insurance / Claims',
+                                'Real Estate / Investing',
+                                'Property Management',
+                                'Homeowner',
+                                'Other',
+                              ],
+                              (v) => setState(() => industry = v),
+                            ),
+                            _drop(
+                              'Your role',
+                              role,
+                              const [
+                                'Owner / Founder',
+                                'Manager',
+                                'Sales / Field',
+                                'Adjuster / Claims',
+                                'Analyst',
+                                'Homeowner',
+                                'Other',
+                              ],
+                              (v) => setState(() => role = v),
+                            ),
+                            _drop(
+                              'Primary goal',
+                              goal,
+                              const [
+                                'Find the best opportunities',
+                                'Evaluate properties',
+                                'Manage claims',
+                                'Track risk',
+                                'Build portfolio intelligence',
+                                'Other',
+                              ],
+                              (v) => setState(() => goal = v),
+                            ),
+                            _drop(
+                              'Primary state',
+                              stateCode,
+                              _bridgePointStatesV2,
+                              (v) => setState(() => stateCode = v),
+                            ),
+                            _drop(
+                              'Experience',
+                              experience,
+                              const [
+                                'Just starting',
+                                'Growing business',
+                                'Established team',
+                                'Enterprise / Carrier',
+                              ],
+                              (v) => setState(() => experience = v),
+                            ),
+                          ];
+                          if (!wide) {
+                            return Column(
+                              children: [
+                                for (var i = 0; i < fields.length; i++) ...[
+                                  fields[i],
+                                  if (i < fields.length - 1)
+                                    const SizedBox(height: 10),
+                                ],
+                              ],
+                            );
+                          }
+                          return Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              for (final field in fields)
+                                SizedBox(
+                                  width: (constraints.maxWidth - 10) / 2,
+                                  child: field,
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    TextField(
+                      controller: email,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.mail_outline_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: password,
+                      obscureText: !showPassword,
+                      onSubmitted: (_) => busy ? null : submit(),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded),
+                        suffixIcon: IconButton(
+                          onPressed: () =>
+                              setState(() => showPassword = !showPassword),
+                          icon: Icon(
+                            showPassword
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        error!,
+                        style: const TextStyle(color: Color(0xFFFF7E7E)),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    FilledButton(
+                      onPressed: busy ? null : submit,
+                      child: Text(create ? 'Create account' : 'Sign in'),
+                    ),
+                    TextButton(
+                      onPressed: busy
+                          ? null
+                          : () => setState(() => create = !create),
+                      child: Text(
+                        create
+                            ? 'Already have an account? Sign in'
+                            : 'New to BridgePoint? Create account',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 enum _Area { home,map,properties,work,plans,search,opportunities,saved,claims,calendar,operations,portfolio,investor,property360,buildings,ai,integrations,account,sources,models,studio,worth,owner }
