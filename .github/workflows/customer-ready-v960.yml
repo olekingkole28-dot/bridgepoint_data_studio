@@ -2,7 +2,7 @@ name: BridgePoint Customer Ready V960
 
 on:
   push:
-    branches: [customer-ready-v946]
+    branches: [customer-ready-v946, customer-ready-v960-rebased]
     paths:
       - 'lib/main_v2.dart'
       - 'lib/v2/**'
@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           test -s lib/main_v2.dart
-          test -s lib/v2/bridgepoint_app_v2.dart
+          test -s lib/v2/bridgepoint_customer_ready_app_v946.dart
           test -s lib/v2/bridgepoint_home_v2.dart
           test -s lib/v2/bridgepoint_map_weather_v2.dart
           test -s lib/v2/bridgepoint_property_360_v2.dart
@@ -46,15 +46,15 @@ jobs:
           test -s lib/v2/bridgepoint_products_settings_v2.dart
           python - <<'PY'
           from pathlib import Path
-          app=Path('lib/v2/bridgepoint_app_v2.dart').read_text(encoding='utf-8')
+          app=Path('lib/v2/bridgepoint_customer_ready_app_v946.dart').read_text(encoding='utf-8')
           home=Path('lib/v2/bridgepoint_home_v2.dart').read_text(encoding='utf-8')
           mp=Path('lib/v2/bridgepoint_map_weather_v2.dart').read_text(encoding='utf-8')
           prop=Path('lib/v2/bridgepoint_property_360_v2.dart').read_text(encoding='utf-8')
           buildings=Path('lib/v2/bridgepoint_buildings_v2.dart').read_text(encoding='utf-8')
           plans=Path('lib/v2/bridgepoint_products_settings_v2.dart').read_text(encoding='utf-8')
           required={
-            'packages_visible': ("label:'Packages'" in app or "label: 'Packages'" in app or "label:'Plans'" in app or "label: 'Plans'" in app),
-            'plans_area': '_Area.plans' in app,
+            'packages_visible': "label: 'Packages'" in app,
+            'packages_area': '_CustomerArea.plans' in app,
             'radar_paused_default': 'bool playing = false;' in mp,
             'radar_manual_rate': 'Duration(milliseconds: 5500)' in mp,
             'radar_not_zoom_hidden': 'bool get _showRadar => radar;' in mp,
@@ -66,7 +66,8 @@ jobs:
             'timeline': 'bridgepoint_property_timeline_v857' in prop,
             'building_state_search': 'bridgepoint_flutter_properties_state_browse_v840' in buildings,
             'access_contract': 'bridgepoint_customer_access_contract_v318' in plans,
-            'home': 'BridgePointHomeV2' in home,
+            'home_live_pulse': 'bridgepoint_public_system_pulse_v957' in home and 'Duration(seconds: 5)' in home,
+            'owner_live_activity': 'bridgepoint_owner_live_activity_v958' in home,
           }
           missing=[k for k,v in required.items() if not v]
           if missing: raise SystemExit('Customer-ready contract missing: '+', '.join(missing))
@@ -100,7 +101,7 @@ jobs:
           test -s build/web/main.dart.js
           test -s build/web/flutter_bootstrap.js
           cat > build/web/bridgepoint-v2-release.json <<EOF
-          {"architecture":"customer-ready-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","primary_navigation":["Home","Map","Properties","Work","Packages"],"radar_mode":"latest-paused-manual-animation","radar_frame_ms":5500,"radar_visible_at_property_zoom":true,"map_markers_explainable":true,"property_timeline_explainable":true,"package_access_contract":"v318","customer_plan_contract":"v944","property_search_contract":"v959","public_system_pulse":"v957","owner_activity_contract":"v958"}
+          {"architecture":"customer-ready-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","primary_navigation":["Home","Map","Opportunities","Work","Packages"],"radar_mode":"latest-paused-manual-animation","radar_frame_ms":5500,"radar_visible_at_property_zoom":true,"map_markers_explainable":true,"property_timeline_explainable":true,"package_access_contract":"v318","customer_plan_contract":"v944","property_search_contract":"v959","public_system_pulse":"v957","owner_activity_contract":"v958"}
           EOF
           touch build/web/.nojekyll
 
@@ -126,7 +127,7 @@ jobs:
           BYTES="$(stat -c '%s' /tmp/v960-build.tar.gz)"
           CHUNKS="$(find /tmp/v960-handoff -type f -name 'chunk-*' | wc -l)"
           cat > /tmp/v960-handoff/manifest.json <<EOF
-          {"architecture":"customer-ready-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"primary_navigation":["Home","Map","Properties","Work","Packages"],"radar_mode":"latest-paused-manual-animation","radar_frame_ms":5500}
+          {"architecture":"customer-ready-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"primary_navigation":["Home","Map","Opportunities","Work","Packages"],"radar_mode":"latest-paused-manual-animation","radar_frame_ms":5500}
           EOF
 
       - name: Publish private compiled handoff
