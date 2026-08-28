@@ -1,0 +1,38 @@
+name: Map Radar V952 Validation
+
+on:
+  pull_request:
+    paths:
+      - 'lib/v2/bridgepoint_map_weather_v2.dart'
+      - '.github/workflows/map-radar-v952-validate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-map-radar:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed lib/v2/bridgepoint_map_weather_v2.dart
+      - name: Analyze map radar source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/v2/bridgepoint_map_weather_v2.dart
+      - name: Contract checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "bool playing = false" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q "Duration(milliseconds: 5500)" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q "What am I seeing?" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q "What this does NOT prove" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q "Weather radar" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q "tap for details" lib/v2/bridgepoint_map_weather_v2.dart
