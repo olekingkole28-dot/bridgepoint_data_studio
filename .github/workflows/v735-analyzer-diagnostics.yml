@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   analyze-generated-release:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
