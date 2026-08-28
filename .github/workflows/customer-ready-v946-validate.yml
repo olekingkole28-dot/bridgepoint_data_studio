@@ -1,0 +1,58 @@
+name: Customer Ready V946 Validation
+
+on:
+  push:
+    branches: [customer-ready-v946]
+    paths:
+      - 'lib/main_v2.dart'
+      - 'lib/v2/bridgepoint_customer_ready_app_v946.dart'
+      - 'lib/v2/bridgepoint_products_settings_v2.dart'
+      - 'lib/v2/bridgepoint_global_search_v2.dart'
+      - 'lib/v2/bridgepoint_property_timeline_explained_v951.dart'
+      - 'lib/v2/bridgepoint_map_weather_v2.dart'
+      - '.github/workflows/customer-ready-v946-validate.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: customer-ready-v946
+      - name: Apply deterministic customer-surface repairs
+        run: python .github/scripts/product_release_repair_v852.py
+      - name: Run full product release audit
+        run: python .github/scripts/product_release_audit_v852.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze customer-ready shell
+        run: flutter analyze lib/main_v2.dart lib/v2/bridgepoint_customer_ready_app_v946.dart lib/v2/bridgepoint_products_settings_v2.dart lib/v2/bridgepoint_global_search_v2.dart lib/v2/bridgepoint_property_timeline_explained_v951.dart lib/v2/bridgepoint_map_weather_v2.dart --no-fatal-infos --no-fatal-warnings
+      - name: Run release tests
+        run: flutter test
+      - name: Build customer-ready web
+        run: flutter build web --release -t lib/main_v2.dart --base-href '/app/'
+      - name: Verify artifact
+        run: |
+          set -euo pipefail
+          test -s build/web/index.html
+          test -s build/web/main.dart.js
+          grep -q '<base href="/app/">' build/web/index.html
+      - name: Persist deterministic repairs after successful validation
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No deterministic repair changes were needed.'
+            exit 0
+          fi
+          git config user.name 'bridgepoint-release-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2 lib/v2/settings
+          git commit -m 'Apply deterministic customer-surface repairs v852'
+          git push origin HEAD:customer-ready-v946
