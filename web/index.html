@@ -45,7 +45,7 @@
       let installPrompt=null;
       const standalone=()=>window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true;
       const ios=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
-      const showButton=()=>{if(!standalone())button.classList.add('show')};
+      const showButton=()=>{};
       const hideButton=()=>button.classList.remove('show');
       const guidance=()=>{
         const data=ios()?{
@@ -57,7 +57,7 @@
         };
         copy.textContent=data.copy;steps.replaceChildren(...data.steps.map(text=>{const li=document.createElement('li');li.textContent=text;return li}));dialog.classList.add('show');
       };
-      addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;showButton()});
+      addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event});
       addEventListener('appinstalled',()=>{installPrompt=null;hideButton();dialog.classList.remove('show')});
       button.addEventListener('click',async()=>{
         if(standalone()){hideButton();return}
@@ -66,7 +66,6 @@
       });
       close.addEventListener('click',()=>dialog.classList.remove('show'));
       dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.classList.remove('show')});
-      addEventListener('load',()=>{if(!standalone())window.setTimeout(showButton,1200)},{once:true});
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
