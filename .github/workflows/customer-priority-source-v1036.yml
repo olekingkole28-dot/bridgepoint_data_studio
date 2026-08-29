@@ -1,0 +1,278 @@
+name: BridgePoint Customer Priority Source V1036
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/customer-priority-source-v1036.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-customer-priority-source-v1036
+  cancel-in-progress: false
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply Plans-first, live-offer and strict-map source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > lib/v2/bridgepoint_launch_offer_v1036.dart <<'DART'
+          import 'dart:async';
+
+          import 'package:flutter/material.dart';
+          import 'package:supabase_flutter/supabase_flutter.dart';
+
+          class BridgePointLaunchOfferV1036 extends StatefulWidget {
+            const BridgePointLaunchOfferV1036({super.key});
+
+            @override
+            State<BridgePointLaunchOfferV1036> createState() =>
+                _BridgePointLaunchOfferV1036State();
+          }
+
+          class _BridgePointLaunchOfferV1036State
+              extends State<BridgePointLaunchOfferV1036> {
+            static const _gold = Color(0xFFFFC95E);
+            static const _muted = Color(0xFFB5C6D9);
+            Map<String, dynamic>? _offer;
+            Timer? _timer;
+
+            @override
+            void initState() {
+              super.initState();
+              _refresh();
+              _timer = Timer.periodic(const Duration(seconds: 20), (_) => _refresh());
+            }
+
+            @override
+            void dispose() {
+              _timer?.cancel();
+              super.dispose();
+            }
+
+            Future<void> _refresh() async {
+              try {
+                final value = await Supabase.instance.client
+                    .rpc('bridgepoint_public_launch_promotion_v1035');
+                if (!mounted) return;
+                setState(() => _offer = value is Map
+                    ? Map<String, dynamic>.from(value)
+                    : <String, dynamic>{});
+              } catch (_) {
+                if (mounted && _offer == null) {
+                  setState(() => _offer = <String, dynamic>{});
+                }
+              }
+            }
+
+            int _int(dynamic value, [int fallback = 0]) => value is num
+                ? value.round()
+                : int.tryParse('${value ?? ''}') ?? fallback;
+
+            @override
+            Widget build(BuildContext context) {
+              final offer = _offer;
+              if (offer == null) {
+                return const LinearProgressIndicator(minHeight: 2);
+              }
+              if (offer['active'] != true) return const SizedBox.shrink();
+              final left = _int(offer['remaining_spots']);
+              final max = _int(offer['max_spots'], 10);
+              final pct = _int(offer['percent_off'], 50);
+              final months = _int(offer['duration_months'], 6);
+              final trial = _int(offer['trial_days'], 7);
+              return Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2D2208), Color(0xFF0A192A)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _gold.withValues(alpha: .42)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _gold.withValues(alpha: .13),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.local_offer_rounded, color: _gold),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$pct% off for $months paid months',
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'After the $trial-day free trial • live founding-customer availability',
+                            style: const TextStyle(color: _muted, fontSize: 11.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$left left',
+                          style: const TextStyle(
+                            color: _gold,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          'of $max spots',
+                          style: const TextStyle(color: _muted, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }
+          }
+          DART
+
+          python - <<'PY'
+          from pathlib import Path
+
+          app=Path('lib/v2/bridgepoint_app_v2.dart')
+          s=app.read_text(encoding='utf-8')
+          replacements={
+            "static const primary = <_Area>[_Area.home, _Area.map, _Area.properties, _Area.work];":
+              "static const primary = <_Area>[_Area.home, _Area.map, _Area.plans, _Area.properties, _Area.work];",
+            "final index=selected==_Area.plans?4:primary.contains(selected)?primary.indexOf(selected):3;":
+              "final index=primary.contains(selected)?primary.indexOf(selected):4;",
+            "onDestinationSelected:(i)=>open(i==4?_Area.plans:primary[i])":
+              "onDestinationSelected:(i)=>open(primary[i])",
+            "final railAreas=<_Area>[...primary,_Area.plans];":
+              "final railAreas=<_Area>[...primary];",
+          }
+          for old,new in replacements.items():
+            if old not in s: raise SystemExit('Missing app navigation anchor: '+old)
+            s=s.replace(old,new,1)
+
+          home="NavigationDestination(icon:Icon(Icons.space_dashboard_outlined),selectedIcon:Icon(Icons.space_dashboard_rounded),label:'Home')"
+          mapd="NavigationDestination(icon:Icon(Icons.public_outlined),selectedIcon:Icon(Icons.public_rounded),label:'Map')"
+          props="NavigationDestination(icon:Icon(Icons.holiday_village_outlined),selectedIcon:Icon(Icons.holiday_village_rounded),label:'Properties')"
+          work="NavigationDestination(icon:Icon(Icons.work_outline_rounded),selectedIcon:Icon(Icons.work_rounded),label:'Work')"
+          plans="NavigationDestination(icon:Icon(Icons.workspace_premium_outlined,color:_gold),selectedIcon:Icon(Icons.workspace_premium_rounded,color:_gold),label:'Plans')"
+          old=','.join([home,mapd,props,work,plans])
+          new=','.join([home,mapd,plans,props,work])
+          if old not in s: raise SystemExit('Missing compact destination order anchor')
+          s=s.replace(old,new,1)
+
+          rh="NavigationRailDestination(icon:Icon(Icons.space_dashboard_outlined),selectedIcon:Icon(Icons.space_dashboard_rounded),label:Text('Home'))"
+          rm="NavigationRailDestination(icon:Icon(Icons.public_outlined),selectedIcon:Icon(Icons.public_rounded),label:Text('Map'))"
+          rp="NavigationRailDestination(icon:Icon(Icons.holiday_village_outlined),selectedIcon:Icon(Icons.holiday_village_rounded),label:Text('Properties'))"
+          rw="NavigationRailDestination(icon:Icon(Icons.work_outline_rounded),selectedIcon:Icon(Icons.work_rounded),label:Text('Work'))"
+          rplans="NavigationRailDestination(icon:Icon(Icons.workspace_premium_outlined,color:_gold),selectedIcon:Icon(Icons.workspace_premium_rounded,color:_gold),label:Text('Plans'))"
+          old=','.join([rh,rm,rp,rw,rplans])
+          new=','.join([rh,rm,rplans,rp,rw])
+          if old not in s: raise SystemExit('Missing rail destination order anchor')
+          s=s.replace(old,new,1)
+          app.write_text(s,encoding='utf-8')
+
+          plans_file=Path('lib/v2/bridgepoint_products_settings_v2.dart')
+          s=plans_file.read_text(encoding='utf-8')
+          anchor="import 'settings/bridgepoint_package_fit_v2.dart';"
+          if "bridgepoint_launch_offer_v1036.dart" not in s:
+            if anchor not in s: raise SystemExit('Missing Plans import anchor')
+            s=s.replace(anchor,"import 'bridgepoint_launch_offer_v1036.dart';\n"+anchor,1)
+          anchor="]),\n    if(snapshot.connectionState==ConnectionState.waiting)"
+          if 'BridgePointLaunchOfferV1036' not in s:
+            if anchor not in s: raise SystemExit('Missing Plans banner anchor')
+            s=s.replace(anchor,"]),\n    const SizedBox(height:12),const BridgePointLaunchOfferV1036(),\n    if(snapshot.connectionState==ConnectionState.waiting)",1)
+          plans_file.write_text(s,encoding='utf-8')
+
+          map_file=Path('lib/v2/bridgepoint_map_weather_v2.dart')
+          s=map_file.read_text(encoding='utf-8')
+          for old,new in [
+            ('bridgepoint_flutter_property_map_viewport_v838','bridgepoint_flutter_property_map_viewport_v1035'),
+            ('bridgepoint_flutter_signal_map_v80','bridgepoint_flutter_signal_map_v1036'),
+            ('bridgepoint_flutter_intelligence_map_national_v346','bridgepoint_flutter_intelligence_map_national_v1037'),
+          ]:
+            if old not in s: raise SystemExit('Missing map RPC anchor: '+old)
+            s=s.replace(old,new)
+          map_file.write_text(s,encoding='utf-8')
+
+          audit=Path('.github/scripts/product_release_audit_v852.py')
+          s=audit.read_text(encoding='utf-8')
+          old="static const primary = <_Area>[_Area.home, _Area.map, _Area.properties, _Area.work];"
+          new="static const primary = <_Area>[_Area.home, _Area.map, _Area.plans, _Area.properties, _Area.work];"
+          if old not in s: raise SystemExit('Missing release-audit primary anchor')
+          s=s.replace(old,new)
+          s=s.replace('Primary navigation must be Home / Map / Properties / Work','Primary navigation must be Home / Map / Plans / Properties / Work')
+          audit.write_text(s,encoding='utf-8')
+
+          release=Path('.github/workflows/flutter-web-v2-production.yml')
+          s=release.read_text(encoding='utf-8')
+          old="static const primary = <_Area>[_Area.home, _Area.map, _Area.properties, _Area.work];"
+          new="static const primary = <_Area>[_Area.home, _Area.map, _Area.plans, _Area.properties, _Area.work];"
+          if old not in s: raise SystemExit('Missing production primary anchor')
+          s=s.replace(old,new)
+          s=s.replace('[\"Home\",\"Map\",\"Properties\",\"Work\"]','[\"Home\",\"Map\",\"Plans\",\"Properties\",\"Work\"]')
+          release.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Verify source contract before Flutter
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "static const primary = <_Area>\[_Area.home, _Area.map, _Area.plans, _Area.properties, _Area.work\];" lib/v2/bridgepoint_app_v2.dart
+          grep -q 'BridgePointLaunchOfferV1036' lib/v2/bridgepoint_products_settings_v2.dart
+          grep -q 'bridgepoint_public_launch_promotion_v1035' lib/v2/bridgepoint_launch_offer_v1036.dart
+          grep -q 'bridgepoint_flutter_property_map_viewport_v1035' lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q 'bridgepoint_flutter_signal_map_v1036' lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q 'bridgepoint_flutter_intelligence_map_national_v1037' lib/v2/bridgepoint_map_weather_v2.dart
+          grep -q '\["Home","Map","Plans","Properties","Work"\]' .github/workflows/flutter-web-v2-production.yml
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          dart format lib/v2/bridgepoint_app_v2.dart lib/v2/bridgepoint_products_settings_v2.dart lib/v2/bridgepoint_map_weather_v2.dart lib/v2/bridgepoint_launch_offer_v1036.dart
+          python .github/scripts/product_release_audit_v852.py
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+
+      - name: Commit validated permanent source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_app_v2.dart lib/v2/bridgepoint_products_settings_v2.dart lib/v2/bridgepoint_map_weather_v2.dart lib/v2/bridgepoint_launch_offer_v1036.dart .github/scripts/product_release_audit_v852.py .github/workflows/flutter-web-v2-production.yml
+          if git diff --cached --quiet; then
+            echo 'Customer priority source already current.'
+          else
+            git commit -m 'Make Plans primary and enforce strict map addresses v1036 [skip ci]'
+            git push origin HEAD:main
+          fi
