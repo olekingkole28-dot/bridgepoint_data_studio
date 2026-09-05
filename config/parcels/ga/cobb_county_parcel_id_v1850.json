@@ -1,0 +1,49 @@
+{
+  "version": 1850,
+  "status": "READY_FOR_COMPLIANCE_NOT_SELF_APPROVED",
+  "state_code": "GA",
+  "county_name": "Cobb County",
+  "county_fips": "13067",
+  "provider": "Cobb County, Georgia",
+  "source_name": "CobbParcels current countywide parcel service - parcel identifier projection only",
+  "source_url": "https://services.arcgis.com/HYLRafMc4Ux6DA8c/ArcGIS/rest/services/CobbParcels/FeatureServer/0",
+  "service_item_id": "d810aab5b7504c9882c1e61583dd035a",
+  "source_type": "ARCGIS_FEATURE_SERVICE",
+  "authority_basis": "Official Cobb County ArcGIS organization and Cobb County Tax Assessor/GIS distribution policy",
+  "freshness_observed": {
+    "data_last_edit_utc": "2026-07-31T16:00:46Z",
+    "verified_on": "2026-09-05",
+    "max_record_count": 2000
+  },
+  "canonical_projection": {
+    "allowed_fields": ["PARCEL_ID", "PIN"],
+    "preferred_canonical_key": "PARCEL_ID",
+    "fallback_canonical_key": "PIN",
+    "return_geometry": false,
+    "retain_centroid": false,
+    "retain_raw_feature": false,
+    "retain_owner": false,
+    "retain_mailing_address": false,
+    "retain_assessment_values": false,
+    "retain_tax_values": false,
+    "retain_legal_description": false,
+    "retain_geometry": false
+  },
+  "legal_scope": {
+    "decision": "REQUIRES_EXISTING_COMPLIANCE_GATE_PASS_BEFORE_INGEST",
+    "rationale": "Cobb County explicitly distributes countywide Tax Assessor tabular parcel data at no cost through its GIS distribution channel. Cobb separately prices digital tax-assessor GIS parcel polygon data. BridgePoint therefore limits this candidate to factual parcel identifiers only and does not infer geometry rights from public FeatureServer visibility.",
+    "free_tabular_policy_url": "https://gis.cobbcounty.org/Geocortex/Essentials/REST/virtualdirectory/GIS_DataSales_Specifications.pdf",
+    "parcel_polygon_pricing_policy_url": "https://gis.cobbcounty.org/Geocortex/Essentials/REST/virtualdirectory/Approved_2013_Data_Costs_DistributionPolicy.pdf",
+    "official_service_directory_url": "https://services.arcgis.com/HYLRafMc4Ux6DA8c/ArcGIS/rest/services/CobbParcels/FeatureServer/0",
+    "important_restriction": "This manifest does not itself approve reuse. Production ingestion must fail closed unless the live BridgePoint compliance engine accepts the exact parcel-ID-only projection. Geometry must remain disabled unless separately approved under a geometry-specific rights decision."
+  },
+  "validation": {
+    "required_layer_name": "CobbParcels",
+    "required_geometry_type": "esriGeometryPolygon",
+    "required_fields_any": ["PARCEL_ID", "PIN"],
+    "required_service_item_id": "d810aab5b7504c9882c1e61583dd035a",
+    "minimum_freshness_date": "2026-07-01",
+    "reject_copy_services": true,
+    "forbidden_service_name_fragments": ["Copy041425", "2025", "archive", "backup"]
+  }
+}
