@@ -1,0 +1,29 @@
+name: BridgePoint DB Path Probe v1851
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bridgepoint-db-path-probe-v1851.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe-authorized-paths:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      BRIDGEPOINT_TASK_TOKEN: ${{ secrets.BRIDGEPOINT_TASK_TOKEN }}
+    steps:
+      - name: Report only whether authorized paths exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          for k in DATABASE_URL SUPABASE_DB_URL POSTGRES_URL SUPABASE_ACCESS_TOKEN BRIDGEPOINT_TASK_TOKEN; do
+            if [ -n "${!k:-}" ]; then echo "$k=CONFIGURED"; else echo "$k=MISSING"; fi
+          done
