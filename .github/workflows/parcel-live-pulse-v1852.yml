@@ -1,0 +1,36 @@
+name: Parcel Live Pulse v1852
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/parcel-live-pulse-v1852.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read-live-production:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read BridgePoint public parcel truth
+        shell: bash
+        env:
+          SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
+          SUPABASE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
+        run: |
+          set -euo pipefail
+          call_rpc() {
+            local name="$1"
+            curl --fail --silent --show-error --retry 3 --retry-all-errors --connect-timeout 15 --max-time 60 \
+              -X POST "$SUPABASE_URL/rest/v1/rpc/$name" \
+              -H "apikey: $SUPABASE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_KEY" \
+              -H 'Content-Type: application/json' \
+              -d '{}'
+          }
+          echo '=== PARCEL_PROGRESS ==='
+          call_rpc bridgepoint_public_parcel_progress_v956 | jq -c .
+          echo '=== SYSTEM_PULSE ==='
+          call_rpc bridgepoint_public_system_pulse_v957 | jq -c .
