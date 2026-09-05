@@ -5,11 +5,11 @@
   "county_name": "Cobb County",
   "county_fips": "13067",
   "provider": "Cobb County, Georgia",
-  "source_name": "CobbParcels current countywide parcel service - parcel identifier projection only",
+  "source_name": "CobbParcels current countywide parcel service - factual parcel identifier projection only",
   "source_url": "https://services.arcgis.com/HYLRafMc4Ux6DA8c/ArcGIS/rest/services/CobbParcels/FeatureServer/0",
   "service_item_id": "d810aab5b7504c9882c1e61583dd035a",
   "source_type": "ARCGIS_FEATURE_SERVICE",
-  "authority_basis": "Official Cobb County ArcGIS organization and Cobb County Tax Assessor/GIS distribution policy",
+  "authority_basis": "Official Cobb County ArcGIS organization, Cobb County Tax Assessor/GIS distribution policy, Georgia public-record law, and factual-data copyright distinction",
   "freshness_observed": {
     "data_last_edit_utc": "2026-07-31T16:00:46Z",
     "verified_on": "2026-09-05",
@@ -31,11 +31,15 @@
   },
   "legal_scope": {
     "decision": "REQUIRES_EXISTING_COMPLIANCE_GATE_PASS_BEFORE_INGEST",
-    "rationale": "Cobb County explicitly distributes countywide Tax Assessor tabular parcel data at no cost through its GIS distribution channel. Cobb separately prices digital tax-assessor GIS parcel polygon data. BridgePoint therefore limits this candidate to factual parcel identifiers only and does not infer geometry rights from public FeatureServer visibility.",
-    "free_tabular_policy_url": "https://gis.cobbcounty.org/Geocortex/Essentials/REST/virtualdirectory/GIS_DataSales_Specifications.pdf",
-    "parcel_polygon_pricing_policy_url": "https://gis.cobbcounty.org/Geocortex/Essentials/REST/virtualdirectory/Approved_2013_Data_Costs_DistributionPolicy.pdf",
+    "rationale": "Cobb County expressly distributes countywide Tax Assessor tabular parcel data at no cost through its GIS distribution channel. Georgia Code 50-18-70 defines public records to include government computer-generated information, data, and data fields and states a strong presumption of public access. The U.S. Copyright Office states that individual facts/data points are not protected by copyright even where a creative database compilation may be. BridgePoint therefore limits this candidate to factual parcel identifiers and does not copy the database arrangement, paid polygon product, imagery, owner fields, valuation fields, legal descriptions, or raw source records. This is an engineering/compliance rationale, not a guarantee against litigation or a substitute for counsel.",
+    "free_tabular_policy_url": "https://gis.cobbcounty.gov/Geocortex/Essentials/REST/virtualdirectory/GIS_DataSales_Specifications.pdf",
+    "current_distribution_policy_url": "https://s3.us-west-2.amazonaws.com/cobbcounty.org.if-us-west-2/prod/2018-06/GIS_Data_Costs_DistributionPolicy.pdf",
+    "parcel_polygon_pricing_policy_url": "https://gis.cobbcounty.gov/Geocortex/Essentials/REST/virtualdirectory/Approved_2013_Data_Costs_DistributionPolicy.pdf",
+    "georgia_open_records_statute_url": "https://law.justia.com/codes/georgia/title-50/chapter-18/article-4/section-50-18-70/",
+    "us_copyright_office_database_guidance_url": "https://www.copyright.gov/non-photographic-databases/register-one.html",
+    "us_copyright_office_facts_guidance_url": "https://www.copyright.gov/help/faq/faq-general.html",
     "official_service_directory_url": "https://services.arcgis.com/HYLRafMc4Ux6DA8c/ArcGIS/rest/services/CobbParcels/FeatureServer/0",
-    "important_restriction": "This manifest does not itself approve reuse. Production ingestion must fail closed unless the live BridgePoint compliance engine accepts the exact parcel-ID-only projection. Geometry must remain disabled unless separately approved under a geometry-specific rights decision."
+    "important_restriction": "This manifest does not self-approve reuse. Production ingestion must fail closed unless the live BridgePoint compliance engine accepts the exact parcel-ID-only projection. Geometry remains disabled unless separately approved under a geometry-specific rights decision."
   },
   "validation": {
     "required_layer_name": "CobbParcels",
