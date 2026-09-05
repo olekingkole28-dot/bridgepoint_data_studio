@@ -14,6 +14,19 @@ function isHttp(url: string): boolean {
   return /^https?:\/\//i.test(url);
 }
 
+function keyName(v: unknown): string {
+  return clean(v).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function normalizedKeys(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) {
+    const nk = keyName(k);
+    if (nk) out[nk] = v;
+  }
+  return out;
+}
+
 function firstNonEmpty(row: Record<string, unknown>, keys: string[]): string {
   for (const k of keys) {
     const v = clean(row[k]);
@@ -22,20 +35,9 @@ function firstNonEmpty(row: Record<string, unknown>, keys: string[]): string {
   return "";
 }
 
-function normalizedKeys(row: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(row)) {
-    const nk = k.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-    if (nk) out[nk] = v;
-  }
-  return out;
-}
-
 function projectRow(raw: Record<string, unknown>, meta: any, index: number): Record<string, unknown> | null {
   const row = normalizedKeys(raw);
-  const configured = Array.isArray(meta?.parcel_id_fields)
-    ? meta.parcel_id_fields.map((x: unknown) => clean(x).toLowerCase().replace(/[^a-z0-9]+/g, "_"))
-    : [];
+  const configured = Array.isArray(meta?.parcel_id_fields) ? meta.parcel_id_fields.map(keyName).filter(Boolean) : [];
   const parcelKeys = configured.length ? configured : [
     "parcel_id", "parcelid", "parcel_number", "parcel_no", "parcel", "pin", "parcel_pin",
     "property_number", "property_no", "account", "account_no", "account_number", "tax_parcel_id",
@@ -62,27 +64,25 @@ function projectRow(raw: Record<string, unknown>, meta: any, index: number): Rec
     geometry_retained: false
   };
 
-  const keep = Array.isArray(meta?.allowed_projection_fields)
-    ? meta.allowed_projection_fields.map((x: unknown) => clean(x).toLowerCase().replace(/[^a-z0-9]+/g, "_"))
-    : [];
+  const keep = Array.isArray(meta?.allowed_projection_fields) ? meta.allowed_projection_fields.map(keyName).filter(Boolean) : [];
   for (const k of keep) {
-    if (k && row[k] != null && clean(row[k])) out[k] = row[k];
+    if (row[k] != null && clean(row[k])) out[k] = row[k];
   }
   return out;
 }
 
-function parseDelimited(text: string, delimiter: string): Record<string, unknown>[] {
-  const wb = XLSX.read(text, { type: "string", raw: false, FS: delimiter });
+function firstSheetRows(wb: XLSX.WorkBook): Record<string, unknown>[] {
   const name = wb.SheetNames[0];
   if (!name) return [];
   return XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: "", raw: false }) as Record<string, unknown>[];
 }
 
+function parseDelimited(text: string, delimiter: string): Record<string, unknown>[] {
+  return firstSheetRows(XLSX.read(text, { type: "string", raw: false, FS: delimiter }));
+}
+
 function parseWorkbook(bytes: Uint8Array): Record<string, unknown>[] {
-  const wb = XLSX.read(bytes, { type: "array", raw: false });
-  const name = wb.SheetNames[0];
-  if (!name) return [];
-  return XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: "", raw: false }) as Record<string, unknown>[];
+  return firstSheetRows(XLSX.read(bytes, { type: "array", raw: false }));
 }
 
 async function fetchRows(url: string, format: string): Promise<Record<string, unknown>[]> {
@@ -101,22 +101,25 @@ async function fetchRows(url: string, format: string): Promise<Record<string, un
   return parseDelimited(text, ",");
 }
 
+function supportedAccess(v: unknown): boolean {
+  const a = clean(v).toUpperCase();
+  return a.includes("CSV") || a.includes("TSV") || a.includes("SPREADSHEET") || a.includes("XLS") || a.includes("TABULAR") || a.includes("PIPE");
+}
+
 async function runTask(sb: any, t: any) {
   try {
+    if (!supportedAccess(t.access_method)) throw new Error(`Unsupported bulk access method: ${t.access_method}`);
     const meta = t.candidate_metadata || {};
-    const access = clean(t.access_method).toUpperCase();
-    const format = clean(meta.bulk_format || access || "CSV");
+    const format = clean(meta.bulk_format || t.access_method || "CSV");
     const all = await fetchRows(String(t.source_url || ""), format);
     const offset = Math.max(0, Number(t.cursor?.offset || 0));
     const pageSize = Math.min(Math.max(Number(meta.bulk_page_size || 6000), 500), 10000);
     const slice = all.slice(offset, offset + pageSize);
-    const projected = slice
-      .map((r, i) => projectRow(r, meta, offset + i))
-      .filter(Boolean) as Record<string, unknown>[];
-
+    const projected = slice.map((r, i) => projectRow(r, meta, offset + i)).filter(Boolean) as Record<string, unknown>[];
     const deduped = [...new Map(projected.map((r) => [String(r._bridgepoint_source_record_id), r])).values()];
     const next = offset + slice.length;
     const done = next >= all.length;
+
     const st = await sb.rpc("bridgepoint_expansion_worker_stage_records_v90", {
       p_source_task_id: t.source_task_id,
       p_records: deduped,
@@ -147,18 +150,24 @@ async function runTask(sb: any, t: any) {
 Deno.serve(async (req: Request) => {
   try {
     const b = await req.json().catch(() => ({}));
+    const runId = clean(b.run_id);
+    if (!runId) return new Response(JSON.stringify({ complete: false, version: V, error: "run_id is required; v1849 never claims from the global foundation queue" }), { status: 400, headers: H });
+
     const sb = createClient(U, S, { auth: { persistSession: false, autoRefreshToken: false } });
     const ok = await sb.rpc("bridgepoint_expansion_worker_auth_v90", { p_task_token: String(b.task_token || "") });
     if (ok.error || ok.data !== true) return new Response(JSON.stringify({ complete: false, error: "Invalid task token" }), { status: 401, headers: H });
 
-    const cl = await sb.rpc("bridgepoint_claim_foundation_tasks_v633", { p_limit: Math.min(Math.max(Number(b.limit || 4), 1), 8) });
-    if (cl.error) throw cl.error;
-    const candidates = (cl.data?.tasks || []).filter((t: any) => {
-      const a = clean(t.access_method).toUpperCase();
-      return a.includes("CSV") || a.includes("TSV") || a.includes("SPREADSHEET") || a.includes("XLS") || a.includes("TABULAR") || a.includes("PIPE");
+    const cl = await sb.rpc("bridgepoint_expansion_worker_claim_tasks_v90", {
+      p_run_id: runId,
+      p_limit: Math.min(Math.max(Number(b.limit || 1), 1), 4)
     });
-    const results = await Promise.all(candidates.map((t: any) => runTask(sb, t)));
-    return new Response(JSON.stringify({ complete: true, version: V, claimed: candidates.length, records: results.reduce((n: number, x: any) => n + Number(x.records || 0), 0), results }), { headers: H });
+    if (cl.error) throw cl.error;
+    const tasks = cl.data?.tasks || [];
+    if (tasks.some((t: any) => !supportedAccess(t.access_method))) {
+      throw new Error("Explicit run contains a non-tabular task; refusing to consume it with v1849");
+    }
+    const results = await Promise.all(tasks.map((t: any) => runTask(sb, t)));
+    return new Response(JSON.stringify({ complete: true, version: V, run_id: runId, claimed: tasks.length, records: results.reduce((n: number, x: any) => n + Number(x.records || 0), 0), results }), { headers: H });
   } catch (e) {
     return new Response(JSON.stringify({ complete: false, version: V, error: String((e as any)?.stack || (e as any)?.message || e) }), { status: 400, headers: H });
   }
