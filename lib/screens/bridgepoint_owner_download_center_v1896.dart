@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 class BridgePointOwnerDownloadCenterV1896 extends StatelessWidget {
   const BridgePointOwnerDownloadCenterV1896({super.key});
 
-  static const _base = 'https://bridgepointintelligence.online';
+  static const _base = 'https://bridgepointintelligence.online/app';
   static const _panel = Color(0xFF0B1A2B);
   static const _cyan = Color(0xFF48E1FF);
   static const _gold = Color(0xFFFFC95E);
