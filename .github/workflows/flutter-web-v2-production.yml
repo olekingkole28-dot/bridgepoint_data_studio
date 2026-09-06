@@ -1,4 +1,4 @@
-# V945 authoritative Clean V2 compiler/handoff after control-plane consolidation
+# V1900 authoritative Clean V2 compiler/handoff with 3D world static surfaces
 name: BridgePoint Clean V2 Release Build
 
 on:
@@ -46,6 +46,11 @@ jobs:
           test -s lib/v2/bridgepoint_chrome_v2.dart
           test -s lib/screens/bridgepoint_owner_overview_v2.dart
           test -s lib/screens/bridgepoint_owner_command_center_v2.dart
+          test -s lib/screens/bridgepoint_owner_download_center_v1896.dart
+          test -s web/bridgepoint-3d-world/index.html
+          test -s web/owner-downloads/bridgepoint-storage-check.ps1
+          test -s web/owner-downloads/bridgepoint-local-node-readiness.ps1
+          test -s web/owner-downloads/bridgepoint-full-export-readiness.md
           test -s assets/brand/bridgepoint-mark-v80.svg
           test ! -d lib/v3
           python - <<'PY'
@@ -55,7 +60,7 @@ jobs:
           required=[
             'BridgePointV2App','BridgePointHomeV2','BridgePointMapWeatherV2','BridgePointProductsSettingsV2',
             'BridgePointPropertiesV2','BridgePointOpportunitiesV2','BridgePointOwnerCommandCenterV2','BridgePointOwnerOverviewV2',
-            'bridgepoint_owner_parcel_progress_v942','bridgepoint_owner_source_truth_v943','bridgepoint_customer_plans_v944'
+            'BridgePointOwnerDownloadCenterV1896','bridgepoint_owner_parcel_progress_v942','bridgepoint_owner_source_truth_v943','bridgepoint_customer_plans_v944'
           ]
           missing=[x for x in required if x not in source]
           if missing: raise SystemExit('Missing Clean V2 markers: '+', '.join(missing))
@@ -64,6 +69,7 @@ jobs:
           plans=Path('lib/v2/bridgepoint_products_settings_v2.dart').read_text(encoding='utf-8')
           owner=Path('lib/screens/bridgepoint_owner_overview_v2.dart').read_text(encoding='utf-8')
           chrome=Path('lib/v2/bridgepoint_chrome_v2.dart').read_text(encoding='utf-8')
+          world=Path('web/bridgepoint-3d-world/index.html').read_text(encoding='utf-8')
           assert "static const primary = <_Area>[_Area.home, _Area.map, _Area.properties, _Area.work];" in app
           assert "label:'Plans'" in app or "label: 'Plans'" in app
           assert "if (owner) _Group(title:'Owner only'" in app or "if (owner) _Group(title: 'Owner only'" in app
@@ -73,8 +79,10 @@ jobs:
           assert 'bridgepoint_owner_parcel_progress_v942' in owner
           assert 'bridgepoint_owner_source_truth_v943' in owner
           assert '_BridgePointOrbitalDnaPainter' in chrome
+          assert 'bridgepoint_3d_world_viewport_v1899' in world
+          assert 'NEARMAP' not in world.upper()
           assert 'V3' not in app and 'V3' not in map_src and 'V3' not in plans and 'V3' not in owner
-          print('Clean V2 simplified UI contract verified.')
+          print('Clean V2 + 3D world release contract verified.')
           PY
 
       - name: Deep product regression audit
@@ -103,21 +111,25 @@ jobs:
         run: |
           set -euo pipefail
           cat > web/bridgepoint-v2-release.json <<EOF
-          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","primary_navigation":["Home","Map","Properties","Work"],"plans_cta":"gold","customer_formula_surfaces":false,"radar_frame_ms":2600,"professional_map_markers":true,"orbital_dna_background":true,"parcel_progress_contract":"v942","source_truth_contract":"v943","customer_plan_contract":"v944"}
+          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","primary_navigation":["Home","Map","Properties","Work"],"plans_cta":"gold","customer_formula_surfaces":false,"radar_frame_ms":2600,"professional_map_markers":true,"orbital_dna_background":true,"parcel_progress_contract":"v942","source_truth_contract":"v943","customer_plan_contract":"v944","continuous_3d_world":true}
           EOF
           flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
           grep -q '<base href="/app/">' build/web/index.html
           test -s build/web/main.dart.js
           test -s build/web/assets/assets/brand/bridgepoint-mark-v80.svg
           test -s build/web/assets/fonts/MaterialIcons-Regular.otf
+          test -s build/web/bridgepoint-3d-world/index.html
+          test -s build/web/owner-downloads/bridgepoint-storage-check.ps1
+          test -s build/web/owner-downloads/bridgepoint-local-node-readiness.ps1
+          test -s build/web/owner-downloads/bridgepoint-full-export-readiness.md
           MAIN_SHA="$(sha256sum build/web/main.dart.js | awk '{print $1}')"
           FONT_SHA="$(sha256sum build/web/assets/fonts/MaterialIcons-Regular.otf | awk '{print $1}')"
           cp web/bridgepoint-v2-release.json build/web/bridgepoint-v2-release.json
           cat > build/web/bridgepoint-release.json <<EOF
-          {"version":"${GITHUB_SHA}","architecture":"clean-v2","primary_navigation":["Home","Map","Properties","Work"],"plans_cta":"gold","customer_formula_surfaces":false,"radar_frame_ms":2600,"professional_map_markers":true,"orbital_dna_background":true,"parcel_progress_contract":"v942","source_truth_contract":"v943","customer_plan_contract":"v944","main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${FONT_SHA}"}
+          {"version":"${GITHUB_SHA}","architecture":"clean-v2","primary_navigation":["Home","Map","Properties","Work"],"plans_cta":"gold","customer_formula_surfaces":false,"radar_frame_ms":2600,"professional_map_markers":true,"orbital_dna_background":true,"parcel_progress_contract":"v942","source_truth_contract":"v943","customer_plan_contract":"v944","continuous_3d_world":true,"main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${FONT_SHA}"}
           EOF
           cat > build/web/public-promotion-v682.json <<EOF
-          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${FONT_SHA}","source_repo_private":true,"primary_navigation":["Home","Map","Properties","Work"],"plans_cta":"gold","radar_frame_ms":2600,"parcel_progress_contract":"v942","source_truth_contract":"v943","customer_plan_contract":"v944"}
+          {"public_release":"clean-v2","compiled_source_sha":"${GITHUB_SHA}","private_build_run":${GITHUB_RUN_ID},"main_js_sha256":"${MAIN_SHA}","material_icon_font_sha256":"${FONT_SHA}","source_repo_private":true,"primary_navigation":["Home","Map","Properties","Work"],"plans_cta":"gold","radar_frame_ms":2600,"parcel_progress_contract":"v942","source_truth_contract":"v943","customer_plan_contract":"v944","continuous_3d_world":true}
           EOF
           touch build/web/.nojekyll
 
@@ -129,6 +141,9 @@ jobs:
           mkdir -p /tmp/v2-delta /tmp/v2-handoff
           for f in index.html main.dart.js flutter.js flutter_bootstrap.js flutter_service_worker.js manifest.json version.json favicon.png acquisition_tracker.js bridgepoint-v2-release.json bridgepoint-release.json public-promotion-v682.json .nojekyll; do
             if [ -e "build/web/$f" ]; then cp -a "build/web/$f" /tmp/v2-delta/; fi
+          done
+          for d in bridgepoint-3d-world owner-downloads; do
+            if [ -d "build/web/$d" ]; then cp -a "build/web/$d" /tmp/v2-delta/; fi
           done
           mkdir -p /tmp/v2-delta/assets/assets/brand
           cp build/web/assets/assets/brand/bridgepoint-mark-v80.svg /tmp/v2-delta/assets/assets/brand/
@@ -144,7 +159,7 @@ jobs:
           BYTES="$(stat -c '%s' /tmp/v2-delta.tar.gz)"
           CHUNKS="$(find /tmp/v2-handoff -type f -name 'chunk-*' | wc -l)"
           cat > /tmp/v2-handoff/manifest.json <<EOF
-          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","primary_navigation":["Home","Map","Properties","Work"],"plans_cta":"gold","radar_frame_ms":2600,"parcel_progress_contract":"v942","source_truth_contract":"v943","customer_plan_contract":"v944"}
+          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","primary_navigation":["Home","Map","Properties","Work"],"plans_cta":"gold","radar_frame_ms":2600,"parcel_progress_contract":"v942","source_truth_contract":"v943","customer_plan_contract":"v944","continuous_3d_world":true,"owner_downloads":true}
           EOF
 
       - name: Publish validated Clean V2 handoff branch
