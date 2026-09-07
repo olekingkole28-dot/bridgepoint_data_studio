@@ -1,0 +1,122 @@
+name: BridgePoint Current Clean V2 Handoff
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/main_v2.dart'
+      - 'lib/v2/**'
+      - 'lib/screens/bridgepoint_owner**'
+      - 'web/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/current-production-handoff.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-current-clean-v2-handoff
+  cancel-in-progress: true
+
+jobs:
+  build-handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Verify current production source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s lib/main_v2.dart
+          test -s lib/v2/bridgepoint_app_v2.dart
+          test -s lib/v2/bridgepoint_map_weather_v2.dart
+          test -s web/bridgepoint-3d-world/index.html
+          grep -Fq 'BridgePointMapWeatherV2' lib/v2/bridgepoint_map_weather_v2.dart
+          grep -Fq "'lightning'" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -Fq "'outage'" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -Fq "'flood'" lib/v2/bridgepoint_map_weather_v2.dart
+          grep -Fq 'bridgepoint_3d_world_viewport_v1899' web/bridgepoint-3d-world/index.html
+          ! grep -Fiq 'NEARMAP' web/bridgepoint-3d-world/index.html
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze current Clean V2
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build current Clean V2 web app
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+          test -s build/web/index.html
+          test -s build/web/main.dart.js
+          test -s build/web/flutter_bootstrap.js
+          test -s build/web/bridgepoint-3d-world/index.html
+          grep -Fq '<base href="/app/">' build/web/index.html
+          MAIN_SHA="$(sha256sum build/web/main.dart.js | awk '{print $1}')"
+          cat > build/web/bridgepoint-v2-release.json <<EOF
+          {"architecture":"clean-v2","version":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","production_origin":"https://bridgepointintelligence.online/app/","current_ui":true,"continuous_3d_world":true,"live_weather_fx":true,"lightning_layer":true,"grid_outage_layer":true,"flood_extent_layer":true,"main_js_sha256":"${MAIN_SHA}"}
+          EOF
+          cp build/web/bridgepoint-v2-release.json build/web/bridgepoint-release.json
+          cat > build/web/public-promotion-v682.json <<EOF
+          {"public_release":"clean-v2-current","compiled_source_sha":"${GITHUB_SHA}","source_repo_private":true,"main_js_sha256":"${MAIN_SHA}","current_ui":true,"continuous_3d_world":true,"live_weather_fx":true}
+          EOF
+          touch build/web/.nojekyll
+
+      - name: Build transfer-safe handoff chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/bp-current-delta /tmp/bp-current-handoff
+          mkdir -p /tmp/bp-current-delta /tmp/bp-current-handoff
+          for f in index.html main.dart.js flutter.js flutter_bootstrap.js flutter_service_worker.js manifest.json version.json favicon.png bridgepoint-v2-release.json bridgepoint-release.json public-promotion-v682.json .nojekyll; do
+            if [ -e "build/web/$f" ]; then cp -a "build/web/$f" /tmp/bp-current-delta/; fi
+          done
+          for d in bridgepoint-3d-world owner-downloads; do
+            if [ -d "build/web/$d" ]; then cp -a "build/web/$d" /tmp/bp-current-delta/; fi
+          done
+          mkdir -p /tmp/bp-current-delta/assets/assets/brand
+          if [ -e build/web/assets/assets/brand/bridgepoint-mark-v80.svg ]; then cp build/web/assets/assets/brand/bridgepoint-mark-v80.svg /tmp/bp-current-delta/assets/assets/brand/; fi
+          mkdir -p /tmp/bp-current-delta/assets
+          if [ -d build/web/assets/fonts ]; then cp -a build/web/assets/fonts /tmp/bp-current-delta/assets/; fi
+          for f in AssetManifest.bin AssetManifest.bin.json FontManifest.json NOTICES.Z; do
+            if [ -e "build/web/assets/$f" ]; then cp -a "build/web/assets/$f" /tmp/bp-current-delta/assets/; fi
+          done
+          tar -C /tmp/bp-current-delta -czf /tmp/bp-current-delta.tar.gz .
+          base64 -w0 /tmp/bp-current-delta.tar.gz > /tmp/bp-current-delta.tar.gz.b64
+          split -b 400000 -d -a 3 /tmp/bp-current-delta.tar.gz.b64 /tmp/bp-current-handoff/chunk-
+          SHA256="$(sha256sum /tmp/bp-current-delta.tar.gz | awk '{print $1}')"
+          BYTES="$(stat -c '%s' /tmp/bp-current-delta.tar.gz)"
+          CHUNKS="$(find /tmp/bp-current-handoff -type f -name 'chunk-*' | wc -l)"
+          cat > /tmp/bp-current-handoff/manifest.json <<EOF
+          {"architecture":"clean-v2","source_sha":"${GITHUB_SHA}","source_run":${GITHUB_RUN_ID},"archive_sha256":"${SHA256}","archive_bytes":${BYTES},"chunk_count":${CHUNKS},"chunk_encoding":"base64","chunk_size":400000,"target":"bridgepoint-live/live-artifact/app","current_ui":true,"continuous_3d_world":true,"live_weather_fx":true}
+          EOF
+
+      - name: Publish current compiled handoff branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/bp-current-handoff
+          git init -q
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git checkout -b clean-v2-standard-handoff
+          git add -A
+          git commit -m "Current Clean V2 handoff ${GITHUB_SHA}"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin clean-v2-standard-handoff
