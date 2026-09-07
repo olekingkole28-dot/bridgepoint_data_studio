@@ -53,7 +53,42 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze current Clean V2
+      - name: Repair current Flutter compatibility points
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('lib/v2/bridgepoint_app_v2.dart')
+          s=p.read_text()
+          s=s.replace("    fontFamily: 'BridgePointGrotesk',\n",'',1)
+          p.write_text(s)
+
+          p=Path('lib/v2/bridgepoint_map_weather_v2.dart')
+          s=p.read_text()
+          if "import 'dart:ui' as ui;" not in s:
+              s=s.replace("import 'dart:math' as math;\n", "import 'dart:math' as math;\nimport 'dart:ui' as ui;\n",1)
+          s=s.replace('final path=Path()', 'final path=ui.Path()')
+          s=s.replace('final branch=Path()', 'final branch=ui.Path()')
+          p.write_text(s)
+
+          p=Path('lib/v2/bridgepoint_products_settings_v2.dart')
+          s=p.read_text()
+          old="label:const Text('Help me choose'))]),"
+          new="label:const Text('Help me choose'))])),"
+          if old not in s:
+              raise SystemExit('Expected products compile repair marker missing')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          p=Path('lib/v2/bridgepoint_public_landing_v2.dart')
+          s=p.read_text().replace('          const ConstrainedBox(\n','          ConstrainedBox(\n',1)
+          p.write_text(s)
+          PY
+          dart format lib/v2/bridgepoint_app_v2.dart lib/v2/bridgepoint_map_weather_v2.dart lib/v2/bridgepoint_products_settings_v2.dart lib/v2/bridgepoint_public_landing_v2.dart
+
+      - name: Analyze repaired current Clean V2
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build current Clean V2 web app
