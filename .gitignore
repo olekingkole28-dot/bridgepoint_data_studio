@@ -9,3 +9,5 @@ coverage/
 android/.gradle/
 ios/Pods/
 macos/Pods/
+web/bridgepoint-3d-world/runtime-config.local.js
+exports/
