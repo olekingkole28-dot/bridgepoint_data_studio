@@ -1,0 +1,37 @@
+name: BridgePoint World V2400 validation
+on:
+  push:
+    paths:
+      - 'web/bridgepoint-3d-world/**'
+      - 'scripts/bootstrap_bridgepoint_world.*'
+      - 'docs/BRIDGEPOINT_WORLD_V2400.md'
+      - '.github/workflows/world-v2400-validate.yml'
+  pull_request:
+    paths:
+      - 'web/bridgepoint-3d-world/**'
+      - 'scripts/bootstrap_bridgepoint_world.*'
+      - 'docs/BRIDGEPOINT_WORLD_V2400.md'
+      - '.github/workflows/world-v2400-validate.yml'
+jobs:
+  validate-world:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse world runtime
+        run: node --check web/bridgepoint-3d-world/world-v2400.js
+      - name: Validate required world contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('web/bridgepoint-3d-world/index.html').read_text()
+          js=Path('web/bridgepoint-3d-world/world-v2400.js').read_text()
+          required_html=['cesiumContainer','lockCard','photoreal','world-v2400.js']
+          required_js=['BridgePointWorldV2400','bridgepoint_3d_world_viewport_v1899','bridgepoint_request_country_expansion_v2170','Cesium3DTileset.fromUrl','lockedCountryMinimumHeightMeters']
+          missing=[x for x in required_html if x not in html]+[x for x in required_js if x not in js]
+          if missing: raise SystemExit('Missing V2400 contracts: '+', '.join(missing))
+          if 'YOUR_API_KEY' in js or 'AIza' in js: raise SystemExit('Do not commit a Google Maps API key to the world runtime.')
+          print('V2400 static validation passed')
+          PY
