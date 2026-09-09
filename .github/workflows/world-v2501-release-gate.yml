@@ -1,0 +1,108 @@
+name: BridgePoint World V2501 release gate
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/bridgepoint-3d-world/**'
+      - 'scripts/world_v2501_browser_smoke.mjs'
+      - '.github/workflows/world-v2501-release-gate.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse world JavaScript
+        run: |
+          node --check web/bridgepoint-3d-world/world-v2500.js
+          node --check web/bridgepoint-3d-world/world-v2500-inspector.js
+          node --check web/bridgepoint-3d-world/world-v2500-living.js
+          node --check web/bridgepoint-3d-world/world-v2501-intelligence.js
+      - name: Enforce V2501 intelligence contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('web/bridgepoint-3d-world')
+          html=(root/'index.html').read_text()
+          intel=(root/'world-v2501-intelligence.js').read_text()
+          core=(root/'world-v2500.js').read_text()
+          if 'world-v2500.js' not in html or 'world-v2501-intelligence.js' not in html:
+              raise SystemExit('World shell must load both V2500 core and V2501 intelligence overlay')
+          required=[
+            'BridgePointWorldV2501',
+            'bridgepoint_public_parcel_progress_v956',
+            'bridgepoint_public_national_progress_v1053',
+            'bridgepoint_opportunity_buildings_viewport_v2180',
+            'bridgepoint_map_click_property_v2002',
+            'bridgepoint_property_heartbeat_v245',
+            'bridgepoint_property_intelligence_snapshot_v907',
+            'bridgepoint_property_score_explainability_v1959',
+            'bridgepoint_property_imagery_history_v169',
+            'bridgepoint_property_terrain_v931',
+            'bridgepoint_property_site_3d_v918',
+            'bridgepoint_field_evidence_governance_v1966',
+            'bridgepoint_property_4d_scene_v1957',
+            'Verified opportunities',
+            'Live BridgePoint system pulse'
+          ]
+          missing=[x for x in required if x not in intel]
+          if missing: raise SystemExit('Missing V2501 contracts: '+', '.join(missing))
+          forbidden=['tile.googleapis.com','api.mapbox.com','mapboxgl','virtualearth.net','bing.com/maps','nearmap','openfreemap','tile.openstreetmap.org','Cesium.Ion','createWorldTerrainAsync']
+          runtime=(html+'\n'+core+'\n'+intel).lower()
+          bad=[x for x in forbidden if x.lower() in runtime]
+          if bad: raise SystemExit('Forbidden map-data dependency found: '+', '.join(bad))
+          if 'Promise.allSettled' not in intel: raise SystemExit('Progressive intelligence resilience missing')
+          if 'world-v2500.js' not in html: raise SystemExit('Green V2500 core was displaced')
+          print('V2501 source contract passed')
+          PY
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve Flutter packages
+        run: flutter pub get
+      - name: Compile Clean V2 with V2501 world
+        run: flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+      - name: Verify V2501 survives Flutter assembly
+        run: |
+          test -s build/web/main.dart.js
+          test -s build/web/bridgepoint-3d-world/index.html
+          test -s build/web/bridgepoint-3d-world/world-v2500.js
+          test -s build/web/bridgepoint-3d-world/world-v2501-intelligence.js
+          grep -q 'world-v2501-intelligence.js' build/web/bridgepoint-3d-world/index.html
+          grep -q 'BridgePointWorldV2501' build/web/bridgepoint-3d-world/world-v2501-intelligence.js
+          grep -q 'bridgepoint_opportunity_buildings_viewport_v2180' build/web/bridgepoint-3d-world/world-v2501-intelligence.js
+          echo 'Clean V2 + V2500 core + V2501 intelligence assembly passed'
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start assembled app world server
+        working-directory: build/web/bridgepoint-3d-world
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/world-v2501-http.log 2>&1 &
+          echo $! > /tmp/world-v2501-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8765/index.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/world-v2501-http.log
+          exit 1
+      - name: Run Chromium WebGL + V2501 smoke
+        env:
+          WORLD_URL: http://127.0.0.1:8765/index.html
+        run: node scripts/world_v2501_browser_smoke.mjs
+      - name: Upload V2501 visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: world-v2501-release-gate-${{ github.sha }}
+          path: artifacts/world-v2501-browser-smoke.*
+          if-no-files-found: warn
+          retention-days: 14
