@@ -1,0 +1,105 @@
+name: Validate BridgePoint Living World V2652
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/main_v2.dart'
+      - 'lib/v2/**'
+      - 'web/bridgepoint-3d-world/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/living-world-v2652-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate V2652 world source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s web/bridgepoint-3d-world/index.html
+          test -s web/bridgepoint-3d-world/world-v2500.js
+          test -s web/bridgepoint-3d-world/world-v2652-runtime-safe.js
+          test -s web/bridgepoint-3d-world/world-v2652-actions.js
+          node --check web/bridgepoint-3d-world/world-v2500.js
+          node --check web/bridgepoint-3d-world/world-v2652-runtime-safe.js
+          node --check web/bridgepoint-3d-world/world-v2652-actions.js
+          grep -Fq 'BridgePoint World V2652' web/bridgepoint-3d-world/index.html
+          grep -Fq 'bridgepoint_3d_world_viewport_v1899' web/bridgepoint-3d-world/index.html
+          grep -Fq 'world-v2652-runtime-safe.js' web/bridgepoint-3d-world/index.html
+          grep -Fq 'bridgepoint_living_world_catalog_v2652' web/bridgepoint-3d-world/world-v2652-runtime-safe.js
+          grep -Fq 'bridgepoint_living_world_scene_v2652' web/bridgepoint-3d-world/world-v2652-runtime-safe.js
+          grep -Fq 'bridgepoint_request_world_expansion_v2652' web/bridgepoint-3d-world/world-v2652-actions.js
+          grep -Fq 'Your world is the home screen.' lib/v2/bridgepoint_home_v2.dart
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Apply known Clean V2 compatibility repairs in CI workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('lib/v2/bridgepoint_app_v2.dart')
+          s=p.read_text().replace("    fontFamily: 'BridgePointGrotesk',\n",'',1)
+          p.write_text(s)
+          p=Path('lib/v2/bridgepoint_map_weather_v2.dart')
+          s=p.read_text()
+          if "import 'dart:ui' as ui;" not in s:
+              s=s.replace("import 'dart:math' as math;\n", "import 'dart:math' as math;\nimport 'dart:ui' as ui;\n",1)
+          s=s.replace('final path=Path()', 'final path=ui.Path()').replace('final branch=Path()', 'final branch=ui.Path()')
+          p.write_text(s)
+          p=Path('lib/v2/bridgepoint_products_settings_v2.dart')
+          if p.exists():
+              s=p.read_text().replace("label:const Text('Help me choose'))]),","label:const Text('Help me choose'))])),",1)
+              p.write_text(s)
+          p=Path('lib/v2/bridgepoint_public_landing_v2.dart')
+          if p.exists(): p.write_text(p.read_text().replace('          const ConstrainedBox(\n','          ConstrainedBox(\n',1))
+          PY
+          dart format lib/v2/bridgepoint_home_v2.dart lib/v2/bridgepoint_world_embed_web_v2.dart lib/v2/bridgepoint_app_v2.dart lib/v2/bridgepoint_map_weather_v2.dart
+
+      - name: Analyze V2652 Clean V2
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build release web app
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter build web --release -t lib/main_v2.dart --base-href '/app/' --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+          test -s build/web/index.html
+          test -s build/web/main.dart.js
+          test -s build/web/bridgepoint-3d-world/index.html
+          test -s build/web/bridgepoint-3d-world/world-v2652-runtime-safe.js
+          grep -Fq 'BridgePoint World V2652' build/web/bridgepoint-3d-world/index.html
+          grep -Fq 'Your world is the home screen.' lib/v2/bridgepoint_home_v2.dart
+          cat > build/web/bridgepoint-v2652-release.json <<EOF
+          {"architecture":"clean-v2","world_version":2652,"source_sha":"${GITHUB_SHA}","built_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","dynamic_world_catalog":true,"truth_clock":true,"xray_mode":true,"world_first_home":true}
+          EOF
+          tar -C build/web -czf bridgepoint-v2652-web.tar.gz .
+          sha256sum bridgepoint-v2652-web.tar.gz > bridgepoint-v2652-web.tar.gz.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bridgepoint-v2652-prebuilt-web
+          path: |
+            bridgepoint-v2652-web.tar.gz
+            bridgepoint-v2652-web.tar.gz.sha256
+          retention-days: 7
