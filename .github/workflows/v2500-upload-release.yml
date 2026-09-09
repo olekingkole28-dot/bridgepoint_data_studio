@@ -1,0 +1,64 @@
+name: Publish Validated V2500 Release Archive
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2500-upload-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bridgepoint-v2500-release-upload
+  cancel-in-progress: true
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact validated handoff
+        uses: actions/checkout@v4
+        with:
+          ref: clean-v2-standard-handoff
+          fetch-depth: 1
+
+      - name: Reconstruct and verify exact V2500 archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, json
+          m=json.loads(Path('manifest.json').read_text())
+          assert m.get('source_sha') == 'c296b719d10aaca6e2772d4dabca46bbd11f1501', m
+          assert m.get('archive_sha256') == '8870d7a447077150708e1b21b7aeaedb97f3bec4c9a8fd499dc479dcc4e43bc2', m
+          assert m.get('world_version') == 2500, m
+          encoded=''.join(Path(f"chunk-{i:03d}").read_text().strip() for i in range(int(m['chunk_count'])))
+          archive=base64.b64decode(encoded)
+          actual=hashlib.sha256(archive).hexdigest()
+          assert actual == m['archive_sha256'], (actual,m['archive_sha256'])
+          Path('/tmp/bridgepoint-v2500.tar.gz').write_bytes(archive)
+          print(json.dumps({'source_sha':m['source_sha'],'archive_sha256':actual,'bytes':len(archive),'world_version':m['world_version']},indent=2))
+          PY
+
+      - name: Publish exact archive through BridgePoint release endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 4 --retry-delay 2 \
+            -X POST \
+            -H 'Content-Type: application/gzip' \
+            --data-binary @/tmp/bridgepoint-v2500.tar.gz \
+            'https://xdfsjztwgsbmabshzsjw.supabase.co/functions/v1/bridgepoint-v2500-release-promote' \
+            -o /tmp/release-response.json
+          cat /tmp/release-response.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/release-response.json'))
+          assert r.get('ok') is True, r
+          assert r.get('source_sha') == 'c296b719d10aaca6e2772d4dabca46bbd11f1501', r
+          assert r.get('archive_sha256') == '8870d7a447077150708e1b21b7aeaedb97f3bec4c9a8fd499dc479dcc4e43bc2', r
+          print('VALIDATED_V2500_RELEASE_UPLOADED')
+          PY
