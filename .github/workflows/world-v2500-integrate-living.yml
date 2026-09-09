@@ -1,0 +1,48 @@
+name: Integrate BridgePoint World V2500 living layers
+on:
+  push:
+    branches: [bridgepoint-world-v2500]
+    paths:
+      - 'scripts/integrate_world_v2500_living.py'
+      - '.github/workflows/world-v2500-integrate-living.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bridgepoint-world-v2500
+          fetch-depth: 1
+      - name: Integrate terrain and living public context
+        run: python3 scripts/integrate_world_v2500_living.py
+      - name: Parse all world modules
+        run: |
+          node --check web/bridgepoint-3d-world/world-v2500.js
+          node --check web/bridgepoint-3d-world/world-v2500-inspector.js
+          node --check web/bridgepoint-3d-world/world-v2500-terrain.js
+          node --check web/bridgepoint-3d-world/world-v2500-living.js
+      - name: Assert living world contracts
+        run: |
+          grep -q 'enableBridgePointTerrain' web/bridgepoint-3d-world/world-v2500.js
+          grep -q 'initLivingWorld' web/bridgepoint-3d-world/world-v2500.js
+          grep -q 'bridgepoint-world-terrain-v2500' web/bridgepoint-3d-world/world-v2500-terrain.js
+          grep -q 'bridgepoint-world-effects-v2190' web/bridgepoint-3d-world/world-v2500-living.js
+          grep -q 'bridgepoint-live-earth-v2185' web/bridgepoint-3d-world/world-v2500-living.js
+          grep -q 'Satellite clouds' web/bridgepoint-3d-world/index.html
+          grep -q 'Cinematic fly' web/bridgepoint-3d-world/index.html
+      - name: Commit integrated world
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint World Builder'
+          git config user.email 'actions@users.noreply.github.com'
+          git add web/bridgepoint-3d-world/world-v2500.js web/bridgepoint-3d-world/index.html
+          if git diff --cached --quiet; then
+            echo 'Living world integration already applied.'
+            exit 0
+          fi
+          git commit -m 'Integrate 3DEP terrain and living public world layers'
+          git push origin HEAD:bridgepoint-world-v2500
