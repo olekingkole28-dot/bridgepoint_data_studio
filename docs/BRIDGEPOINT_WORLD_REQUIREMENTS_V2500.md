@@ -136,3 +136,15 @@ Do not replace the live Intelligence Map until all of the following are green:
 8. Live route returns V2500 assets.
 
 A real WebGL/browser visual test is still required before calling the experience visually perfect.
+
+
+## Final convergence additions — V2500
+
+- The globe uses a free/public NASA EOSDIS GIBS global visual base beneath the free/public USGS National Map U.S. imagery layer. BridgePoint-owned/source-governed building and property geometry remains the product geometry; imagery is visual context only.
+- Normal building massing is opaque. Exact source height wins; an already-governed BridgePoint render-height may appear only as a labeled visual estimate. When neither exists, keep the exact footprint flat rather than inventing a height.
+- Roof surfaces never receive a synthetic +4 m/default extrusion. Structure Lab roof cues require actual roof geometry; a roof-shape text value alone cannot create roof geometry.
+- Search/location movement is an interruptible staged globe→regional→city→close camera journey. Any manual pointer/wheel gesture cancels it; no delayed snap-back is permitted.
+- Structure + Parcel Lab snapshots and restores the exact world camera on close.
+- Living public context includes source-backed government road/rail/water labels, jurisdiction labels, USGS earthquake context, NOAA ocean/tide context, NOAA/NHC storm context and animated NOAA cloud frames. BridgePoint geometry wins immediately whenever both BridgePoint and public fallback geometry exist.
+- Thermal/hotspot records may be classified into wildfire context, but close-up fire effects still require an observed/source-backed point; no synthetic fire/lightning/flood-depth point is allowed.
+- Moving effects are budgeted and request-rendered without reviving the historical map runtime or adding another primary world canvas.

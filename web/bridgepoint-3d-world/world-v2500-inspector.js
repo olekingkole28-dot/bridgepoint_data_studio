@@ -41,11 +41,13 @@ function parcelGeometry(detail = {}) {
 function heightTruth(detail = {}) {
   const b = detailBuilding(detail);
   const source = num(b.height_m ?? b.source_height_m ?? detail.height_m);
-  const render = num(b.render_height_m ?? detail.render_height_m ?? source);
+  const render = num(b.render_height_m ?? detail.render_height_m);
+  const sourceHeight = source !== null && source > 0 ? source : null;
+  const renderHeight = render !== null && render > 0 ? render : null;
   return {
-    height: Math.max(1, source ?? render ?? 8.5),
-    sourceBacked: source !== null && source > 0,
-    label: source !== null && source > 0 ? 'source height' : 'visual estimate',
+    height: sourceHeight ?? renderHeight ?? 0,
+    sourceBacked: sourceHeight !== null,
+    label: sourceHeight !== null ? 'source height' : (renderHeight !== null ? 'BridgePoint visual estimate' : 'height unavailable · source footprint only'),
   };
 }
 
@@ -89,15 +91,18 @@ function addParcel(THREE, scene, geometry, projector) {
   }
 }
 
-function addRoofCue(THREE, scene, shapes, h, detail) {
-  const b = detailBuilding(detail);
-  const roof = String(b.roof_shape ?? b.roof_type ?? detail.roof_shape ?? '').toLowerCase();
-  if (!roof || !shapes.length) return;
-  const color = 0xd7e3e9;
-  for (const s of shapes) {
-    const geo = new THREE.ShapeGeometry(s);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, transparent: true, opacity: .68, side: THREE.DoubleSide }));
-    mesh.position.z = h + .02;
+function roofGeometry(detail = {}) {
+  const b = detailBuilding(detail), p = detailProperty(detail);
+  return b.roof_geometry || b.roof_geometry_geojson || p.roof_geometry || detail.roof_geometry || null;
+}
+function addRoofCue(THREE, scene, h, detail, projector) {
+  const rings = outerRings(roofGeometry(detail));
+  if (!rings.length || !projector) return;
+  for (const ring of rings) {
+    const shape = shapeFromRing(THREE, ring, projector.point); if (!shape) continue;
+    const geo = new THREE.ShapeGeometry(shape);
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xd7e3e9, transparent: false, opacity: 1, side: THREE.DoubleSide, roughness: .72 }));
+    mesh.position.z = Math.max(0, h) + .02;
     scene.add(mesh);
   }
 }
@@ -105,7 +110,7 @@ function addRoofCue(THREE, scene, shapes, h, detail) {
 function factRows(detail) {
   const b = detailBuilding(detail), p = detailProperty(detail), ht = heightTruth(detail);
   const rows = [
-    ['Height', `${ht.height.toFixed(1)} m · ${ht.label}`],
+    ['Height', ht.height > 0 ? `${ht.height.toFixed(1)} m · ${ht.label}` : ht.label],
     ['Floors', b.floors ?? b.floor_count ?? p.floors],
     ['Roof shape', b.roof_shape ?? b.roof_type ?? p.roof_shape],
     ['Roof material', b.roof_material ?? p.roof_material],
@@ -145,15 +150,15 @@ export async function createStructureLab({ root, canvasHost, infoHost, measureme
   const shapes = rings.map((r) => shapeFromRing(THREE, r, projector.point)).filter(Boolean);
   const buildingMeshes = [];
   for (const shape of shapes) {
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: ht.height, bevelEnabled: false, steps: 1 });
-    const mat = new THREE.MeshStandardMaterial({ color: 0x36bed7, roughness: .68, metalness: .08, transparent: true, opacity: .9 });
+    const geo = ht.height > 0 ? new THREE.ExtrudeGeometry(shape, { depth: ht.height, bevelEnabled: false, steps: 1 }) : new THREE.ShapeGeometry(shape);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x36bed7, roughness: .68, metalness: .08, transparent: false, opacity: 1, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(geo, mat);
     scene.add(mesh);
     buildingMeshes.push(mesh);
     const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 28), new THREE.LineBasicMaterial({ color: 0xa6f5ff, transparent: true, opacity: .68 }));
     scene.add(edge);
   }
-  addRoofCue(THREE, scene, shapes, ht.height, detail);
+  addRoofCue(THREE, scene, ht.height, detail, projector);
   addParcel(THREE, scene, parcelGeometry(detail), projector);
 
   const ground = new THREE.GridHelper(300, 60, 0x1d5264, 0x0d2632);
@@ -230,7 +235,7 @@ export async function createStructureLab({ root, canvasHost, infoHost, measureme
   const api = {
     reset() { camera.position.set(center.x + span * 1.25, center.y - span * 1.5, center.z + span * .95); controls.target.copy(center); controls.update(); },
     measure() { setMeasure(!measuring); },
-    xray() { xray = !xray; for (const m of buildingMeshes) { m.material.transparent = true; m.material.opacity = xray ? .25 : .9; m.material.needsUpdate = true; } return xray; },
+    xray() { xray = !xray; for (const m of buildingMeshes) { m.material.transparent = xray; m.material.opacity = xray ? .25 : 1; m.material.needsUpdate = true; } return xray; },
     destroy() {
       stopped = true; cancelAnimationFrame(raf); ro.disconnect(); renderer.domElement.removeEventListener('pointerdown', onPointer); controls.dispose();
       scene.traverse((o) => { o.geometry?.dispose?.(); if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose?.()); else o.material?.dispose?.(); });
