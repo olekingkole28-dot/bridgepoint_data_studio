@@ -1,0 +1,58 @@
+name: BridgePoint World V2500 final convergence
+on:
+  push:
+    branches: [bridgepoint-world-v2500]
+    paths:
+      - 'scripts/converge_world_v2500_final.py'
+      - '.github/workflows/world-v2500-final-convergence.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  converge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bridgepoint-world-v2500
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply final recovered requirements
+        run: python3 scripts/converge_world_v2500_final.py
+      - name: Parse every V2500 runtime module
+        run: |
+          node --check web/bridgepoint-3d-world/world-v2500.js
+          node --check web/bridgepoint-3d-world/world-v2500-inspector.js
+          node --check web/bridgepoint-3d-world/world-v2500-terrain.js
+          node --check web/bridgepoint-3d-world/world-v2500-living.js
+      - name: Enforce truth and convergence guardrails
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('web/bridgepoint-3d-world')
+          world=(root/'world-v2500.js').read_text()
+          inspector=(root/'world-v2500-inspector.js').read_text()
+          living=(root/'world-v2500-living.js').read_text()
+          terrain=(root/'world-v2500-terrain.js').read_text()
+          joined='\n'.join([world,inspector,living,terrain])
+          forbidden=['||8.5','base+4','?? 8.5','withAlpha(.96)','google.maps','Photorealistic3DTiles','CesiumIon']
+          bad=[x for x in forbidden if x in joined]
+          if bad: raise SystemExit('Final convergence forbidden markers: '+', '.join(bad))
+          required=['NASA_GIBS_WMTS','BlueMarble_ShadedRelief_Bathymetry','cinematicFlyTo','cancelCameraJourney','snapshotWorldCamera','restoreWorldCamera','height unavailable · source footprint only','roofGeometry(detail','bridgepoint-world-terrain-v2500','bridgepoint-noaa-cloud-frames-v215','bridgepoint-world-effects-v2190','bridgepoint-live-earth-v2185','primary.roads>0']
+          missing=[x for x in required if x not in joined]
+          if missing: raise SystemExit('Final convergence required markers missing: '+', '.join(missing))
+          print('Truth, camera, public-source and living-world convergence guardrails passed.')
+          PY
+      - name: Commit converged runtime
+        run: |
+          if git diff --quiet; then
+            echo 'Runtime already converged.'
+            exit 0
+          fi
+          git config user.name 'BridgePoint World Builder'
+          git config user.email 'actions@users.noreply.github.com'
+          git add web/bridgepoint-3d-world/world-v2500.js web/bridgepoint-3d-world/world-v2500-inspector.js web/bridgepoint-3d-world/world-v2500-living.js docs/BRIDGEPOINT_WORLD_REQUIREMENTS_V2500.md
+          git commit -m 'Converge World V2500 truth camera and global living globe'
+          git push origin HEAD:bridgepoint-world-v2500
