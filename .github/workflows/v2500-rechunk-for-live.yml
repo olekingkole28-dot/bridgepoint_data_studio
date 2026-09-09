@@ -1,0 +1,76 @@
+name: V2500 Rechunk For Live
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2500-rechunk-for-live.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bridgepoint-v2500-rechunk-live
+  cancel-in-progress: true
+
+jobs:
+  rechunk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout validated V2500 handoff
+        uses: actions/checkout@v4
+        with:
+          ref: clean-v2-standard-handoff
+          fetch-depth: 1
+
+      - name: Reconstruct exact validated archive and split for live transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, json
+
+          manifest = json.loads(Path('manifest.json').read_text())
+          count = int(manifest['chunk_count'])
+          encoded = ''.join(Path(f'chunk-{i:03d}').read_text().strip() for i in range(count))
+          archive = base64.b64decode(encoded)
+          actual = hashlib.sha256(archive).hexdigest()
+          if actual != manifest['archive_sha256']:
+              raise SystemExit(f'validated archive sha mismatch: {actual}')
+          if manifest.get('source_sha') != 'c296b719d10aaca6e2772d4dabca46bbd11f1501':
+              raise SystemExit(f"unexpected source sha: {manifest.get('source_sha')}")
+          if manifest.get('world_version') != 2500:
+              raise SystemExit('handoff is not World V2500')
+
+          out = Path('/tmp/v2500-small')
+          out.mkdir(parents=True, exist_ok=True)
+          small = base64.b64encode(archive).decode('ascii')
+          size = 50000
+          parts = [small[i:i+size] for i in range(0, len(small), size)]
+          for i, part in enumerate(parts):
+              (out / f'chunk-{i:03d}').write_text(part)
+          manifest['chunk_count'] = len(parts)
+          manifest['chunk_size'] = size
+          manifest['transport_rechunk'] = True
+          manifest['transport_source_branch'] = 'clean-v2-standard-handoff'
+          (out / 'manifest.json').write_text(json.dumps(manifest, separators=(',', ':')) + '\n')
+          print(json.dumps({'source_sha': manifest['source_sha'], 'archive_sha256': actual, 'chunk_count': len(parts), 'chunk_size': size}, indent=2))
+          PY
+
+      - name: Publish exact small-chunk handoff branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/v2500-small
+          git init -q
+          git config user.name 'BridgePoint Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git checkout -b clean-v2-standard-handoff-small
+          git add -A
+          git commit -m 'Rechunk exact validated World V2500 handoff c296b719'
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin clean-v2-standard-handoff-small
