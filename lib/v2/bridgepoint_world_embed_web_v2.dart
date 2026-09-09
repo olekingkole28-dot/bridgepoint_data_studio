@@ -17,18 +17,18 @@ class _BridgePointWorldEmbedV2State extends State<BridgePointWorldEmbedV2> {
   @override
   void initState() {
     super.initState();
-    _viewType = 'bridgepoint-world-v2500-${identityHashCode(this)}';
+    _viewType = 'bridgepoint-world-v2652-${identityHashCode(this)}';
     ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
       final frame = html.IFrameElement()
         ..src = '/app/bridgepoint-3d-world/'
-        ..title = 'BridgePoint World V2500'
+        ..title = 'BridgePoint World V2652'
         ..allow = 'geolocation; fullscreen'
         ..style.border = '0'
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.display = 'block';
       frame.setAttribute('allowfullscreen', 'true');
-      frame.setAttribute('data-bridgepoint-world-version', '2500');
+      frame.setAttribute('data-bridgepoint-world-version', '2652');
       return frame;
     });
   }
