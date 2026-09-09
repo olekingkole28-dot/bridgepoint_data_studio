@@ -68,7 +68,7 @@ const sources = {
   buildings:new Cesium.CustomDataSource('bp-buildings'), parcels:new Cesium.CustomDataSource('bp-parcels'), roofs:new Cesium.CustomDataSource('bp-roofs'),
   roads:new Cesium.CustomDataSource('bp-roads'), rails:new Cesium.CustomDataSource('bp-rails'), water:new Cesium.CustomDataSource('bp-water'),
   parking:new Cesium.CustomDataSource('bp-parking'), streetlights:new Cesium.CustomDataSource('bp-streetlights'), vegetation:new Cesium.CustomDataSource('bp-vegetation'),
-  labels:new Cesium.CustomDataSource('bp-labels'), weather:new Cesium.CustomDataSource('bp-weather'), locks:new Cesium.CustomDataSource('bp-country-locks')
+  propertyPoints:new Cesium.CustomDataSource('bp-property-points'), labels:new Cesium.CustomDataSource('bp-labels'), weather:new Cesium.CustomDataSource('bp-weather'), locks:new Cesium.CustomDataSource('bp-country-locks')
 };
 Object.values(sources).forEach((s) => viewer.dataSources.add(s));
 
@@ -115,12 +115,13 @@ function hideLock(){state.locked=null;lockCard.classList.remove('open')}
 function guardCountry(){if(state.guarding||!state.countries.length)return;const f=focusPoint();if(!f)return;const c=countryAt(f.lon,f.lat);state.focus={...f,country:c};if(c&&!unlocked(c)&&cameraHeight()<LOCK_HEIGHT_M){state.guarding=true;showLock(c);clearPropertyGeometry();const p=viewer.camera.positionCartographic;viewer.camera.setView({destination:Cesium.Cartesian3.fromRadians(p.longitude,p.latitude,LOCK_HEIGHT_M),orientation:{heading:viewer.camera.heading,pitch:viewer.camera.pitch,roll:viewer.camera.roll}});setStatus(`${c.name} is locked — deep zoom stopped at BridgePoint's expansion boundary.`,'warn');setTimeout(()=>state.guarding=false,0)}else if(!c||unlocked(c)){if(state.locked)hideLock()}}
 
 function setVisible(name,visible){state.layers[name]=visible;const ds=sources[name];if(ds)ds.show=visible;viewer.scene.requestRender()}
-function clearPropertyGeometry(){for(const k of ['buildings','parcels','roofs','roads','rails','water','parking','streetlights','vegetation','labels'])sources[k].entities.removeAll();state.viewportKey='';viewer.scene.requestRender()}
+function clearPropertyGeometry(){for(const k of ['buildings','parcels','roofs','roads','rails','water','parking','streetlights','vegetation','propertyPoints','labels'])sources[k].entities.removeAll();state.viewportKey='';viewer.scene.requestRender()}
 function scoreColor(row){const s=finite(row?.render_score??row?.opportunity_score??row?.score);if(s!==null&&s>=80)return'#ffb13b';if(s!==null&&s>=65)return'#f8d76b';return row?.height_m?'#36bed7':'#d9aa42'}
 function addPolygonEntity(ds,row,index,opts={}){const g=rowGeometry(row);let added=0;for(const ring of outerRings(g)){const coords=degrees(ring);if(!coords||coords.length<6)continue;const e=ds.entities.add({id:`${opts.prefix||ds.name}-${row.property_id||row.id||index}-${ds.entities.values.length}`,polygon:{hierarchy:Cesium.Cartesian3.fromDegreesArray(coords),height:finite(opts.height??row.ground_elevation_m??0)||0,extrudedHeight:opts.extrudedHeight??undefined,material:Cesium.Color.fromCssColorString(opts.color||'#48e1ff').withAlpha(opts.alpha??.25),outline:true,outlineColor:Cesium.Color.fromCssColorString(opts.outline||opts.color||'#48e1ff').withAlpha(opts.outlineAlpha??.8),distanceDisplayCondition:opts.distance||undefined}});e.bridgepoint=row;added++}return added}
 function addLines(ds,rows,{color='#cbd8df',width=1.2,maxDistance=80000,prefix='line'}={}){let n=0;for(const [i,row] of (rows||[]).entries()){for(const line of lineStrings(rowGeometry(row))){const coords=degrees(line);if(!coords)continue;const e=ds.entities.add({id:`${prefix}-${row.id||row.source_id||i}-${n}`,polyline:{positions:Cesium.Cartesian3.fromDegreesArray(coords),width,material:Cesium.Color.fromCssColorString(color),clampToGround:true,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,maxDistance)}});e.bridgepoint=row;n++}}return n}
 function addPoints(ds,rows,{color='#f8e8a8',size=5,maxDistance=10000,prefix='point'}={}){let n=0;for(const [i,row] of (rows||[]).entries()){const lat=finite(row.latitude??row.lat),lon=finite(row.longitude??row.lng??row.lon);if(lat===null||lon===null)continue;ds.entities.add({id:`${prefix}-${row.id||i}`,position:Cesium.Cartesian3.fromDegrees(lon,lat,finite(row.elevation_m)||1.5),point:{pixelSize:size,color:Cesium.Color.fromCssColorString(color),outlineColor:Cesium.Color.fromCssColorString('#071018'),outlineWidth:1,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,maxDistance)}});n++}return n}
 
+function renderPropertyCircles(data={}){sources.propertyPoints.entities.removeAll();const raw=Array.isArray(data.properties)&&data.properties.length?data.properties:(data.buildings||[]).filter(r=>r?.property_id);let n=0;for(const row of raw){if(n>=PERF.detail[1])break;let lat=finite(row.latitude??row.lat),lon=finite(row.longitude??row.lng??row.lon);if(lat===null||lon===null){const ring=outerRings(rowGeometry(row))[0],c=ring?centerOfRing(ring):null;if(!c)continue;lon=finite(c[0]);lat=finite(c[1])}if(lat===null||lon===null)continue;sources.propertyPoints.entities.add({id:`property-point-${row.property_id||row.id||n}`,position:Cesium.Cartesian3.fromDegrees(lon,lat,(finite(row.ground_elevation_m??row.elevation_m)||0)+1.8),point:{pixelSize:7,color:Cesium.Color.fromCssColorString('#48e1ff').withAlpha(.78),outlineColor:Cesium.Color.fromCssColorString('#061018'),outlineWidth:1,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,24000)},properties:{property_id:row.property_id||row.id,source_backed:true}});n++}sources.propertyPoints.show=state.propertyCircles;return n}
 function renderViewport(data={}){
   clearPropertyGeometry();let labels=0;
   for(const [i,b] of (data.buildings||[]).entries()){
@@ -137,6 +138,7 @@ function renderViewport(data={}){
   for(const [i,p] of (data.parking||data.pavement||[]).entries())addPolygonEntity(sources.parking,p,i,{prefix:'parking',color:'#5e6468',alpha:.45,outline:'#a6afb3',outlineAlpha:.28,distance:new Cesium.DistanceDisplayCondition(0,22000)});
   addPoints(sources.streetlights,data.streetlights||[],{color:'#ffe7a2',size:4,maxDistance:6000,prefix:'light'});
   addPoints(sources.vegetation,data.vegetation||data.trees||[],{color:'#6fbc78',size:5,maxDistance:4500,prefix:'tree'});
+  renderPropertyCircles(data);
   for(const [k,v] of Object.entries(state.layers))if(sources[k])sources[k].show=v;
   viewer.scene.requestRender();
   return {buildings:sources.buildings.entities.values.length,parcels:sources.parcels.entities.values.length,roofs:sources.roofs.entities.values.length,roads:sources.roads.entities.values.length,rails:sources.rails.entities.values.length};
@@ -196,7 +198,7 @@ $('locationButton').onclick=()=>startAtUser();
 $('usButton').onclick=()=>viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(-98.35,39.5,5600000),orientation:{heading:0,pitch:Cesium.Math.toRadians(-88),roll:0},duration:1});
 $('radarButton').onclick=()=>{state.radar=!state.radar;$('radarButton').classList.toggle('active',state.radar);refreshRadar()};
 $('fxButton').onclick=()=>{state.fx=!state.fx;$('fxButton').classList.toggle('active',state.fx);loadWeather(true)};
-$('propertyCirclesButton').onclick=()=>{state.propertyCircles=!state.propertyCircles;$('propertyCirclesButton').classList.toggle('active',state.propertyCircles);setStatus(`Property circles ${state.propertyCircles?'enabled':'disabled'}. Building and parcel geometry are unchanged.`,'ok')};
+$('propertyCirclesButton').onclick=()=>{state.propertyCircles=!state.propertyCircles;sources.propertyPoints.show=state.propertyCircles;$('propertyCirclesButton').classList.toggle('active',state.propertyCircles);viewer.scene.requestRender();setStatus(`Property circles ${state.propertyCircles?'enabled':'disabled'}. Only source-associated property points are shown.`,'ok')};
 $('lockClose').onclick=hideLock;
 $('searchButton').onclick=()=>searchPlace($('searchInput').value);
 $('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace(e.target.value)});
