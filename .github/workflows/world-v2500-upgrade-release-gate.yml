@@ -1,0 +1,33 @@
+name: Upgrade production gate for World V2500
+on:
+  push:
+    branches: [bridgepoint-world-v2500]
+    paths:
+      - 'scripts/upgrade_release_gate_v2500.py'
+      - '.github/workflows/world-v2500-upgrade-release-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bridgepoint-world-v2500
+          fetch-depth: 1
+      - name: Upgrade authoritative production release gate
+        run: python3 scripts/upgrade_release_gate_v2500.py
+      - name: Commit production gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint World Builder'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .github/workflows/flutter-web-v2-production.yml
+          if git diff --cached --quiet; then
+            echo 'Production gate already targets World V2500.'
+            exit 0
+          fi
+          git commit -m 'Make World V2500 the authoritative production map gate'
+          git push origin HEAD:bridgepoint-world-v2500
