@@ -4,20 +4,26 @@ on:
     paths:
       - 'web/bridgepoint-3d-world/**'
       - 'scripts/bootstrap_bridgepoint_world.*'
+      - 'scripts/repair_clean_v2_v2400.py'
       - 'docs/BRIDGEPOINT_WORLD_V2400.md'
       - '.github/workflows/world-v2400-validate.yml'
   pull_request:
     paths:
       - 'web/bridgepoint-3d-world/**'
       - 'scripts/bootstrap_bridgepoint_world.*'
+      - 'scripts/repair_clean_v2_v2400.py'
       - 'docs/BRIDGEPOINT_WORLD_V2400.md'
       - '.github/workflows/world-v2400-validate.yml'
+permissions:
+  contents: write
 jobs:
   validate-world:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -36,6 +42,23 @@ jobs:
           if 'YOUR_API_KEY' in js or 'AIza' in js: raise SystemExit('Do not commit a Google Maps API key to the world runtime.')
           print('V2400 static validation passed')
           PY
+      - name: Repair known Clean V2 compiler blockers
+        if: github.event_name == 'push'
+        run: python3 scripts/repair_clean_v2_v2400.py
+      - name: Persist exact source repairs on V2400 branch
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint Build Repair'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_products_settings_v2.dart lib/v2/bridgepoint_app_v2.dart lib/v2/bridgepoint_map_weather_v2.dart lib/v2/bridgepoint_public_landing_v2.dart
+          if git diff --cached --quiet; then
+            echo 'No source repair diff to persist.'
+          else
+            git commit -m 'Fix Clean V2 compiler blockers for World V2400'
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
