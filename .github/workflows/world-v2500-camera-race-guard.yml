@@ -1,0 +1,42 @@
+name: BridgePoint World V2500 camera race guard
+on:
+  push:
+    branches: [bridgepoint-world-v2500]
+    paths:
+      - 'scripts/fix_world_v2500_async_camera_races.py'
+      - '.github/workflows/world-v2500-camera-race-guard.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bridgepoint-world-v2500
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard delayed camera responses
+        run: python3 scripts/fix_world_v2500_async_camera_races.py
+      - name: Parse runtime and enforce no-snap races
+        run: |
+          node --check web/bridgepoint-3d-world/world-v2500.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('web/bridgepoint-3d-world/world-v2500.js').read_text()
+          required=['const requestToken=state.cameraJourney','if(requestToken!==state.cameraJourney)return resolve()','Search result ready · camera move canceled because you navigated manually.']
+          missing=[x for x in required if x not in s]
+          if missing: raise SystemExit('Missing async camera race guards: '+', '.join(missing))
+          print('Delayed geolocation/search snap-back guards passed.')
+          PY
+      - name: Commit guarded runtime
+        run: |
+          if git diff --quiet; then echo 'Camera race guards already present.'; exit 0; fi
+          git config user.name 'BridgePoint World Builder'
+          git config user.email 'actions@users.noreply.github.com'
+          git add web/bridgepoint-3d-world/world-v2500.js
+          git commit -m 'Prevent delayed geolocation and search snap-backs'
+          git push origin HEAD:bridgepoint-world-v2500
