@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -812,10 +813,10 @@ class _HazardFxPainter extends CustomPainter {
   void _lightning(Canvas canvas,Size s,math.Random rng){
     if(((t*5)%1)>=.18)return;
     final p=Paint()..color=Colors.white.withValues(alpha:.98)..strokeWidth=2.3..strokeCap=StrokeCap.round..style=PaintingStyle.stroke;
-    final path=Path()..moveTo(s.width*.48,2);var x=s.width*.48,y=2.0;
+    final path=ui.Path()..moveTo(s.width*.48,2);var x=s.width*.48,y=2.0;
     for(var i=0;i<6;i++){
       x+=(rng.nextDouble()-.5)*13;y+=s.height/7;path.lineTo(x,y);
-      if(i==2||i==4){final branch=Path()..moveTo(x,y)..lineTo(x+(rng.nextDouble()-.5)*18,y+12);canvas.drawPath(branch,Paint()..color=p.color..strokeWidth=1.2..style=PaintingStyle.stroke);}
+      if(i==2||i==4){final branch=ui.Path()..moveTo(x,y)..lineTo(x+(rng.nextDouble()-.5)*18,y+12);canvas.drawPath(branch,Paint()..color=p.color..strokeWidth=1.2..style=PaintingStyle.stroke);}
     }
     canvas.drawPath(path,p);
   }
@@ -834,7 +835,7 @@ class _HazardFxPainter extends CustomPainter {
   void _hurricane(Canvas canvas,Size s,math.Random rng){
     final p=Paint()..style=PaintingStyle.stroke..strokeWidth=2.1..strokeCap=StrokeCap.round,c=Offset(s.width/2,s.height/2);
     for(var arm=0;arm<4;arm++){
-      final path=Path();
+      final path=ui.Path();
       for(var i=0;i<26;i++){
         final f=i/25,a=t*math.pi*2+arm*math.pi/2+f*math.pi*2.1,r=5+f*s.shortestSide*.42;
         final q=Offset(c.dx+math.cos(a)*r,c.dy+math.sin(a)*r*.65);

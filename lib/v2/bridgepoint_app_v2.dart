@@ -88,9 +88,8 @@ ThemeData _theme() {
   const muted = Color(0xFFB5C6D9);
   const ink = Color(0xFFF5F8FC);
   final scheme = const ColorScheme.dark(primary: cyan,onPrimary: Color(0xFF021018),secondary: blue,onSecondary: Colors.white,tertiary: gold,onTertiary: Color(0xFF1A1200),surface: panel,onSurface: ink,error: Color(0xFFFF7474),onError: Color(0xFF250000));
-  final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
+  final base = ThemeData(brightness: Brightness.dark, useMaterial3: true, fontFamily: 'BridgePointGrotesk');
   return base.copyWith(
-    fontFamily: 'BridgePointGrotesk',
     colorScheme: scheme,
     scaffoldBackgroundColor: bg,
     canvasColor: bg,

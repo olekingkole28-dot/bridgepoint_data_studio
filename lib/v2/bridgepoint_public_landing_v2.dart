@@ -338,8 +338,8 @@ class _Hero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 17),
-          const ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 820),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 820),
             child: Text(
               'BridgePoint connects property records, ownership changes, weather, environmental context, imagery, physical-property data and other supported evidence around the same property—then helps you understand what deserves attention first and why.',
               style: TextStyle(
