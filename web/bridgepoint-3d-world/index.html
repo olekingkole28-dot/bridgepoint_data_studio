@@ -6,55 +6,77 @@
   <meta name="theme-color" content="#020711" />
   <title>BridgePoint World</title>
   <link rel="preconnect" href="https://cesium.com" />
-  <link rel="preconnect" href="https://tile.googleapis.com" />
+  <link rel="preconnect" href="https://basemap.nationalmap.gov" />
+  <link rel="preconnect" href="https://mapservices.weather.noaa.gov" />
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/Widgets/widgets.css" />
   <script src="https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/Cesium.js"></script>
-  <script>window.BRIDGEPOINT_WORLD_CONFIG=window.BRIDGEPOINT_WORLD_CONFIG||{};</script>
-  <script src="./runtime-config.local.js"></script>
-  <link rel="stylesheet" href="./world-v2400.css" />
+  <link rel="stylesheet" href="./world-v2500.css" />
 </head>
 <body>
   <div id="cesiumContainer" aria-label="BridgePoint interactive 3D world"></div>
   <div id="weatherFx" aria-hidden="true"></div>
 
-  <header id="hud">
-    <div id="brand" class="panel">
-      <div class="mark" aria-hidden="true"></div>
-      <div><b>BRIDGEPOINT WORLD</b><small>U.S. property truth • global expansion surface</small></div>
+  <div id="floatingControls">
+    <div class="brandPill panel">
+      <div class="brandMark" aria-hidden="true"></div>
+      <div><b>BRIDGEPOINT WORLD</b><small>BridgePoint truth · public context</small></div>
     </div>
-    <nav id="controls" class="panel" aria-label="World controls">
-      <button id="locate" class="primary" type="button">◎ <span>My location</span></button>
-      <button id="us" type="button">◉ <span>U.S.</span></button>
-      <button id="photoreal" class="gold" type="button">▦ <span>Photoreal</span></button>
-      <button id="walk" class="gold" type="button">↟ <span>Walk view</span></button>
-      <button id="hazards" type="button">◌ <span>Live alerts</span></button>
-      <button id="reload" type="button">↻ <span>Reload block</span></button>
-      <button id="back" type="button">← <span>BridgePoint</span></button>
-    </nav>
-  </header>
-
-  <aside id="legend" class="panel" aria-label="Map legend">
-    <span><i class="dot cyan"></i>source-backed</span>
-    <span><i class="dot goldDot"></i>estimated height</span>
-    <span><i class="line opportunity"></i>high opportunity</span>
-    <span><i class="line locked"></i>locked country</span>
-  </aside>
-
-  <section id="lockCard" class="panel" hidden aria-live="polite">
-    <div class="lockHead"><div><b id="lockTitle">Locked — Under Construction</b><small id="lockDetail"></small></div><button id="lockClose" type="button" aria-label="Close">×</button></div>
-    <button id="requestBuild" class="gold wide" type="button">Request Build</button>
-    <div id="lockStatus" class="muted"></div>
-  </section>
-
-  <div id="status" class="panel" aria-live="polite">Starting BridgePoint World…</div>
-  <aside id="drawer" class="panel" aria-live="polite"></aside>
-  <div id="voiceBox" class="panel">
-    <input id="voiceText" autocomplete="off" placeholder="Ask BridgePoint about a property or place…" aria-label="Ask BridgePoint" />
-    <button id="mic" class="primary" type="button" aria-label="Voice search">🎙</button>
-    <button id="ask" type="button">Ask</button>
+    <div class="controlStack panel" aria-label="Map controls">
+      <button id="layersButton" class="iconButton" type="button" title="Layers">☷</button>
+      <button id="locationButton" class="iconButton" type="button" title="My location">◎</button>
+      <button id="usButton" class="iconButton" type="button" title="U.S. overview">◉</button>
+    </div>
   </div>
 
-  <!-- Release contract marker: bridgepoint_3d_world_viewport_v1899 is implemented in ./world-v2400.js -->
-  <script type="module" src="./world-v2400.js"></script>
+  <section id="layerPanel" class="panel" aria-label="World layers">
+    <div class="layerTitle">BridgePoint World layers</div>
+    <div class="layerGrid">
+      <button data-layer="buildings">Buildings</button><button data-layer="parcels">Parcels</button>
+      <button data-layer="roofs">Roofs</button><button data-layer="roads">Roads</button>
+      <button data-layer="rails">Rail</button><button data-layer="water">Water</button>
+      <button data-layer="parking">Parking / pavement</button><button data-layer="streetlights">Streetlights</button>
+      <button data-layer="vegetation">Vegetation</button><button data-layer="labels">Labels</button>
+    </div>
+    <div class="section"><h3>Weather</h3><div class="layerGrid">
+      <button id="radarButton">NOAA radar</button><button id="fxButton">Close-up physical FX</button>
+      <button id="propertyCirclesButton">Property circles</button><button data-weather="all">All hazards</button>
+      <button data-weather="hail">Hail</button><button data-weather="rain">Rain</button>
+      <button data-weather="snow">Snow / ice</button><button data-weather="wind">Wind</button>
+      <button data-weather="tornado">Tornado</button><button data-weather="hurricane">Hurricane</button>
+      <button data-weather="wildfire">Wildfire</button><button data-weather="flood">Flood</button>
+      <button data-weather="lightning">Lightning</button><button data-weather="outage">Outage</button>
+    </div></div>
+    <div class="truthNote">Radar starts on. Property circles and close-up physical effects start off. Effects visualize source-backed BridgePoint/public observations and incident geometry; alerts and forecasts are context, not proof of property damage. Missing exact roof, terrain, lightning, flood-depth, road or rail data is not fabricated.</div>
+  </section>
+
+  <div id="searchBox" class="panel">
+    <input id="searchInput" autocomplete="off" placeholder="Address, parcel, owner or place…" aria-label="Search BridgePoint" />
+    <button id="searchButton" type="button">Search</button>
+  </div>
+
+  <section id="propertyCard" class="panel" aria-live="polite"></section>
+
+  <section id="lockCard" class="panel" aria-live="polite">
+    <div class="cardHead"><div><b id="lockTitle">Locked — Under Construction</b><p id="lockText"></p></div><button id="lockClose" class="closeButton" type="button" aria-label="Close">×</button></div>
+  </section>
+
+  <section id="studyLab" aria-label="Structure and parcel lab">
+    <div id="studyCanvas"></div>
+    <div class="labChrome">
+      <div id="labInfo" class="labInfo panel"></div>
+      <div class="labButtons panel">
+        <button id="labReset" type="button"><span>Reset</span> ↺</button>
+        <button id="labMeasure" type="button"><span>Measure</span> ↔</button>
+        <button id="labXray" type="button"><span>X-ray</span> ◫</button>
+        <button id="labClose" class="danger" type="button"><span>Close</span> ×</button>
+      </div>
+    </div>
+    <div id="measurement" class="measurement panel">Measure: tap Measure, then choose two points on the source-backed structure.</div>
+  </section>
+
+  <div id="status" class="panel" aria-live="polite">Starting BridgePoint World V2500…</div>
+
+  <!-- Release contract marker: bridgepoint_3d_world_viewport_v1899 is implemented in ./world-v2500.js -->
+  <script type="module" src="./world-v2500.js"></script>
 </body>
 </html>
