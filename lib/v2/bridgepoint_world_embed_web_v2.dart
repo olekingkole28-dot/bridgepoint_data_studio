@@ -20,7 +20,7 @@ class _BridgePointWorldEmbedV2State extends State<BridgePointWorldEmbedV2> {
     _viewType = 'bridgepoint-world-v2652-${identityHashCode(this)}';
     ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
       final frame = html.IFrameElement()
-        ..src = '/app/bridgepoint-3d-world/'
+        ..src = '/app/bridgepoint-world-v2652/?release=2652'
         ..title = 'BridgePoint World V2652'
         ..allow = 'geolocation; fullscreen'
         ..style.border = '0'
