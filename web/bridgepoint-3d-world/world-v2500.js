@@ -1,5 +1,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { createStructureLab } from './world-v2500-inspector.js';
+import { enableBridgePointTerrain } from './world-v2500-terrain.js';
+import { initLivingWorld } from './world-v2500-living.js';
 
 const VERSION = 2500;
 const SUPABASE_URL = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
@@ -79,7 +81,7 @@ const state = {
   fx:false, weatherFilters:new Set(['all']), weatherPrimitives:[],
   propertyCircles:false, layers:{buildings:true,parcels:true,roofs:true,roads:true,rails:true,water:true,parking:true,streetlights:true,vegetation:true,labels:true},
   detailCache:new Map(), buildingCache:new Map(), cardToken:0, currentCard:null,
-  lab:null, session:null
+  lab:null, session:null, terrain:null, living:null
 };
 
 function cameraHeight(){ return viewer.camera.positionCartographic?.height || 100000; }
@@ -221,13 +223,17 @@ async function boot(){
   for(const b of document.querySelectorAll('[data-layer]'))b.classList.toggle('active',state.layers[b.dataset.layer]);
   document.querySelector('[data-weather="all"]')?.classList.add('active');
   await Promise.allSettled([refreshRadar(),streamViewport(true),loadWeather(true)]);
+  if(session){
+    try{state.terrain=await enableBridgePointTerrain({viewer,supabase,tier});document.getElementById('terrainStatus').textContent=state.terrain?.enabled?'USGS 3DEP terrain active':'Terrain fallback active';document.getElementById('terrainStatus').classList.toggle('active',Boolean(state.terrain?.enabled))}catch(e){console.warn('3DEP terrain unavailable',e);document.getElementById('terrainStatus').textContent='Terrain fallback active'}
+    try{state.living=await initLivingWorld({viewer,supabase,tier,getViewRectangle:viewRectangle,getCameraHeight:cameraHeight,getFocus:()=>state.focus||focusPoint(),getSelectedCenter:()=>{const b=state.currentCard?.building;if(!b)return null;const p=buildingResolvePoint(b);return p?[p[0],p[1],finite(b.ground_elevation_m??b.elevation_m)||0]:null},getPrimaryCounts:()=>({roads:sources.roads.entities.values.length,rails:sources.rails.entities.values.length,water:sources.water.entities.values.length})})}catch(e){console.warn('living public context unavailable',e)}
+  }
   if(!session)setStatus(`World V${VERSION} ready with public context. Sign in on BridgePoint to stream protected property intelligence.`,'warn');
-  else setStatus(`World V${VERSION} ready · public-only context · BridgePoint property truth · ${tier} device profile.`,'ok');
+  else setStatus(`World V${VERSION} ready · BridgePoint truth + governed public living context · ${tier} device profile.`,'ok');
 }
 
 window.BridgePointWorldV2500={
   version:VERSION,viewer,streamViewport,loadWeather,refreshRadar,
   selectBuilding,openLabForCurrent,
-  get state(){return{version:VERSION,tier,memory,cores,mobile,radar:state.radar,fx:state.fx,lockedCountry:state.locked?.code||null,cameraHeightMeters:cameraHeight(),focus:state.focus,buildings:sources.buildings.entities.values.length,parcels:sources.parcels.entities.values.length,weather:sources.weather.entities.values.length,selectedProperty:state.currentCard?.model?.property_id||null,publicOnly:true}}
+  get state(){return{version:VERSION,tier,memory,cores,mobile,radar:state.radar,fx:state.fx,lockedCountry:state.locked?.code||null,cameraHeightMeters:cameraHeight(),focus:state.focus,buildings:sources.buildings.entities.values.length,parcels:sources.parcels.entities.values.length,weather:sources.weather.entities.values.length,selectedProperty:state.currentCard?.model?.property_id||null,terrain:state.terrain?.enabled||false,living:state.living?.state||null,publicOnly:true}}
 };
 boot().catch(e=>{console.error(e);setStatus(`BridgePoint World failed to start: ${e?.message||e}`,'bad')});
