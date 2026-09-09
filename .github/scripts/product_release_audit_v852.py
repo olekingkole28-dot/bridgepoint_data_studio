@@ -20,19 +20,38 @@ def text(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
 
-# ---- Weather permanent regression contract ----
-weather_path = 'lib/v2/bridgepoint_map_weather_v2.dart'
-w = text(weather_path)
-check(w.count("import 'dart:convert';") == 1, 'Weather must import dart:convert exactly once')
-check(w.count("import 'package:http/http.dart' as http;") == 1, 'Weather must import package:http exactly once')
-check('_loadRadarFrames()' in w, 'Weather must load NOAA published frame catalog')
-check('idp_validtime' in w, 'Weather must use NOAA idp_validtime')
-check('max: 48' not in w and 'frame >= 48' not in w, 'Weather must not hardcode radar history')
-check('_radarFrames.length - 1' in w, 'Weather slider/timer must use actual NOAA frame count')
-check('_radarMaxHonestZoom' in w, 'Weather must retain property-level radar truth zoom gate')
-check('Duration(milliseconds: 2600)' in w, 'Radar animation must allow mobile imagery time to render')
-check('Icons.roofing_rounded' in w and 'Icons.thunderstorm_rounded' in w,
-      'Map must retain professional category-specific opportunity markers')
+# ---- World V2500 permanent map/weather regression contract ----
+world_index = text('web/bridgepoint-3d-world/index.html')
+world = text('web/bridgepoint-3d-world/world-v2500.js')
+world_css = text('web/bridgepoint-3d-world/world-v2500.css')
+check('world-v2500.js' in world_index, 'Map shell must load World V2500')
+check('const VERSION = 2500' in world, 'World renderer must identify as V2500')
+check('BridgePointWorldV2500' in world, 'World V2500 runtime marker is missing')
+check('radar:true' in world.replace(' ', ''), 'World V2500 radar must start enabled')
+check('latestRadarTime()' in world and 'idp_validtime' in world,
+      'World V2500 radar must use NOAA published observation time')
+check('setInterval(()=>refreshRadar(),120000)' in world.replace(' ', ''),
+      'World V2500 radar must refresh on the two-minute source cadence')
+check('mapservices.weather.noaa.gov' in world,
+      'World V2500 must retain NOAA radar/weather source wiring')
+check('basemap.nationalmap.gov' in world and 'U.S. Geological Survey' in world,
+      'World V2500 must retain public USGS imagery source wiring')
+check('hazardKind' in world and 'hazardColor' in world and 'renderWeatherRows' in world,
+      'World V2500 must retain category-specific hazard rendering')
+for kind in ['tornado','hurricane','wildfire','fire','hail','snow','flood','wind','lightning','outage','rain']:
+    check(kind in world, f'World V2500 hazard rendering missing category: {kind}')
+check('propertyCircles:false' in world.replace(' ', ''),
+      'World V2500 property circles must remain opt-in rather than fake default precision')
+check('bridgepoint_3d_world_viewport_v1899' in world,
+      'World V2500 must stream viewport property/building intelligence')
+check('bridgepoint_building_detail_v2300' in world,
+      'World V2500 must retain building/property detail enrichment')
+check(not (ROOT / 'lib/v2/bridgepoint_map_weather_v2.dart').exists(),
+      'Retired Flutter Intelligence Map source must not ship beside V2500')
+check(not (ROOT / 'web/bridgepoint-3d-world/world-v2400.js').exists(),
+      'Retired World V2400 JavaScript must not ship beside V2500')
+check(not (ROOT / 'web/bridgepoint-3d-world/world-v2400.css').exists(),
+      'Retired World V2400 CSS must not ship beside V2500')
 
 # ---- 3D / digital twin permanent regression contract ----
 geom = text('lib/v2/bridgepoint_building_geometry_v2.dart')
@@ -78,7 +97,8 @@ check("if (owner) _Group(title:'Owner only'" in app or "if (owner) _Group(title:
 check("_item(_Area.worth,'Owner Valuation'" in app, 'Owner valuation must remain available to the owner')
 check("_item(_Area.models,'Model Operations'" in app, 'Model operations must remain available to the owner')
 check("_item(_Area.studio,'Intelligence Studio'" in app, 'Intelligence Studio must remain available to the owner')
-# These internal areas may exist in the switch, but cannot appear in normal customer groups.
+check('BridgePointWorldEmbedV2' in app, 'Map route must use BridgePoint World V2500 embed')
+check('BridgePointMapWeatherV2' not in app, 'Retired Intelligence Map must not be reachable from the app')
 customer_slice = app.split("if (owner) _Group", 1)[0]
 check("_item(_Area.worth" not in customer_slice, 'Worth leaked into customer Explore')
 check("_item(_Area.models" not in customer_slice, 'Models leaked into customer Explore')
@@ -142,7 +162,6 @@ for p in production_v2:
     if re.search(r'class\s+_Payload\b', s) or re.search(r'class\s+_PayloadPanel\b', s):
         fail(f'Generic recursive payload presenter remains in customer surface: {rel}')
 
-# Duplicate exact import lines in any Dart file.
 for p in LIB.rglob('*.dart'):
     lines = p.read_text(encoding='utf-8').splitlines()
     imports = [x.strip() for x in lines if x.strip().startswith('import ')]
@@ -150,7 +169,6 @@ for p in LIB.rglob('*.dart'):
     if dupes:
         fail(f'Duplicate imports in {p.as_posix()}: {dupes}')
 
-# Required restored surfaces remain present even though they are contextualized.
 required = [
     'lib/v2/bridgepoint_properties_v2.dart',
     'lib/v2/bridgepoint_opportunities_v2.dart',
@@ -167,11 +185,11 @@ for path in required:
 
 check(not (LIB / 'v3').exists(), 'Parallel V3 architecture reappeared; Clean V2 must remain the single app')
 
-print('BridgePoint Clean V2 product release audit')
+print('BridgePoint Clean V2 + World V2500 product release audit')
 print(f'Checked {len(list(LIB.rglob("*.dart")))} Dart files')
 if errors:
     print('\nFAILURES:')
     for err in errors:
         print(f' - {err}')
     sys.exit(1)
-print('PASS: radar, true XYZ 3D, hardened RPCs, four-area navigation, owner-only internals, customer plans, owner truth, visual system, and customer-surface hygiene')
+print('PASS: V2500 world, NOAA/USGS map truth, true XYZ 3D, hardened RPCs, four-area navigation, owner-only internals, customer plans, owner truth, visual system, and customer-surface hygiene')
