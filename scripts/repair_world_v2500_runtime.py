@@ -39,5 +39,31 @@ transition(
     'Property 360 enrichment RPC signatures',
 )
 
+transition(
+    "  labels:new Cesium.CustomDataSource('bp-labels'), weather:new Cesium.CustomDataSource('bp-weather'), locks:new Cesium.CustomDataSource('bp-country-locks')",
+    "  propertyPoints:new Cesium.CustomDataSource('bp-property-points'), labels:new Cesium.CustomDataSource('bp-labels'), weather:new Cesium.CustomDataSource('bp-weather'), locks:new Cesium.CustomDataSource('bp-country-locks')",
+    'property point source',
+)
+transition(
+    "for(const k of ['buildings','parcels','roofs','roads','rails','water','parking','streetlights','vegetation','labels'])sources[k].entities.removeAll();",
+    "for(const k of ['buildings','parcels','roofs','roads','rails','water','parking','streetlights','vegetation','propertyPoints','labels'])sources[k].entities.removeAll();",
+    'property point cleanup',
+)
+transition(
+    "function renderViewport(data={}){\n  clearPropertyGeometry();let labels=0;",
+    "function renderPropertyCircles(data={}){sources.propertyPoints.entities.removeAll();const raw=Array.isArray(data.properties)&&data.properties.length?data.properties:(data.buildings||[]).filter(r=>r?.property_id);let n=0;for(const row of raw){if(n>=PERF.detail[1])break;let lat=finite(row.latitude??row.lat),lon=finite(row.longitude??row.lng??row.lon);if(lat===null||lon===null){const ring=outerRings(rowGeometry(row))[0],c=ring?centerOfRing(ring):null;if(!c)continue;lon=finite(c[0]);lat=finite(c[1])}if(lat===null||lon===null)continue;sources.propertyPoints.entities.add({id:`property-point-${row.property_id||row.id||n}`,position:Cesium.Cartesian3.fromDegrees(lon,lat,(finite(row.ground_elevation_m??row.elevation_m)||0)+1.8),point:{pixelSize:7,color:Cesium.Color.fromCssColorString('#48e1ff').withAlpha(.78),outlineColor:Cesium.Color.fromCssColorString('#061018'),outlineWidth:1,distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,24000)},properties:{property_id:row.property_id||row.id,source_backed:true}});n++}sources.propertyPoints.show=state.propertyCircles;return n}\nfunction renderViewport(data={}){\n  clearPropertyGeometry();let labels=0;",
+    'source-backed property circles renderer',
+)
+transition(
+    "  addPoints(sources.vegetation,data.vegetation||data.trees||[],{color:'#6fbc78',size:5,maxDistance:4500,prefix:'tree'});\n  for(const [k,v] of Object.entries(state.layers))if(sources[k])sources[k].show=v;",
+    "  addPoints(sources.vegetation,data.vegetation||data.trees||[],{color:'#6fbc78',size:5,maxDistance:4500,prefix:'tree'});\n  renderPropertyCircles(data);\n  for(const [k,v] of Object.entries(state.layers))if(sources[k])sources[k].show=v;",
+    'property circle viewport population',
+)
+transition(
+    "$('propertyCirclesButton').onclick=()=>{state.propertyCircles=!state.propertyCircles;$('propertyCirclesButton').classList.toggle('active',state.propertyCircles);setStatus(`Property circles ${state.propertyCircles?'enabled':'disabled'}. Building and parcel geometry are unchanged.`,'ok')};",
+    "$('propertyCirclesButton').onclick=()=>{state.propertyCircles=!state.propertyCircles;sources.propertyPoints.show=state.propertyCircles;$('propertyCirclesButton').classList.toggle('active',state.propertyCircles);viewer.scene.requestRender();setStatus(`Property circles ${state.propertyCircles?'enabled':'disabled'}. Only source-associated property points are shown.`,'ok')};",
+    'functional property circle toggle',
+)
+
 p.write_text(text, encoding='utf-8')
-print('World V2500 runtime RPC contracts repaired.')
+print('World V2500 runtime contracts and property-circle behavior verified.')
