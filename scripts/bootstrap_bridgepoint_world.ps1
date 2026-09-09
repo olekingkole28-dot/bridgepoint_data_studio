@@ -12,7 +12,7 @@ function Require-Command([string]$Name) {
 }
 Require-Command git
 Require-Command flutter
-Write-Host "BridgePoint World bootstrap" -ForegroundColor Cyan
+Write-Host "BridgePoint World V2400 bootstrap" -ForegroundColor Cyan
 Write-Host "Repository: $RepoRoot"
 flutter --version
 flutter doctor
@@ -33,11 +33,12 @@ window.BRIDGEPOINT_WORLD_CONFIG = Object.assign(window.BRIDGEPOINT_WORLD_CONFIG 
 "@ | Set-Content -Path $localConfig -Encoding UTF8
 Write-Host "Runtime world config generated (keys remain local/untracked)." -ForegroundColor Green
 if (-not $SkipFlutterBuild) {
-  flutter build web --release --pwa-strategy=offline-first
+  flutter build web --release -t lib/main_v2.dart --base-href "/app/" --pwa-strategy=offline-first --dart-define=BRIDGEPOINT_RELEASE=local-v2400
   $worldOut = Join-Path $RepoRoot 'build\web\bridgepoint-3d-world'
   if (Test-Path $worldOut) { Remove-Item $worldOut -Recurse -Force }
   Copy-Item $worldDir $worldOut -Recurse -Force
-  Write-Host "Production web build: $RepoRoot\build\web" -ForegroundColor Green
+  if (-not (Test-Path (Join-Path $worldOut 'world-v2400.js'))) { throw 'World V2400 runtime did not survive web assembly.' }
+  Write-Host "Production Clean V2 web build: $RepoRoot\build\web" -ForegroundColor Green
 }
 if (-not $SkipArchives) {
   $exportDir = Join-Path $RepoRoot 'exports'
@@ -53,6 +54,6 @@ if (-not $SkipArchives) {
   }
 }
 Write-Host ""
-Write-Host "Local preview:" -ForegroundColor Cyan
+Write-Host "Local standalone world preview:" -ForegroundColor Cyan
 Write-Host "  python -m http.server 8787 --directory build/web"
 Write-Host "  http://localhost:8787/bridgepoint-3d-world/"
