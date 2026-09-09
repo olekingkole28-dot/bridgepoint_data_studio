@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <meta name="theme-color" content="#020711" />
-  <title>BridgePoint World</title>
+  <title>BridgePoint World V2652</title>
   <link rel="preconnect" href="https://cesium.com" />
   <link rel="preconnect" href="https://basemap.nationalmap.gov" />
   <link rel="preconnect" href="https://mapservices.weather.noaa.gov" />
@@ -13,24 +13,28 @@
   <link rel="stylesheet" href="./world-v2500.css" />
 </head>
 <body>
-  <div id="cesiumContainer" aria-label="BridgePoint interactive 3D world"></div>
+  <div id="cesiumContainer" aria-label="BridgePoint interactive 3D living world"></div>
   <div id="weatherFx" aria-hidden="true"></div>
 
   <div id="floatingControls">
     <div class="brandPill panel">
       <div class="brandMark" aria-hidden="true"></div>
-      <div><b>BRIDGEPOINT WORLD</b><small>BridgePoint truth · public context</small></div>
+      <div><b>BRIDGEPOINT WORLD</b><small>V2652 · living U.S. truth engine</small></div>
     </div>
     <div class="controlStack panel" aria-label="Map controls">
       <button id="layersButton" class="iconButton" type="button" title="Layers">☷</button>
       <button id="locationButton" class="iconButton" type="button" title="My location">◎</button>
       <button id="usButton" class="iconButton" type="button" title="U.S. overview">◉</button>
+      <button id="xrayWorldButton" class="iconButton" type="button" title="X-ray / underground">◫</button>
     </div>
   </div>
 
   <section id="layerPanel" class="panel" aria-label="World layers">
-    <div class="layerTitle">BridgePoint World layers</div>
-    <div class="layerGrid">
+    <div class="layerTitle">BridgePoint World V2652</div>
+    <div id="worldMetrics" class="worldMetrics">Synchronizing living-world catalog…</div>
+    <div id="truthClock" class="truthClock">TRUTH CLOCK</div>
+
+    <div class="section"><h3>Core property world</h3><div class="layerGrid">
       <button data-layer="buildings">Buildings</button><button data-layer="parcels">Parcels</button>
       <button data-layer="roofs">Roofs</button><button data-layer="roads">Roads</button>
       <button data-layer="rails">Rail</button><button data-layer="water">Water</button>
@@ -38,8 +42,9 @@
       <button data-layer="vegetation">Vegetation</button><button data-layer="labels">Labels</button>
       <button id="cloudsButton">Satellite clouds</button><button id="livingButton">Living public context</button>
       <button id="flyButton">Cinematic fly</button><button id="terrainStatus" disabled>Terrain starting…</button>
-    </div>
-    <div class="section"><h3>Weather</h3><div class="layerGrid">
+    </div></div>
+
+    <div class="section"><h3>Weather & hazards</h3><div class="layerGrid">
       <button id="radarButton" class="active">NOAA radar</button><button id="fxButton">Close-up physical FX</button>
       <button id="propertyCirclesButton">Property circles</button><button data-weather="all">All hazards</button>
       <button data-weather="hail">Hail</button><button data-weather="rain">Rain</button>
@@ -48,7 +53,15 @@
       <button data-weather="wildfire">Wildfire</button><button data-weather="flood">Flood</button>
       <button data-weather="lightning">Lightning</button><button data-weather="outage">Outage</button>
     </div></div>
-    <div class="truthNote">Satellite clouds and living public context start on when the signed-in package allows their governed BridgePoint endpoints. Cinematic fly is user-triggered. Radar starts on. Property circles and close-up physical effects start off. Effects visualize source-backed BridgePoint/public observations and incident geometry; alerts and forecasts are context, not proof of property damage. Missing exact roof, terrain, lightning, flood-depth, road or rail data is not fabricated.</div>
+
+    <div class="section livingCatalogSection">
+      <div class="catalogHeader"><h3>Everything BridgePoint knows</h3><div class="catalogActions"><button id="allLivingButton" type="button">All available</button><button id="clearLivingButton" type="button">Clear</button></div></div>
+      <input id="layerSearch" class="layerSearch" autocomplete="off" placeholder="Filter 3D, traffic, animals, underground, solar…" aria-label="Filter living world layers" />
+      <div id="catalogStatus" class="catalogStatus">Loading governed backend layers…</div>
+      <div id="dynamicLayerGrid"></div>
+    </div>
+    <div id="sceneStatus" class="sceneStatus">SCENE · waiting for signed-in living-world stream</div>
+    <div class="truthNote">BridgePoint separates observed, source-backed, derived, modeled and forecast truth. A rendered storm response, animal simulation or structure-damage depiction is not persisted as an observed real-world fact until evidence supports it. Exact private interiors and sensitive utility detail remain access-controlled. Foreign countries stay locked until BridgePoint completes their source, rights, geometry and quality gates.</div>
   </section>
 
   <div id="searchBox" class="panel">
@@ -59,7 +72,7 @@
   <section id="propertyCard" class="panel" aria-live="polite"></section>
 
   <section id="lockCard" class="panel" aria-live="polite">
-    <div class="cardHead"><div><b id="lockTitle">Locked — Under Construction</b><p id="lockText"></p></div><button id="lockClose" class="closeButton" type="button" aria-label="Close">×</button></div>
+    <div class="cardHead"><div><b id="lockTitle">Locked — Under Construction</b><p id="lockText"></p><button id="requestExpansionButton" class="gold wide" type="button">Request BridgePoint expansion here</button></div><button id="lockClose" class="closeButton" type="button" aria-label="Close">×</button></div>
   </section>
 
   <section id="studyLab" aria-label="Structure and parcel lab">
@@ -76,9 +89,10 @@
     <div id="measurement" class="measurement panel">Measure: tap Measure, then choose two points on the source-backed structure.</div>
   </section>
 
-  <div id="status" class="panel" aria-live="polite">Starting BridgePoint World V2500…</div>
+  <div id="status" class="panel" aria-live="polite">Starting BridgePoint World V2652…</div>
 
-  <!-- Release contract marker: bridgepoint_3d_world_viewport_v1899 is implemented in ./world-v2500.js -->
+  <!-- V2500 remains the proven property/camera core. V2652 layers the dynamic living-world contract over it. -->
   <script type="module" src="./world-v2500.js"></script>
+  <script type="module" src="./world-v2652-living.js"></script>
 </body>
 </html>
