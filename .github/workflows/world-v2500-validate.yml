@@ -1,0 +1,87 @@
+name: BridgePoint World V2500 validation
+on:
+  push:
+    branches: [bridgepoint-world-v2500]
+    paths:
+      - 'web/bridgepoint-3d-world/**'
+      - 'lib/v2/bridgepoint_world_embed_*.dart'
+      - 'lib/v2/bridgepoint_app_v2.dart'
+      - 'scripts/bootstrap_bridgepoint_world.ps1'
+      - 'scripts/apply_world_v2500_app.py'
+      - 'docs/BRIDGEPOINT_WORLD_REQUIREMENTS_V2500.md'
+      - '.github/workflows/world-v2500-validate.yml'
+  pull_request:
+    paths:
+      - 'web/bridgepoint-3d-world/**'
+      - 'lib/v2/bridgepoint_world_embed_*.dart'
+      - 'lib/v2/bridgepoint_app_v2.dart'
+      - 'scripts/bootstrap_bridgepoint_world.ps1'
+      - 'scripts/apply_world_v2500_app.py'
+      - 'docs/BRIDGEPOINT_WORLD_REQUIREMENTS_V2500.md'
+      - '.github/workflows/world-v2500-validate.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse V2500 JavaScript
+        run: |
+          node --check web/bridgepoint-3d-world/world-v2500.js
+          node --check web/bridgepoint-3d-world/world-v2500-inspector.js
+      - name: Enforce recovered world contract
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path('web/bridgepoint-3d-world')
+          html=(root/'index.html').read_text()
+          js=(root/'world-v2500.js').read_text()
+          inspector=(root/'world-v2500-inspector.js').read_text()
+          css=(root/'world-v2500.css').read_text()
+          contract=json.loads((root/'world-contract-v2500.json').read_text())
+          runtime='\n'.join([html,js,inspector,css]).lower()
+          missing=[x for x in contract['required_runtime_contracts'] if x.lower() not in runtime]
+          if missing: raise SystemExit('Missing V2500 runtime contracts: '+', '.join(missing))
+          bad=[x for x in contract['forbidden_runtime_strings'] if x.lower() in runtime]
+          if bad: raise SystemExit('Forbidden provider/runtime dependency found: '+', '.join(bad))
+          required_html=['world-v2500.js','world-v2500.css','propertyCard','studyLab','layerPanel','bridgepoint_3d_world_viewport_v1899']
+          absent=[x for x in required_html if x not in html]
+          if absent: raise SystemExit('Missing V2500 shell contracts: '+', '.join(absent))
+          if '<nav id="controls"' in html or 'photoreal' in html.lower(): raise SystemExit('Old toolbar/photoreal controls returned.')
+          if "radar:true" not in js.replace(' ',''): raise SystemExit('Radar must default on.')
+          if "propertyCircles:false" not in js.replace(' ',''): raise SystemExit('Property circles must default off.')
+          if "fx:false" not in js.replace(' ',''): raise SystemExit('Physical weather FX must default off.')
+          if "Promise.allSettled" not in js: raise SystemExit('Building-card staged enrichment regression protection missing.')
+          if "bridgepoint_building_detail_v2300" not in js: raise SystemExit('Building detail resolver missing.')
+          if "USGS_IMAGERY" not in js or 'basemap.nationalmap.gov' not in js: raise SystemExit('Public USGS imagery source missing.')
+          if 'mapservices.weather.noaa.gov' not in js: raise SystemExit('Public NOAA radar source missing.')
+          app=Path('lib/v2/bridgepoint_app_v2.dart').read_text()
+          embed=Path('lib/v2/bridgepoint_world_embed_web_v2.dart').read_text()
+          if "BridgePointWorldEmbedV2" not in app: raise SystemExit('Clean V2 does not yet point to World V2500.')
+          if "BridgePointMapWeatherV2" in app: raise SystemExit('Legacy Intelligence Map widget still referenced by Clean V2.')
+          if "bridgepoint-world-v2500" not in embed: raise SystemExit('Flutter world embed does not target V2500.')
+          print('Recovered V2500 world contract passed.')
+          PY
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve Flutter packages
+        run: flutter pub get
+      - name: Compile Clean V2 replacement app
+        run: flutter build web --release -t lib/main_v2.dart --base-href "/app/" --dart-define=BRIDGEPOINT_RELEASE=${GITHUB_SHA}
+      - name: Verify V2500 survives Flutter assembly
+        run: |
+          test -s build/web/main.dart.js
+          test -s build/web/bridgepoint-3d-world/index.html
+          test -s build/web/bridgepoint-3d-world/world-v2500.js
+          test -s build/web/bridgepoint-3d-world/world-v2500-inspector.js
+          test -s build/web/bridgepoint-3d-world/world-v2500.css
+          grep -q 'BridgePointWorldV2500' build/web/bridgepoint-3d-world/world-v2500.js
+          grep -q 'world-v2500.js' build/web/bridgepoint-3d-world/index.html
+          grep -q 'bridgepoint_3d_world_viewport_v1899' build/web/bridgepoint-3d-world/index.html
+          echo 'Clean V2 + World V2500 assembly passed.'
