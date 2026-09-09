@@ -2,119 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>BridgePoint 3D World</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#020711" />
+  <title>BridgePoint World</title>
+  <link rel="preconnect" href="https://cesium.com" />
+  <link rel="preconnect" href="https://tile.googleapis.com" />
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/Widgets/widgets.css" />
   <script src="https://cesium.com/downloads/cesiumjs/releases/1.145/Build/Cesium/Cesium.js"></script>
-  <style>
-    html,body,#cesiumContainer{width:100%;height:100%;margin:0;padding:0;overflow:hidden;background:#020711;color:#eef8ff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    #hud{position:fixed;z-index:20;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center;pointer-events:none}
-    .panel{pointer-events:auto;background:rgba(5,18,31,.91);border:1px solid rgba(72,225,255,.22);box-shadow:0 12px 38px rgba(0,0,0,.36);backdrop-filter:blur(14px);border-radius:16px}
-    #brand{padding:10px 13px;display:flex;align-items:center;gap:10px;min-width:210px}.mark{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#48e1ff,#6c83ff);box-shadow:0 0 24px rgba(72,225,255,.32)}
-    #brand b{font-size:13px;letter-spacing:.04em}#brand small{display:block;color:#a9bed0;font-size:10px;margin-top:2px}
-    #controls{margin-left:auto;padding:7px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-    button{appearance:none;border:0;border-radius:10px;padding:9px 11px;background:#102a42;color:#ecf8ff;font-weight:800;font-size:11px;cursor:pointer}button:hover{background:#173a59}.primary{background:#17455a;color:#79edff}.gold{background:#493816;color:#ffd170}.danger{background:#4a1f2b;color:#ff9aad}
-    #status{position:fixed;z-index:20;left:12px;bottom:12px;max-width:min(720px,calc(100vw - 24px));padding:10px 12px;font-size:11px;color:#c8d8e6;line-height:1.45}.ok{color:#5ff2b4}.warn{color:#ffd170}.bad{color:#ff8d9b}
-    #drawer{position:fixed;z-index:25;top:84px;right:12px;width:min(390px,calc(100vw - 24px));max-height:calc(100vh - 112px);overflow:auto;padding:14px;display:none}.drawer-title{font-size:17px;font-weight:900;margin-bottom:4px}.muted{color:#9fb5c8;font-size:11px;line-height:1.45}.kv{display:grid;grid-template-columns:125px 1fr;gap:7px 10px;margin-top:13px;font-size:12px}.kv b{color:#9fb5c8}.tag{display:inline-block;margin:5px 5px 0 0;padding:5px 8px;border-radius:999px;background:#112d43;color:#73e8ff;font-size:10px;font-weight:850}
-    #voiceBox{position:fixed;z-index:24;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:7px;padding:7px;max-width:calc(100vw - 270px)}#voiceText{min-width:280px;max-width:50vw;background:transparent;border:0;color:white;outline:none;padding:5px 8px;font-size:12px}
-    #legend{position:fixed;z-index:20;left:12px;top:83px;padding:9px 11px;font-size:10px;color:#a8bbcb}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}.blue{background:#48e1ff}.amber{background:#ffc95e}
-    .cesium-viewer-bottom{display:none!important}.cesium-viewer-toolbar{top:74px!important;right:12px!important}
-    @media(max-width:720px){#brand{min-width:0}#brand small{display:none}#controls button span{display:none}#drawer{top:128px}#voiceBox{left:12px;right:12px;transform:none;max-width:none}#voiceText{min-width:0;max-width:none;width:100%}#status{bottom:66px}.cesium-viewer-toolbar{top:126px!important}}
-  </style>
+  <script>window.BRIDGEPOINT_WORLD_CONFIG=window.BRIDGEPOINT_WORLD_CONFIG||{};</script>
+  <script src="./runtime-config.local.js"></script>
+  <link rel="stylesheet" href="./world-v2400.css" />
 </head>
 <body>
-  <div id="cesiumContainer"></div>
-  <div id="hud">
-    <div id="brand" class="panel"><div class="mark"></div><div><b>BRIDGEPOINT 3D WORLD</b><small>Continuous property intelligence • source-truth rendering</small></div></div>
-    <div id="controls" class="panel">
-      <button id="locate" class="primary">◎ <span>My location</span></button>
-      <button id="us">◉ <span>U.S.</span></button>
-      <button id="walk" class="gold">↟ <span>Walk view</span></button>
-      <button id="hazards">◌ <span>Live alerts</span></button>
-      <button id="reload">↻ <span>Reload block</span></button>
-      <button id="back">← <span>Back to BridgePoint</span></button>
+  <div id="cesiumContainer" aria-label="BridgePoint interactive 3D world"></div>
+  <div id="weatherFx" aria-hidden="true"></div>
+
+  <header id="hud">
+    <div id="brand" class="panel">
+      <div class="mark" aria-hidden="true"></div>
+      <div><b>BRIDGEPOINT WORLD</b><small>U.S. property truth • global expansion surface</small></div>
     </div>
+    <nav id="controls" class="panel" aria-label="World controls">
+      <button id="locate" class="primary" type="button">◎ <span>My location</span></button>
+      <button id="us" type="button">◉ <span>U.S.</span></button>
+      <button id="photoreal" class="gold" type="button">▦ <span>Photoreal</span></button>
+      <button id="walk" class="gold" type="button">↟ <span>Walk view</span></button>
+      <button id="hazards" type="button">◌ <span>Live alerts</span></button>
+      <button id="reload" type="button">↻ <span>Reload block</span></button>
+      <button id="back" type="button">← <span>BridgePoint</span></button>
+    </nav>
+  </header>
+
+  <aside id="legend" class="panel" aria-label="Map legend">
+    <span><i class="dot cyan"></i>source-backed</span>
+    <span><i class="dot goldDot"></i>estimated height</span>
+    <span><i class="line opportunity"></i>high opportunity</span>
+    <span><i class="line locked"></i>locked country</span>
+  </aside>
+
+  <section id="lockCard" class="panel" hidden aria-live="polite">
+    <div class="lockHead"><div><b id="lockTitle">Locked — Under Construction</b><small id="lockDetail"></small></div><button id="lockClose" type="button" aria-label="Close">×</button></div>
+    <button id="requestBuild" class="gold wide" type="button">Request Build</button>
+    <div id="lockStatus" class="muted"></div>
+  </section>
+
+  <div id="status" class="panel" aria-live="polite">Starting BridgePoint World…</div>
+  <aside id="drawer" class="panel" aria-live="polite"></aside>
+  <div id="voiceBox" class="panel">
+    <input id="voiceText" autocomplete="off" placeholder="Ask BridgePoint about a property or place…" aria-label="Ask BridgePoint" />
+    <button id="mic" class="primary" type="button" aria-label="Voice search">🎙</button>
+    <button id="ask" type="button">Ask</button>
   </div>
-  <div id="legend" class="panel"><span class="dot blue"></span>source-backed building footprint &nbsp; <span class="dot amber"></span>visual height may be estimated</div>
-  <div id="status" class="panel">Starting BridgePoint 3D…</div>
-  <div id="drawer" class="panel"></div>
-  <div id="voiceBox" class="panel"><input id="voiceText" placeholder="Ask BridgePoint about a property or place…"/><button id="mic" class="primary">🎙</button><button id="ask">Ask</button></div>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-    const SUPABASE_URL='https://xdfsjztwgsbmabshzsjw.supabase.co';
-    const SUPABASE_KEY='sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25';
-    const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);
-    const statusEl=document.getElementById('status'),drawer=document.getElementById('drawer');
-    const setStatus=(text,kind='')=>{statusEl.className='panel '+kind;statusEl.textContent=text};
-
-    const viewer=new Cesium.Viewer('cesiumContainer',{
-      animation:false,timeline:false,baseLayerPicker:false,geocoder:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,
-      terrainProvider:new Cesium.EllipsoidTerrainProvider(),
-      imageryProvider:new Cesium.OpenStreetMapImageryProvider({url:'https://tile.openstreetmap.org/',credit:'© OpenStreetMap contributors'}),
-      requestRenderMode:true,maximumRenderTimeChange:Infinity
-    });
-    viewer.scene.globe.depthTestAgainstTerrain=true;
-    viewer.scene.backgroundColor=Cesium.Color.fromCssColorString('#020711');
-    viewer.camera.setView({destination:Cesium.Cartesian3.fromDegrees(-98.35,39.5,5600000),orientation:{heading:0,pitch:Cesium.Math.toRadians(-88),roll:0}});
-
-    const buildingSource=new Cesium.CustomDataSource('bridgepoint-buildings');
-    const hazardSource=new Cesium.CustomDataSource('bridgepoint-hazards');
-    viewer.dataSources.add(buildingSource);viewer.dataSources.add(hazardSource);
-    let lastKey='',loading=false,hazardsOn=false,selected=null;
-
-    function flattenRing(geometry){
-      if(!geometry)return null;let ring;
-      if(geometry.type==='Polygon')ring=geometry.coordinates?.[0];
-      else if(geometry.type==='MultiPolygon')ring=geometry.coordinates?.[0]?.[0];
-      if(!ring||ring.length<3)return null;
-      const out=[];for(const p of ring){if(Number.isFinite(+p[0])&&Number.isFinite(+p[1]))out.push(+p[0],+p[1]);}return out.length>=6?out:null;
-    }
-    function cameraHeight(){return viewer.camera.positionCartographic?.height||100000;}
-    function viewport(){const r=viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);if(!r)return null;return {west:Cesium.Math.toDegrees(r.west),south:Cesium.Math.toDegrees(r.south),east:Cesium.Math.toDegrees(r.east),north:Cesium.Math.toDegrees(r.north)};}
-    function viewportKey(v,h){return [v.west,v.south,v.east,v.north].map(x=>x.toFixed(h<1000?4:h<10000?3:2)).join(':')+':'+Math.round(Math.log10(Math.max(h,1))*4);}
-
-    async function streamBuildings(force=false){
-      if(loading)return;const h=cameraHeight();if(h>120000){buildingSource.entities.removeAll();setStatus('Continental LOD • zoom below ~120 km to stream individual BridgePoint building geometry.','ok');return;}
-      const v=viewport();if(!v)return;const key=viewportKey(v,h);if(!force&&key===lastKey)return;lastKey=key;loading=true;setStatus('Streaming BridgePoint building geometry for this viewport…');
-      try{
-        const {data,error}=await supabase.rpc('bridgepoint_3d_world_viewport_v1899',{p_west:v.west,p_south:v.south,p_east:v.east,p_north:v.north,p_camera_height_m:h,p_limit:h<1000?2200:h<8000?1500:900});
-        if(error)throw error;if(data?.locked){setStatus('Sign in to BridgePoint with map access to stream the 3D intelligence layer.','warn');return;}
-        buildingSource.entities.removeAll();
-        for(const b of data?.buildings||[]){const coords=flattenRing(b.geometry);if(!coords)continue;const estimated=!b.height_m||+b.height_m<=0;const ground=Number(b.ground_elevation_m||0);const height=Math.max(3,Number(b.render_height_m||8.5));
-          const e=buildingSource.entities.add({id:'bp-'+b.source_key+'-'+b.building_id,properties:{bridgepoint:b},polygon:{hierarchy:Cesium.Cartesian3.fromDegreesArray(coords),height:ground,extrudedHeight:ground+height,material:Cesium.Color.fromCssColorString(estimated?'#d9aa42':'#36bed7').withAlpha(.67),outline:true,outlineColor:Cesium.Color.fromCssColorString('#83ecff').withAlpha(.5)}});e.bridgepoint=b;}
-        viewer.scene.requestRender();setStatus(`LOD ${data?.lod_level??'?'} • ${data?.returned??0} buildings streamed • ${data?.source_mode??'source'} • click a bound building for BridgePoint history.`, 'ok');
-      }catch(e){console.error(e);setStatus('3D building stream is unavailable in this session: '+(e?.message||e),'bad');}finally{loading=false;}
-    }
-
-    viewer.camera.moveEnd.addEventListener(()=>streamBuildings(false));
-    document.getElementById('reload').onclick=()=>streamBuildings(true);
-    document.getElementById('us').onclick=()=>viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(-98.35,39.5,5600000),duration:1.4});
-    document.getElementById('walk').onclick=()=>{const c=viewer.camera.positionCartographic;viewer.camera.flyTo({destination:Cesium.Cartesian3.fromRadians(c.longitude,c.latitude,45),orientation:{heading:viewer.camera.heading,pitch:Cesium.Math.toRadians(-8),roll:0},duration:1.1});};
-    document.getElementById('locate').onclick=()=>navigator.geolocation?.getCurrentPosition(p=>viewer.camera.flyTo({destination:Cesium.Cartesian3.fromDegrees(p.coords.longitude,p.coords.latitude,420),orientation:{heading:0,pitch:Cesium.Math.toRadians(-42),roll:0},duration:1.2}),e=>setStatus('Location permission was not granted: '+e.message,'warn'),{enableHighAccuracy:true,timeout:12000});
-    document.getElementById('back').onclick=()=>location.href='/';
-
-    viewer.screenSpaceEventHandler.setInputAction(async movement=>{
-      const picked=viewer.scene.pick(movement.position);const entity=picked?.id;if(!entity?.bridgepoint)return;const b=entity.bridgepoint;selected=b;
-      drawer.style.display='block';drawer.innerHTML=`<div class="drawer-title">${b.property_id?'BridgePoint property':'Building geometry'}</div><div class="muted">${b.truth_label||''}</div><div class="kv"><b>Source</b><span>${b.source_name||b.source_key||'—'}</span><b>Height</b><span>${Number(b.render_height_m||0).toFixed(1)} m ${b.height_m?'source':'visual estimate'}</span><b>Floors</b><span>${b.floors??'—'}</span><b>Property ID</b><span>${b.property_id||'Association pending'}</span></div>`;
-      if(!b.property_id)return;
-      try{const {data,error}=await supabase.rpc('bridgepoint_flutter_property_detail',{p_property_id:b.property_id});if(error)throw error;const d=data||{};const address=d.full_address||d.address||d.property?.full_address||'Property profile';const score=d.score??d.property_score??d.property?.score;drawer.innerHTML=`<div class="drawer-title">${address}</div><div class="muted">Live BridgePoint profile bound to this rendered building.</div><div class="kv"><b>Property ID</b><span>${b.property_id}</span><b>Risk / score</b><span>${score??'See profile'}</span><b>Source</b><span>${b.source_name||b.source_key}</span><b>3D height</b><span>${Number(b.render_height_m||0).toFixed(1)} m</span></div><div><span class="tag">Permits</span><span class="tag">Storm history</span><span class="tag">Timeline</span><span class="tag">Custom scores</span></div>`;}catch(e){console.error(e);}
-    },Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-    async function loadHazards(){
-      if(!hazardsOn){hazardSource.entities.removeAll();viewer.scene.requestRender();return;}
-      try{const r=await fetch('https://api.weather.gov/alerts/active');const j=await r.json();hazardSource.entities.removeAll();for(const f of (j.features||[]).slice(0,250)){const g=f.geometry;if(!g||!['Polygon','MultiPolygon'].includes(g.type))continue;const coords=flattenRing(g);if(!coords)continue;const sev=(f.properties?.severity||'').toLowerCase();const color=sev==='extreme'?Cesium.Color.RED:sev==='severe'?Cesium.Color.ORANGE:Cesium.Color.YELLOW;hazardSource.entities.add({polygon:{hierarchy:Cesium.Cartesian3.fromDegreesArray(coords),material:color.withAlpha(.16),outline:true,outlineColor:color.withAlpha(.8)},properties:{event:f.properties?.event,headline:f.properties?.headline}});}viewer.scene.requestRender();setStatus(`Live NWS alert polygons loaded (${hazardSource.entities.values.length}). Alerts are context—not verified property damage.`,'ok');}catch(e){setStatus('Could not load NWS alerts: '+(e?.message||e),'warn');}
-    }
-    document.getElementById('hazards').onclick=()=>{hazardsOn=!hazardsOn;document.getElementById('hazards').classList.toggle('danger',hazardsOn);loadHazards();};
-    setInterval(()=>{if(hazardsOn)loadHazards();},60000);
-
-    async function askText(q){q=q.trim();if(!q)return;setStatus('Searching BridgePoint…');try{const {data,error}=await supabase.rpc('bridgepoint_universal_search_context_v244',{p_query:q,p_limit:8});if(error)throw error;const text=typeof data==='string'?data:JSON.stringify(data);drawer.style.display='block';drawer.innerHTML=`<div class="drawer-title">Spatial search</div><div class="muted">${q.replace(/[<>&]/g,'')}</div><pre style="white-space:pre-wrap;font-size:11px;color:#d8e7f1">${text.slice(0,5500).replace(/[<>&]/g,'')}</pre>`;speechSynthesis?.speak?.(new SpeechSynthesisUtterance('BridgePoint search complete. Results are shown on screen.'));setStatus('BridgePoint search complete. Complex spatial voice planning is being upgraded behind the same interface.','ok');}catch(e){setStatus('Search unavailable: '+(e?.message||e),'bad');}}
-    document.getElementById('ask').onclick=()=>askText(document.getElementById('voiceText').value);document.getElementById('voiceText').addEventListener('keydown',e=>{if(e.key==='Enter')askText(e.target.value)});
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;document.getElementById('mic').onclick=()=>{if(!SR){setStatus('This browser does not expose Web Speech recognition. Type the same spatial question instead.','warn');return;}const r=new SR();r.lang='en-US';r.interimResults=false;r.onresult=e=>{const q=e.results[0][0].transcript;document.getElementById('voiceText').value=q;askText(q)};r.onerror=e=>setStatus('Voice recognition: '+e.error,'warn');r.start();};
-
-    const {data:{session}}=await supabase.auth.getSession();
-    if(!session)setStatus('3D world loaded. Sign in on the main BridgePoint app first to stream protected property intelligence.','warn');else setStatus('Authenticated 3D world ready. Zoom into a city or use My location.','ok');
-    viewer.camera.moveEnd.raiseEvent();
-  </script>
+  <!-- Release contract marker: bridgepoint_3d_world_viewport_v1899 is implemented in ./world-v2400.js -->
+  <script type="module" src="./world-v2400.js"></script>
 </body>
 </html>
