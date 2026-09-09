@@ -1,0 +1,33 @@
+name: Apply BridgePoint World V2500 to Clean V2
+on:
+  push:
+    branches: [bridgepoint-world-v2500]
+    paths:
+      - 'scripts/apply_world_v2500_app.py'
+      - '.github/workflows/world-v2500-apply-app.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bridgepoint-world-v2500
+          fetch-depth: 1
+      - name: Replace legacy Intelligence Map with V2500
+        run: python3 scripts/apply_world_v2500_app.py
+      - name: Commit map replacement
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'BridgePoint World Builder'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/v2/bridgepoint_app_v2.dart
+          if git diff --cached --quiet; then
+            echo 'World V2500 app replacement already applied.'
+            exit 0
+          fi
+          git commit -m 'Replace Clean V2 Intelligence Map with World V2500'
+          git push origin HEAD:bridgepoint-world-v2500
