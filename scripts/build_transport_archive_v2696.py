@@ -79,7 +79,7 @@ def build(state, kind, out_path):
     query = f"""
     COPY (
       WITH candidate AS (
-        SELECT *, ST_GeomFromWKB(geometry) AS _bp_geom
+        SELECT *, geometry AS _bp_geom
         FROM {source}
         WHERE bbox.xmin <= {east} AND bbox.xmax >= {west}
           AND bbox.ymin <= {north} AND bbox.ymax >= {south}
