@@ -3,6 +3,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import math
 import os
 import pathlib
 import sys
@@ -18,6 +19,8 @@ CATALOG_URL = f"{SUPABASE_URL}/rest/v1/rpc/bridgepoint_public_transport_archive_
 ITEM_STATUS_URL = f"{SUPABASE_URL}/rest/v1/rpc/bridgepoint_public_transport_archive_item_v2703"
 OIDC_AUDIENCE = "bridgepoint-transport-v2696"
 BOUNDARY_VALIDATION_TOLERANCE_DEGREES = 1e-7
+PART_TARGET_BYTES = 28 * 1024 * 1024
+PART_HARD_MAX_BYTES = 42 * 1024 * 1024
 
 
 def post_json(url, payload, headers=None, timeout=120):
@@ -90,6 +93,14 @@ def sql_string(value):
     return "'" + value.replace("'", "''") + "'"
 
 
+def sha256_file(path):
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(8 * 1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def build(state, kind, out_path):
     cat = catalog(state, kind)
     urls = [x["url"] for x in cat.get("files", [])]
@@ -114,7 +125,7 @@ def build(state, kind, out_path):
     kind_sql = sql_string(kind)
     output_sql = sql_string(str(out_path))
 
-    query = f"""
+    con.execute(f"""
     COPY (
       WITH candidate AS (
         SELECT *, geometry AS _bp_geom
@@ -136,11 +147,9 @@ def build(state, kind, out_path):
       FROM clipped
       WHERE NOT ST_IsEmpty(_bp_clip)
     ) TO {output_sql} (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)
-    """
-    con.execute(query)
+    """)
 
-    row = con.execute(
-        f"""
+    row = con.execute(f"""
         WITH a AS (
           SELECT *, geometry AS g
           FROM read_parquet({output_sql})
@@ -164,8 +173,7 @@ def build(state, kind, out_path):
                )::BIGINT AS precision_slivers,
                coalesce(max(ST_Length(outside_geom)) FILTER (WHERE outside_geom IS NOT NULL AND NOT ST_IsEmpty(outside_geom)),0)::DOUBLE AS max_outside_length_degrees
         FROM d
-        """
-    ).fetchone()
+    """).fetchone()
     validation = {
         "null_geometry": int(row[1]),
         "empty_geometry": int(row[2]),
@@ -183,15 +191,49 @@ def build(state, kind, out_path):
     return rows, validation, len(urls)
 
 
-def upload_and_finalize(state, kind, path, rows, validation, source_files):
-    file_bytes = path.stat().st_size
-    h = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(8 * 1024 * 1024), b""):
-            h.update(chunk)
-    digest = h.hexdigest()
+def split_archive(path, total_rows):
+    base_bytes = path.stat().st_size
+    part_count = max(1, math.ceil(base_bytes / PART_TARGET_BYTES))
+    source_sql = sql_string(str(path))
+    while True:
+        for old in path.parent.glob(f"{path.stem}-part-*.parquet"):
+            old.unlink()
+        con = duckdb.connect(database=":memory:")
+        con.execute("SET threads=4")
+        con.execute("SET memory_limit='5GB'")
+        con.execute("SET preserve_insertion_order=false")
+        parts = []
+        for i in range(part_count):
+            part_path = path.parent / f"{path.stem}-part-{i:05d}.parquet"
+            part_sql = sql_string(str(part_path))
+            con.execute(f"""
+                COPY (
+                  SELECT * FROM read_parquet({source_sql})
+                  WHERE hash(id) % {part_count} = {i}
+                ) TO {part_sql} (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)
+            """)
+            row = con.execute(f"SELECT count(*)::BIGINT,(count(*)-count(DISTINCT id))::BIGINT FROM read_parquet({part_sql})").fetchone()
+            rows = int(row[0])
+            dups = int(row[1])
+            if rows <= 0 or dups != 0:
+                con.close()
+                raise RuntimeError(f"Invalid shard {i}: rows={rows} duplicate_ids={dups}")
+            parts.append({"index": i, "path": part_path, "rows": rows, "bytes": part_path.stat().st_size})
+        con.close()
+        if sum(x["rows"] for x in parts) != total_rows:
+            raise RuntimeError("Shard row totals do not reconcile to validated archive")
+        largest = max(x["bytes"] for x in parts)
+        if largest <= PART_HARD_MAX_BYTES:
+            return parts, base_bytes
+        part_count *= 2
+        if part_count > 99999:
+            raise RuntimeError("Unable to shard archive below storage hard limit")
 
-    sign = broker_post("sign", state, kind)
+
+def upload_one_part(state, kind, part, validation, source_files):
+    path = part["path"]
+    digest = sha256_file(path)
+    sign = broker_post("sign_part", state, kind, {"part_index": part["index"]})
     signed_url = sign["signed_url"]
     last_error = None
     for attempt in range(1, 4):
@@ -200,7 +242,7 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
                 put = requests.put(
                     signed_url,
                     data=fh,
-                    headers={"content-type": "application/vnd.apache.parquet", "x-upsert": "true", "content-length": str(file_bytes)},
+                    headers={"content-type": "application/vnd.apache.parquet", "x-upsert": "true", "content-length": str(part["bytes"])},
                     timeout=3600,
                 )
             if put.ok:
@@ -211,27 +253,77 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
             last_error = str(exc)
         if attempt < 3:
             time.sleep(attempt * 5)
-            sign = broker_post("sign", state, kind)
+            sign = broker_post("sign_part", state, kind, {"part_index": part["index"]})
             signed_url = sign["signed_url"]
     if last_error:
-        raise RuntimeError(f"Signed upload failed after 3 attempts: {last_error}")
+        raise RuntimeError(f"Part {part['index']} upload failed after 3 attempts: {last_error}")
 
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat()
-    fin = broker_post("finalize", state, kind, {
-        "row_count": rows,
-        "file_bytes": file_bytes,
+    receipt = broker_post("finalize_part", state, kind, {
+        "part_index": part["index"],
+        "row_count": part["rows"],
+        "file_bytes": part["bytes"],
         "sha256": digest,
         "validation": validation,
         "metadata": {
             "generated_at": generated_at,
             "source_files": source_files,
-            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2704_RENEWABLE_OIDC",
+            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2705_SHARDED",
             "compression": "ZSTD",
+            "logical_archive_version": 2696,
+        },
+    }, timeout=180)
+    return {"index": part["index"], "rows": part["rows"], "bytes": part["bytes"], "sha256": digest, "receipt": receipt}
+
+
+def upload_and_finalize_sharded(state, kind, path, rows, validation, source_files):
+    parts, base_bytes = split_archive(path, rows)
+    broker_report(state, kind, "BUILDING", "SHARDED", metadata={
+        "rows": rows,
+        "source_files": source_files,
+        "base_file_bytes": base_bytes,
+        "part_count": len(parts),
+        "max_part_bytes": max(p["bytes"] for p in parts),
+        "part_hard_max_bytes": PART_HARD_MAX_BYTES,
+    })
+
+    receipts = []
+    for part in parts:
+        receipts.append(upload_one_part(state, kind, part, validation, source_files))
+
+    aggregate = hashlib.sha256()
+    for r in receipts:
+        aggregate.update(f"{r['index']}:{r['rows']}:{r['bytes']}:{r['sha256']}\n".encode("utf-8"))
+    aggregate_sha = aggregate.hexdigest()
+    total_bytes = sum(r["bytes"] for r in receipts)
+    generated_at = dt.datetime.now(dt.timezone.utc).isoformat()
+    fin = broker_post("complete_sharded", state, kind, {
+        "part_count": len(receipts),
+        "total_rows": rows,
+        "total_bytes": total_bytes,
+        "aggregate_sha256": aggregate_sha,
+        "metadata": {
+            "generated_at": generated_at,
+            "source_files": source_files,
+            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2705_SHARDED",
+            "compression": "ZSTD",
+            "base_file_bytes": base_bytes,
+            "part_target_bytes": PART_TARGET_BYTES,
+            "part_hard_max_bytes": PART_HARD_MAX_BYTES,
+            "validation": validation,
         },
     }, timeout=180)
     print(json.dumps({
-        "state": state, "kind": kind, "rows": rows, "bytes": file_bytes,
-        "sha256": digest, "validation": validation, "finalize": fin,
+        "state": state,
+        "kind": kind,
+        "rows": rows,
+        "logical_base_bytes": base_bytes,
+        "stored_bytes": total_bytes,
+        "part_count": len(receipts),
+        "max_part_bytes": max(r["bytes"] for r in receipts),
+        "aggregate_sha256": aggregate_sha,
+        "validation": validation,
+        "finalize": fin,
     }, separators=(",", ":")))
 
 
@@ -248,14 +340,15 @@ def main():
         print(json.dumps({"state": state, "kind": kind, "skipped": True, "reason": "ALREADY_VERIFIED", "existing": existing}, separators=(",", ":")))
         return
 
+    broker_post("reset_parts", state, kind)
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{state}-{kind}.parquet"
-    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2704, "oidc_mode": "renew-per-broker-call"})
+    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2705, "oidc_mode": "renew-per-broker-call", "archive_mode": "deterministic-sharded"})
     try:
         rows, validation, source_files = build(state, kind, out_path)
-        broker_report(state, kind, "BUILDING", "VALIDATED", metadata={"rows": rows, "source_files": source_files, "validation": validation})
-        upload_and_finalize(state, kind, out_path, rows, validation, source_files)
+        broker_report(state, kind, "BUILDING", "VALIDATED", metadata={"rows": rows, "source_files": source_files, "validation": validation, "base_file_bytes": out_path.stat().st_size})
+        upload_and_finalize_sharded(state, kind, out_path, rows, validation, source_files)
     except Exception as exc:
         try:
             broker_report(state, kind, "FAILED", "BUILD_OR_UPLOAD", str(exc))
