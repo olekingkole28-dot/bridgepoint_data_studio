@@ -12,7 +12,7 @@ import requests
 
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-BROKER_TOKEN = os.environ["TRANSPORT_ARCHIVE_BROKER_TOKEN"]
+BROKER_OIDC = os.environ["TRANSPORT_ARCHIVE_OIDC_TOKEN"]
 BROKER_URL = f"{SUPABASE_URL}/functions/v1/bridgepoint-transport-archive-broker-v2696"
 CATALOG_URL = f"{SUPABASE_URL}/rest/v1/rpc/bridgepoint_public_transport_archive_catalog_v2696"
 
@@ -120,9 +120,9 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
     data = path.read_bytes()
     file_bytes = len(data)
     digest = hashlib.sha256(data).hexdigest()
+    auth = {"oidc_token": BROKER_OIDC}
     sign = post_json(BROKER_URL, {
-        "action": "sign",
-        "broker_token": BROKER_TOKEN,
+        "action": "sign", **auth,
         "state_code": state,
         "asset_kind": kind,
     })
@@ -137,8 +137,7 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         raise RuntimeError(f"Signed upload failed {put.status_code}: {put.text[:1500]}")
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat()
     fin = post_json(BROKER_URL, {
-        "action": "finalize",
-        "broker_token": BROKER_TOKEN,
+        "action": "finalize", **auth,
         "state_code": state,
         "asset_kind": kind,
         "row_count": rows,
