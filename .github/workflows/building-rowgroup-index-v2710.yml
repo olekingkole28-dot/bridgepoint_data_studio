@@ -1,0 +1,26 @@
+name: Building Rowgroup Index v2710
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/building-rowgroup-index-v2710.yml'
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: bridgepoint-building-rowgroup-index-v2710
+  cancel-in-progress: true
+env:
+  SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
+  SUPABASE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check duckdb==1.4.1 requests==2.32.5
+      - run: python scripts/index_building_rowgroups_v2710.py
