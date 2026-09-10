@@ -6,6 +6,12 @@ on:
     paths:
       - '.github/workflows/transport-archive-v2696.yml'
       - 'scripts/build_transport_archive_v2696.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/transport-archive-v2696.yml'
+      - 'scripts/build_transport_archive_v2696.py'
+      - 'ops/transport-archive-trigger-v2696.txt'
   workflow_dispatch:
 
 permissions:
@@ -13,7 +19,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: bridgepoint-transport-archive-v2696
+  group: bridgepoint-transport-archive-v2696-${{ github.event.pull_request.number || 'main' }}
   cancel-in-progress: false
 
 env:
