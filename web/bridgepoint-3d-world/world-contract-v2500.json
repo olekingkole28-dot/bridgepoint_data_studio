@@ -7,7 +7,8 @@
     "physical_weather_fx": false,
     "toolbar_hidden": true,
     "start_at_user_location_when_permitted": true,
-    "continuous_us_zoom": true
+    "continuous_us_zoom": true,
+    "source_native_buildings": true
   },
   "required_runtime_contracts": [
     "bridgepoint_3d_world_viewport_v1899",
@@ -15,6 +16,8 @@
     "bridgepoint_flutter_property_detail_v344",
     "bridgepoint_live_map_weather_scene_v1997",
     "BridgePointWorldV2500",
+    "world-v2713-source-native-buildings.js",
+    "Overture buildings PMTiles",
     "USGSImageryOnly",
     "weather.gov"
   ],
@@ -24,7 +27,8 @@
     "bridgepoint_digital_twin_summary_v856",
     "bridgepoint_property_geometry_v854",
     "bridgepoint_flutter_permit_context_v68",
-    "bridgepoint_property_media_bundle_v169"
+    "bridgepoint_property_media_bundle_v169",
+    "BridgePoint building archive v2710 state/kind cache"
   ],
   "forbidden_runtime_strings": [
     "tile.googleapis.com",
@@ -41,14 +45,28 @@
     "tile.openstreetmap.org"
   ],
   "public_sources": [
+    "Overture Maps monthly buildings PMTiles and GeoParquet",
     "USGS National Map imagery",
     "USGS 3DEP elevations already ingested by BridgePoint",
     "NOAA/NWS radar and alerts",
     "NOAA/NHC tropical cyclone GIS through BridgePoint/public feeds",
     "NIFC/WFIGS wildfire geometry through BridgePoint/public feeds"
   ],
+  "building_runtime_policy": {
+    "primary": "BridgePoint property-linked building geometry returned by bridgepoint_3d_world_viewport_v1899",
+    "coverage_fallback": "Overture source-native building/building_part PMTiles streamed by visible tile only",
+    "bulk_download_required_for_bootstrap": false,
+    "state_archive_cache_required_for_bootstrap": false,
+    "state_archive_cache_role": "optional offline/export acceleration cache",
+    "max_source_native_tiles_per_view": 28,
+    "max_source_native_entities_per_view": 6500,
+    "source_native_max_camera_height_m": 90000,
+    "priority_rule": "When the viewport already contains a healthy BridgePoint property-linked building set, hide the source-native fallback rather than double-rendering it."
+  },
   "truth_rules": [
     "Never synthesize exact parcel, roof, road, rail, terrain or hazard geometry.",
+    "Source-native building footprints remain attributed to their public source and are not represented as BridgePoint-owned measurements.",
+    "A building height supplied by source data may be rendered as source height; floor-count height is labeled derived; missing height uses only a display default and is never labeled exact.",
     "Never label forecast/alert context as observed property damage.",
     "Keep partial building-card truth visible if enrichment times out.",
     "Selection may add glow/outline but must retain intelligence color.",
@@ -63,6 +81,7 @@
     "building detail card blanking on timeout",
     "weather hiding buildings/parcels/roads",
     "fake point weather instead of source geometry",
-    "multiple competing map canvases"
+    "multiple competing map canvases",
+    "bulk nationwide building download during interactive world startup"
   ]
 }
