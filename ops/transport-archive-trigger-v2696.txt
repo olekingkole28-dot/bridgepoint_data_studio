@@ -1,0 +1,2 @@
+BridgePoint transport archive v2696 DC pilot trigger.
+Purpose: execute exact Overture segment + connector archive validation through an observable pull-request workflow before national fan-out.

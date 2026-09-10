@@ -15,6 +15,7 @@ SUPABASE_KEY = os.environ["SUPABASE_KEY"]
 BROKER_OIDC = os.environ["TRANSPORT_ARCHIVE_OIDC_TOKEN"]
 BROKER_URL = f"{SUPABASE_URL}/functions/v1/bridgepoint-transport-archive-broker-v2696"
 CATALOG_URL = f"{SUPABASE_URL}/rest/v1/rpc/bridgepoint_public_transport_archive_catalog_v2696"
+BOUNDARY_VALIDATION_TOLERANCE_DEGREES = 1e-7
 
 
 def post_json(url, payload, headers=None, timeout=120):
@@ -79,7 +80,7 @@ def build(state, kind, out_path):
     query = f"""
     COPY (
       WITH candidate AS (
-        SELECT *, ST_GeomFromWKB(geometry) AS _bp_geom
+        SELECT *, geometry AS _bp_geom
         FROM {source}
         WHERE bbox.xmin <= {east} AND bbox.xmax >= {west}
           AND bbox.ymin <= {north} AND bbox.ymax >= {south}
@@ -104,16 +105,28 @@ def build(state, kind, out_path):
     row = con.execute(
         f"""
         WITH a AS (
-          SELECT *, ST_GeomFromWKB(geometry) AS g
+          SELECT *, geometry AS g
           FROM read_parquet({output_sql})
-        ), b AS (SELECT geom FROM bp_boundary)
+        ), b AS (SELECT geom FROM bp_boundary), d AS (
+          SELECT a.*, ST_Difference(g, b.geom) AS outside_geom
+          FROM a CROSS JOIN b
+        )
         SELECT count(*)::BIGINT AS rows,
                count(*) FILTER (WHERE geometry IS NULL)::BIGINT AS null_geometry,
                count(*) FILTER (WHERE geometry IS NOT NULL AND ST_IsEmpty(g))::BIGINT AS empty_geometry,
-               count(*) FILTER (WHERE geometry IS NOT NULL AND NOT ST_IsEmpty(g)
-                  AND NOT ST_IsEmpty(ST_Difference(g, b.geom)))::BIGINT AS outside_geometry,
-               (count(*) - count(DISTINCT id))::BIGINT AS duplicate_ids
-        FROM a CROSS JOIN b
+               count(*) FILTER (
+                 WHERE geometry IS NOT NULL AND NOT ST_IsEmpty(g)
+                   AND NOT ST_IsEmpty(outside_geom)
+                   AND ST_Length(outside_geom) > {BOUNDARY_VALIDATION_TOLERANCE_DEGREES}
+               )::BIGINT AS outside_geometry,
+               (count(*) - count(DISTINCT id))::BIGINT AS duplicate_ids,
+               count(*) FILTER (
+                 WHERE geometry IS NOT NULL AND NOT ST_IsEmpty(g)
+                   AND NOT ST_IsEmpty(outside_geom)
+                   AND ST_Length(outside_geom) <= {BOUNDARY_VALIDATION_TOLERANCE_DEGREES}
+               )::BIGINT AS precision_slivers,
+               coalesce(max(ST_Length(outside_geom)) FILTER (WHERE outside_geom IS NOT NULL AND NOT ST_IsEmpty(outside_geom)),0)::DOUBLE AS max_outside_length_degrees
+        FROM d
         """
     ).fetchone()
     validation = {
@@ -121,9 +134,13 @@ def build(state, kind, out_path):
         "empty_geometry": int(row[2]),
         "outside_geometry": int(row[3]),
         "duplicate_ids": int(row[4]),
+        "precision_slivers": int(row[5]),
+        "max_outside_length_degrees": float(row[6]),
+        "boundary_validation_tolerance_degrees": BOUNDARY_VALIDATION_TOLERANCE_DEGREES,
     }
     rows = int(row[0])
-    if any(validation.values()):
+    blocking = {k: validation[k] for k in ("null_geometry", "empty_geometry", "outside_geometry", "duplicate_ids")}
+    if any(blocking.values()):
         raise RuntimeError(f"Archive validation failed {state}/{kind}: {validation}")
     con.close()
     return rows, validation, len(urls)
@@ -164,7 +181,7 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         "metadata": {
             "generated_at": generated_at,
             "source_files": source_files,
-            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2698",
+            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2702",
             "compression": "ZSTD",
         },
     }, timeout=180)
@@ -185,10 +202,10 @@ def main():
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{state}-{kind}.parquet"
-    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2698})
+    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2702})
     try:
         rows, validation, source_files = build(state, kind, out_path)
-        broker_report(state, kind, "BUILDING", "VALIDATED", metadata={"rows": rows, "source_files": source_files})
+        broker_report(state, kind, "BUILDING", "VALIDATED", metadata={"rows": rows, "source_files": source_files, "validation": validation})
         upload_and_finalize(state, kind, out_path, rows, validation, source_files)
     except Exception as exc:
         try:
