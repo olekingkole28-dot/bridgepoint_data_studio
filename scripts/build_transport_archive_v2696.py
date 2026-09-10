@@ -104,7 +104,7 @@ def build(state, kind, out_path):
     row = con.execute(
         f"""
         WITH a AS (
-          SELECT *, ST_GeomFromWKB(geometry) AS g
+          SELECT *, geometry AS g
           FROM read_parquet({output_sql})
         ), b AS (SELECT geom FROM bp_boundary)
         SELECT count(*)::BIGINT AS rows,
@@ -164,7 +164,7 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         "metadata": {
             "generated_at": generated_at,
             "source_files": source_files,
-            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2698",
+            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2701",
             "compression": "ZSTD",
         },
     }, timeout=180)
@@ -185,7 +185,7 @@ def main():
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{state}-{kind}.parquet"
-    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2698})
+    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2701})
     try:
         rows, validation, source_files = build(state, kind, out_path)
         broker_report(state, kind, "BUILDING", "VALIDATED", metadata={"rows": rows, "source_files": source_files})
