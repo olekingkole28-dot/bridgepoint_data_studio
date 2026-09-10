@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import sys
+import time
 
 import duckdb
 import requests
@@ -15,6 +16,7 @@ SUPABASE_KEY = os.environ["SUPABASE_KEY"]
 BROKER_OIDC = os.environ["TRANSPORT_ARCHIVE_OIDC_TOKEN"]
 BROKER_URL = f"{SUPABASE_URL}/functions/v1/bridgepoint-transport-archive-broker-v2696"
 CATALOG_URL = f"{SUPABASE_URL}/rest/v1/rpc/bridgepoint_public_transport_archive_catalog_v2696"
+ITEM_STATUS_URL = f"{SUPABASE_URL}/rest/v1/rpc/bridgepoint_public_transport_archive_item_v2703"
 BOUNDARY_VALIDATION_TOLERANCE_DEGREES = 1e-7
 
 
@@ -26,6 +28,18 @@ def post_json(url, payload, headers=None, timeout=120):
     if not r.ok:
         raise RuntimeError(f"POST {url} -> {r.status_code}: {r.text[:1500]}")
     return r.json()
+
+
+def public_rpc(url, payload):
+    return post_json(
+        url,
+        payload,
+        {"apikey": SUPABASE_KEY, "authorization": f"Bearer {SUPABASE_KEY}"},
+    )
+
+
+def item_status(state, kind):
+    return public_rpc(ITEM_STATUS_URL, {"p_state_code": state, "p_asset_kind": kind})
 
 
 def broker_report(state, kind, status, stage, message="", metadata=None):
@@ -42,11 +56,7 @@ def broker_report(state, kind, status, stage, message="", metadata=None):
 
 
 def catalog(state, kind):
-    return post_json(
-        CATALOG_URL,
-        {"p_state_code": state, "p_asset_kind": kind},
-        {"apikey": SUPABASE_KEY, "authorization": f"Bearer {SUPABASE_KEY}"},
-    )
+    return public_rpc(CATALOG_URL, {"p_state_code": state, "p_asset_kind": kind})
 
 
 def sql_string(value):
@@ -160,15 +170,26 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         "asset_kind": kind,
     })
     signed_url = sign["signed_url"]
-    with path.open("rb") as fh:
-        put = requests.put(
-            signed_url,
-            data=fh,
-            headers={"content-type": "application/vnd.apache.parquet", "x-upsert": "true", "content-length": str(file_bytes)},
-            timeout=1800,
-        )
-    if not put.ok:
-        raise RuntimeError(f"Signed upload failed {put.status_code}: {put.text[:1500]}")
+    last_error = None
+    for attempt in range(1, 4):
+        try:
+            with path.open("rb") as fh:
+                put = requests.put(
+                    signed_url,
+                    data=fh,
+                    headers={"content-type": "application/vnd.apache.parquet", "x-upsert": "true", "content-length": str(file_bytes)},
+                    timeout=3600,
+                )
+            if put.ok:
+                last_error = None
+                break
+            last_error = f"HTTP {put.status_code}: {put.text[:1500]}"
+        except Exception as exc:
+            last_error = str(exc)
+        if attempt < 3:
+            time.sleep(attempt * 5)
+    if last_error:
+        raise RuntimeError(f"Signed upload failed after 3 attempts: {last_error}")
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat()
     fin = post_json(BROKER_URL, {
         "action": "finalize", **auth,
@@ -181,7 +202,7 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         "metadata": {
             "generated_at": generated_at,
             "source_files": source_files,
-            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2702",
+            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2703",
             "compression": "ZSTD",
         },
     }, timeout=180)
@@ -199,10 +220,14 @@ def main():
     args = p.parse_args()
     state = args.state.upper()
     kind = args.kind
+    existing = item_status(state, kind)
+    if bool(existing.get("verified")):
+        print(json.dumps({"state": state, "kind": kind, "skipped": True, "reason": "ALREADY_VERIFIED", "existing": existing}, separators=(",", ":")))
+        return
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{state}-{kind}.parquet"
-    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2702})
+    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2703})
     try:
         rows, validation, source_files = build(state, kind, out_path)
         broker_report(state, kind, "BUILDING", "VALIDATED", metadata={"rows": rows, "source_files": source_files, "validation": validation})
