@@ -1,0 +1,18 @@
+name: Actions Admission Probe v2711
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/actions-admission-probe-v2711.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Runner admitted
+        run: echo BRIDGEPOINT_ACTIONS_RUNNER_ADMITTED
