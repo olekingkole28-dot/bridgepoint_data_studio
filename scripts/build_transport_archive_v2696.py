@@ -27,6 +27,19 @@ def post_json(url, payload, headers=None, timeout=120):
     return r.json()
 
 
+def broker_report(state, kind, status, stage, message="", metadata=None):
+    return post_json(BROKER_URL, {
+        "action": "report",
+        "oidc_token": BROKER_OIDC,
+        "state_code": state,
+        "asset_kind": kind,
+        "status": status,
+        "stage": stage,
+        "message": message,
+        "metadata": metadata or {},
+    })
+
+
 def catalog(state, kind):
     return post_json(
         CATALOG_URL,
@@ -117,9 +130,12 @@ def build(state, kind, out_path):
 
 
 def upload_and_finalize(state, kind, path, rows, validation, source_files):
-    data = path.read_bytes()
-    file_bytes = len(data)
-    digest = hashlib.sha256(data).hexdigest()
+    file_bytes = path.stat().st_size
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(8 * 1024 * 1024), b""):
+            h.update(chunk)
+    digest = h.hexdigest()
     auth = {"oidc_token": BROKER_OIDC}
     sign = post_json(BROKER_URL, {
         "action": "sign", **auth,
@@ -127,12 +143,13 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         "asset_kind": kind,
     })
     signed_url = sign["signed_url"]
-    put = requests.put(
-        signed_url,
-        data=data,
-        headers={"content-type": "application/vnd.apache.parquet", "x-upsert": "true"},
-        timeout=1800,
-    )
+    with path.open("rb") as fh:
+        put = requests.put(
+            signed_url,
+            data=fh,
+            headers={"content-type": "application/vnd.apache.parquet", "x-upsert": "true", "content-length": str(file_bytes)},
+            timeout=1800,
+        )
     if not put.ok:
         raise RuntimeError(f"Signed upload failed {put.status_code}: {put.text[:1500]}")
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -147,7 +164,7 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         "metadata": {
             "generated_at": generated_at,
             "source_files": source_files,
-            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2696",
+            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2698",
             "compression": "ZSTD",
         },
     }, timeout=180)
@@ -164,16 +181,22 @@ def main():
     p.add_argument("--out-dir", default="transport-output")
     args = p.parse_args()
     state = args.state.upper()
+    kind = args.kind
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"{state}-{args.kind}.parquet"
-    rows, validation, source_files = build(state, args.kind, out_path)
-    upload_and_finalize(state, args.kind, out_path, rows, validation, source_files)
+    out_path = out_dir / f"{state}-{kind}.parquet"
+    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2698})
+    try:
+        rows, validation, source_files = build(state, kind, out_path)
+        broker_report(state, kind, "BUILDING", "VALIDATED", metadata={"rows": rows, "source_files": source_files})
+        upload_and_finalize(state, kind, out_path, rows, validation, source_files)
+    except Exception as exc:
+        try:
+            broker_report(state, kind, "FAILED", "BUILD_OR_UPLOAD", str(exc))
+        except Exception as report_exc:
+            print(f"Secondary receipt failure: {report_exc}", file=sys.stderr)
+        raise
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        raise
+    main()
