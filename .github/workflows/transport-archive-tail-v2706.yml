@@ -31,6 +31,8 @@ jobs:
         kind: [segment, connector]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: 0b8e0ccf9b770dd5eddc57f0af474ca7e45ccf47
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
