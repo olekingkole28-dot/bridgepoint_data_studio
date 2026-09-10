@@ -9,7 +9,7 @@
   const MIN_NATIVE_HEIGHT = 2.8;
   const SOURCE_NAME = 'bp-overture-source-native-buildings';
   const STATE = {
-    viewer:null, source:null, pm:null, VectorTile:null, Pbf:null, header:null,
+    viewer:null, source:null, pm:null, VectorTile:null, PbfReader:null, header:null,
     seq:0, timer:null, enabled:true, loadedKey:'', busy:false, failed:false,
     release:FALLBACK_RELEASE, url:pmtilesUrl(FALLBACK_RELEASE)
   };
@@ -87,18 +87,18 @@
   }
 
   async function modules(){
-    const [{PMTiles},{VectorTile},{default:Pbf}] = await Promise.all([
+    const [{PMTiles},{VectorTile},{PbfReader}] = await Promise.all([
       import('https://cdn.jsdelivr.net/npm/pmtiles@4.5.0/+esm'),
       import('https://cdn.jsdelivr.net/npm/@mapbox/vector-tile@3.0.0/+esm'),
       import('https://cdn.jsdelivr.net/npm/pbf@5.1.2/+esm')
     ]);
     STATE.release=await resolveRelease();STATE.url=pmtilesUrl(STATE.release);
-    STATE.VectorTile=VectorTile;STATE.Pbf=Pbf;STATE.pm=new PMTiles(STATE.url);STATE.header=await STATE.pm.getHeader();
+    STATE.VectorTile=VectorTile;STATE.PbfReader=PbfReader;STATE.pm=new PMTiles(STATE.url);STATE.header=await STATE.pm.getHeader();
   }
 
   async function loadTile(t,seq,budget){
     const rr=await STATE.pm.getZxy(t.z,t.x,t.y); if(!rr?.data||seq!==STATE.seq)return 0;
-    const vt=new STATE.VectorTile(new STATE.Pbf(rr.data)); let added=0;
+    const vt=new STATE.VectorTile(new STATE.PbfReader(rr.data)); let added=0;
     for(const kind of ['building','building_part']){
       const layer=vt.layers?.[kind]; if(!layer)continue;
       const step=Math.max(1,Math.ceil(layer.length/Math.max(1,budget)));
