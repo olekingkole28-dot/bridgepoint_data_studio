@@ -1,0 +1,51 @@
+name: Transport Archive v2696
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/transport-archive-v2696.yml'
+      - 'scripts/build_transport_archive_v2696.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: bridgepoint-transport-archive-v2696
+  cancel-in-progress: false
+
+env:
+  SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
+  SUPABASE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
+
+jobs:
+  dc-pilot:
+    name: DC ${{ matrix.kind }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: [segment, connector]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned archive dependencies
+        run: python -m pip install --disable-pip-version-check duckdb==1.4.1 requests==2.32.5
+      - name: Mint short-lived GitHub OIDC identity
+        id: oidc
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESPONSE=$(curl --fail --silent --show-error -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=bridgepoint-transport-v2696")
+          TOKEN=$(printf '%s' "$RESPONSE" | python -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+      - name: Build, validate, upload, and verify exact transport archive
+        env:
+          TRANSPORT_ARCHIVE_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+        run: python scripts/build_transport_archive_v2696.py --state DC --kind '${{ matrix.kind }}'
