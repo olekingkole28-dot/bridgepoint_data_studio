@@ -13,10 +13,10 @@ import requests
 
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-BROKER_OIDC = os.environ["TRANSPORT_ARCHIVE_OIDC_TOKEN"]
 BROKER_URL = f"{SUPABASE_URL}/functions/v1/bridgepoint-transport-archive-broker-v2696"
 CATALOG_URL = f"{SUPABASE_URL}/rest/v1/rpc/bridgepoint_public_transport_archive_catalog_v2696"
 ITEM_STATUS_URL = f"{SUPABASE_URL}/rest/v1/rpc/bridgepoint_public_transport_archive_item_v2703"
+OIDC_AUDIENCE = "bridgepoint-transport-v2696"
 BOUNDARY_VALIDATION_TOLERANCE_DEGREES = 1e-7
 
 
@@ -28,6 +28,37 @@ def post_json(url, payload, headers=None, timeout=120):
     if not r.ok:
         raise RuntimeError(f"POST {url} -> {r.status_code}: {r.text[:1500]}")
     return r.json()
+
+
+def fresh_oidc_token():
+    request_url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL", "")
+    request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "")
+    if not request_url or not request_token:
+        raise RuntimeError("GitHub renewable OIDC request endpoint is unavailable")
+    sep = "&" if "?" in request_url else "?"
+    r = requests.get(
+        f"{request_url}{sep}audience={OIDC_AUDIENCE}",
+        headers={"Authorization": f"bearer {request_token}"},
+        timeout=30,
+    )
+    if not r.ok:
+        raise RuntimeError(f"GitHub OIDC refresh failed {r.status_code}: {r.text[:500]}")
+    token = r.json().get("value")
+    if not token:
+        raise RuntimeError("GitHub OIDC refresh returned no token")
+    return token
+
+
+def broker_post(action, state, kind, extra=None, timeout=120):
+    body = {
+        "action": action,
+        "oidc_token": fresh_oidc_token(),
+        "state_code": state,
+        "asset_kind": kind,
+    }
+    if extra:
+        body.update(extra)
+    return post_json(BROKER_URL, body, timeout=timeout)
 
 
 def public_rpc(url, payload):
@@ -43,11 +74,7 @@ def item_status(state, kind):
 
 
 def broker_report(state, kind, status, stage, message="", metadata=None):
-    return post_json(BROKER_URL, {
-        "action": "report",
-        "oidc_token": BROKER_OIDC,
-        "state_code": state,
-        "asset_kind": kind,
+    return broker_post("report", state, kind, {
         "status": status,
         "stage": stage,
         "message": message,
@@ -163,12 +190,8 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         for chunk in iter(lambda: fh.read(8 * 1024 * 1024), b""):
             h.update(chunk)
     digest = h.hexdigest()
-    auth = {"oidc_token": BROKER_OIDC}
-    sign = post_json(BROKER_URL, {
-        "action": "sign", **auth,
-        "state_code": state,
-        "asset_kind": kind,
-    })
+
+    sign = broker_post("sign", state, kind)
     signed_url = sign["signed_url"]
     last_error = None
     for attempt in range(1, 4):
@@ -188,13 +211,13 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
             last_error = str(exc)
         if attempt < 3:
             time.sleep(attempt * 5)
+            sign = broker_post("sign", state, kind)
+            signed_url = sign["signed_url"]
     if last_error:
         raise RuntimeError(f"Signed upload failed after 3 attempts: {last_error}")
+
     generated_at = dt.datetime.now(dt.timezone.utc).isoformat()
-    fin = post_json(BROKER_URL, {
-        "action": "finalize", **auth,
-        "state_code": state,
-        "asset_kind": kind,
+    fin = broker_post("finalize", state, kind, {
         "row_count": rows,
         "file_bytes": file_bytes,
         "sha256": digest,
@@ -202,7 +225,7 @@ def upload_and_finalize(state, kind, path, rows, validation, source_files):
         "metadata": {
             "generated_at": generated_at,
             "source_files": source_files,
-            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2703",
+            "builder": "GITHUB_DUCKDB_EXACT_CLIP_V2704_RENEWABLE_OIDC",
             "compression": "ZSTD",
         },
     }, timeout=180)
@@ -224,10 +247,11 @@ def main():
     if bool(existing.get("verified")):
         print(json.dumps({"state": state, "kind": kind, "skipped": True, "reason": "ALREADY_VERIFIED", "existing": existing}, separators=(",", ":")))
         return
+
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{state}-{kind}.parquet"
-    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2703})
+    broker_report(state, kind, "BUILDING", "STARTED", metadata={"runner": "github-actions", "builder_version": 2704, "oidc_mode": "renew-per-broker-call"})
     try:
         rows, validation, source_files = build(state, kind, out_path)
         broker_report(state, kind, "BUILDING", "VALIDATED", metadata={"rows": rows, "source_files": source_files, "validation": validation})
