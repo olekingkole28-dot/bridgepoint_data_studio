@@ -27,13 +27,15 @@ env:
   SUPABASE_KEY: sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25
 
 jobs:
-  dc-pilot:
-    name: DC ${{ matrix.kind }}
+  national-transport:
+    name: ${{ matrix.state }} ${{ matrix.kind }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 240
     strategy:
       fail-fast: false
+      max-parallel: 12
       matrix:
+        state: [CA, TX, FL, NY, PA, IL, OH, GA, NC, MI, NJ, VA, WA, AZ, MA, TN, IN, MO, MD, WI, CO, MN, SC, AL, LA, KY, OR, OK, CT, PR, UT, IA, NV, AR, MS, KS, NM, NE, ID, WV, HI, NH, ME, MT, RI, DE, SD, ND, AK, VT, WY, GU, VI, AS, MP]
         kind: [segment, connector]
     steps:
       - uses: actions/checkout@v4
@@ -54,4 +56,4 @@ jobs:
       - name: Build, validate, upload, and verify exact transport archive
         env:
           TRANSPORT_ARCHIVE_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
-        run: python scripts/build_transport_archive_v2696.py --state DC --kind '${{ matrix.kind }}'
+        run: python scripts/build_transport_archive_v2696.py --state '${{ matrix.state }}' --kind '${{ matrix.kind }}'
