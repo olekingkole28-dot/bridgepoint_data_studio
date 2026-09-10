@@ -1,8 +1,9 @@
 (() => {
   'use strict';
 
-  const RELEASE = '2026-08-19.0';
-  const PMTILES_URL = `https://overturemaps-extras-us-west-2.s3.us-west-2.amazonaws.com/tiles/${RELEASE}/buildings.pmtiles`;
+  const FALLBACK_RELEASE = '2026-08-19.0';
+  const STAC_URL = 'https://stac.overturemaps.org/catalog.json';
+  const pmtilesUrl = (release) => `https://overturemaps-extras-us-west-2.s3.us-west-2.amazonaws.com/tiles/${release}/buildings.pmtiles`;
   const MAX_NATIVE_ENTITIES = 6500;
   const MAX_TILES = 28;
   const MIN_NATIVE_HEIGHT = 2.8;
@@ -10,7 +11,7 @@
   const STATE = {
     viewer:null, source:null, pm:null, VectorTile:null, Pbf:null, header:null,
     seq:0, timer:null, enabled:true, loadedKey:'', busy:false, failed:false,
-    release:RELEASE, url:PMTILES_URL
+    release:FALLBACK_RELEASE, url:pmtilesUrl(FALLBACK_RELEASE)
   };
 
   window.BRIDGEPOINT_SOURCE_NATIVE_BUILDINGS = STATE;
@@ -75,13 +76,24 @@
   function clear(){if(STATE.source)STATE.source.entities.removeAll();STATE.viewer?.scene?.requestRender()}
   function key(v,z){return `${z}:${v.west.toFixed(3)}:${v.south.toFixed(3)}:${v.east.toFixed(3)}:${v.north.toFixed(3)}`}
 
+  async function resolveRelease(){
+    try{
+      const r=await fetch(STAC_URL,{cache:'no-store'});
+      if(!r.ok)throw new Error(`STAC ${r.status}`);
+      const j=await r.json(), latest=String(j.latest||'');
+      if(/^\d{4}-\d{2}-\d{2}\.\d+$/.test(latest))return latest;
+    }catch(e){console.warn('Overture STAC latest-release lookup failed; using pinned fallback',e)}
+    return FALLBACK_RELEASE;
+  }
+
   async function modules(){
     const [{PMTiles},{VectorTile},{default:Pbf}] = await Promise.all([
       import('https://cdn.jsdelivr.net/npm/pmtiles@4.5.0/+esm'),
       import('https://cdn.jsdelivr.net/npm/@mapbox/vector-tile@3.0.0/+esm'),
       import('https://cdn.jsdelivr.net/npm/pbf@5.1.2/+esm')
     ]);
-    STATE.VectorTile=VectorTile;STATE.Pbf=Pbf;STATE.pm=new PMTiles(PMTILES_URL);STATE.header=await STATE.pm.getHeader();
+    STATE.release=await resolveRelease();STATE.url=pmtilesUrl(STATE.release);
+    STATE.VectorTile=VectorTile;STATE.Pbf=Pbf;STATE.pm=new PMTiles(STATE.url);STATE.header=await STATE.pm.getHeader();
   }
 
   async function loadTile(t,seq,budget){
@@ -98,14 +110,14 @@
         for(const ring of outerRings(gj.geometry)){
           const coords=flatDegrees(ring);if(!coords)continue;
           const e=STATE.source.entities.add({
-            id:`overture-${RELEASE}-${kind}-${t.z}-${t.x}-${t.y}-${p.id||i}-${STATE.source.entities.values.length}`,
+            id:`building-overture-${STATE.release}-${kind}-${t.z}-${t.x}-${t.y}-${p.id||i}-${STATE.source.entities.values.length}`,
             polygon:{
               hierarchy:Cesium.Cartesian3.fromDegreesArray(coords),height:ground,extrudedHeight:ground+rh.value,
               material:color(kind,p),outline:true,outlineColor:Cesium.Color.fromCssColorString('#d9f7fb').withAlpha(.26),
               distanceDisplayCondition:new Cesium.DistanceDisplayCondition(0,95000)
             }
           });
-          e.bridgepoint={...p,geometry:gj.geometry,source_key:`OVERTURE_PM_TILES_${RELEASE.replaceAll('-','').replace('.','_')}`,source_name:'Overture Maps',asset_kind:kind,height_m:finite(prop(p,'height','@height')),render_height_m:rh.value,height_truth:rh.truth,source_release:RELEASE,source_native:true};
+          e.bridgepoint={...p,geometry:gj.geometry,source_key:`OVERTURE_PM_TILES_${STATE.release.replaceAll('-','').replace('.','_')}`,source_name:'Overture Maps',asset_kind:kind,height_m:finite(prop(p,'height','@height')),render_height_m:rh.value,height_truth:rh.truth,source_release:STATE.release,source_native:true,__displayColor:kind==='building_part'?'#9fd5df':'#7caeb8'};
           added++; if(added>=budget||STATE.source.entities.values.length>=MAX_NATIVE_ENTITIES)break;
         }
       }
@@ -115,6 +127,8 @@
 
   async function refresh(force=false){
     if(!STATE.enabled||STATE.failed||STATE.busy||!STATE.pm)return;
+    const worldState=window.BridgePointWorldV2500?.state;
+    if(worldState?.lockedCountry){clear();return}
     const h=cameraHeight(), z=nativeZoom(h); if(z===null){clear();STATE.loadedKey='';return}
     const v=viewRectangle(); if(!v)return; const k=key(v,z);if(!force&&k===STATE.loadedKey)return;
     STATE.loadedKey=k;STATE.busy=true;const seq=++STATE.seq;
@@ -134,13 +148,15 @@
   }
   async function start(viewer){
     if(STATE.viewer)return;STATE.viewer=viewer;STATE.source=new Cesium.CustomDataSource(SOURCE_NAME);viewer.dataSources.add(STATE.source);bindToggle();
-    try{await modules();viewer.creditDisplay?.addStaticCredit?.(new Cesium.Credit('Overture Maps Foundation'));viewer.camera.changed.addEventListener(schedule);viewer.camera.moveEnd.addEventListener(()=>refresh(true));await refresh(true);console.info(`BridgePoint source-native buildings ready: Overture ${RELEASE}`)}
+    try{await modules();viewer.creditDisplay?.addStaticCredit?.(new Cesium.Credit('Overture Maps Foundation'));viewer.camera.changed.addEventListener(schedule);viewer.camera.moveEnd.addEventListener(()=>refresh(true));const local=viewer.dataSources.getByName('bp-buildings')?.[0];local?.entities?.collectionChanged?.addEventListener(()=>{if(privateBuildingCount()>=120)clear();else schedule()});await refresh(true);console.info(`BridgePoint source-native buildings ready: Overture ${STATE.release}`)}
     catch(e){STATE.failed=true;console.error('BridgePoint source-native building fallback unavailable',e)}
   }
 
-  // Capture the V2500 Cesium Viewer without changing the existing world module's internal API.
-  try{
-    const OriginalViewer=Cesium.Viewer;
-    Cesium.Viewer=new Proxy(OriginalViewer,{construct(target,args){const viewer=Reflect.construct(target,args,target);queueMicrotask(()=>start(viewer));return viewer}});
-  }catch(e){console.error('BridgePoint viewer capture failed',e)}
+  function attachWhenReady(attempt=0){
+    const viewer=window.BridgePointWorldV2500?.viewer;
+    if(viewer){start(viewer);return}
+    if(attempt<240)setTimeout(()=>attachWhenReady(attempt+1),50);
+    else{STATE.failed=true;console.error('BridgePoint V2500 viewer did not become available for source-native buildings')}
+  }
+  attachWhenReady();
 })();
