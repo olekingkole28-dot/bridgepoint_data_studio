@@ -9,7 +9,7 @@
   "theme_color":"#06131b",
   "icons":[
     {
-      "src":"/app/assets/assets/brand/bridgepoint-mark-v80.svg",
+      "src":"./bridgepoint-mark.svg",
       "sizes":"any",
       "type":"image/svg+xml",
       "purpose":"any maskable"
