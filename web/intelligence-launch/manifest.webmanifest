@@ -1,0 +1,18 @@
+{
+  "name":"BridgePoint Intelligence Founding Access",
+  "short_name":"BridgePoint",
+  "description":"BridgePoint Intelligence founding access and live national property intelligence.",
+  "start_url":"/app/intelligence-launch/",
+  "scope":"/app/intelligence-launch/",
+  "display":"standalone",
+  "background_color":"#02070a",
+  "theme_color":"#06131b",
+  "icons":[
+    {
+      "src":"/app/assets/assets/brand/bridgepoint-mark-v80.svg",
+      "sizes":"any",
+      "type":"image/svg+xml",
+      "purpose":"any maskable"
+    }
+  ]
+}
