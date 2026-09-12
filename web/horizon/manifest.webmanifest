@@ -1,0 +1,19 @@
+{
+  "name":"BridgePoint Horizon",
+  "short_name":"Horizon",
+  "description":"BridgePoint Horizon founding season and home-base reservation.",
+  "start_url":"/app/horizon/",
+  "scope":"/app/horizon/",
+  "display":"standalone",
+  "background_color":"#05010b",
+  "theme_color":"#100723",
+  "orientation":"any",
+  "icons":[
+    {
+      "src":"./horizon-mark.svg",
+      "sizes":"any",
+      "type":"image/svg+xml",
+      "purpose":"any maskable"
+    }
+  ]
+}
