@@ -17,8 +17,6 @@ import 'screens/bridgepoint_owner_command_center.dart';
 import 'bridgepoint_intelligence_studio_v790.dart';
 import 'bridgepoint_integrations_hub_v790.dart';
 
-part 'launch_surfaces_v2876.dart';
-
 const _supabaseUrl = 'https://xdfsjztwgsbmabshzsjw.supabase.co';
 const _bridgePointLiveUrl = 'https://bridgepointintelligence.online';
 // bridgepoint-v690-national-live-demo
@@ -131,7 +129,7 @@ class BridgePointApp extends StatelessWidget {
             child: child ?? const SizedBox.shrink(),
           );
         },
-        home: const _PublicEntryRouter(),
+        home: const _LanguageBootstrap(),
       ),
     );
   }
