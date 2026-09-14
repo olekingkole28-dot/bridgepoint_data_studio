@@ -1,13 +1,16 @@
 {
   "name":"BridgePoint Horizon",
   "short_name":"Horizon",
-  "description":"BridgePoint Horizon founding season and home-base reservation.",
-  "start_url":"/app/horizon/",
+  "description":"BridgePoint Horizon survival game and party lobby.",
+  "id":"/app/horizon/",
+  "start_url":"/app/horizon/play/",
   "scope":"/app/horizon/",
   "display":"standalone",
-  "background_color":"#05010b",
-  "theme_color":"#100723",
-  "orientation":"any",
+  "display_override":["window-controls-overlay","standalone"],
+  "background_color":"#020706",
+  "theme_color":"#07120f",
+  "orientation":"landscape",
+  "categories":["games","entertainment"],
   "icons":[
     {
       "src":"./horizon-mark.svg",
