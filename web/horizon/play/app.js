@@ -4,7 +4,7 @@ const SUPABASE_URL='https://xdfsjztwgsbmabshzsjw.supabase.co';
 const PUBLISHABLE_KEY='sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25';
 const sb=window.supabase?.createClient(SUPABASE_URL,PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const $=id=>document.getElementById(id);
-const state={player:null,config:null,party:null,match:null,selectedMode:'TDM',channel:null,peers:new Map(),killcam:new KillCamBuffer(),pickup:null};
+const state={player:null,config:null,party:null,match:null,worldCell:null,selectedMode:'TDM',channel:null,peers:new Map(),killcam:new KillCamBuffer(),pickup:null};
 const qs=new URLSearchParams(location.search);
 
 function b64url(bytes){
@@ -187,17 +187,88 @@ function drawMap(match){
   labels.slice(0,6).forEach((l,i)=>g.fillText(l,rng.int(40,c.width-180),60+i*72));
   g.font='900 12px system-ui';g.fillStyle=p[2];g.fillText('SPAWN A',40,c.height-35);g.fillStyle=p[3];g.fillText('SPAWN B',c.width-115,36);
 }
-function showLoading(match){
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open('bridgepoint-horizon-cache',2);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('worldCells'))db.createObjectStore('worldCells')};
+    req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+  });
+}
+async function cacheGet(key){
+  try{const db=await idbOpen();return await new Promise((resolve,reject)=>{const tx=db.transaction('worldCells','readonly'),r=tx.objectStore('worldCells').get(key);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}catch{return null}
+}
+async function cachePut(key,value){
+  try{const db=await idbOpen();await new Promise((resolve,reject)=>{const tx=db.transaction('worldCells','readwrite');tx.objectStore('worldCells').put(value,key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}catch{}
+}
+function deviceClass(){
+  const mem=Number(navigator.deviceMemory||0),cores=Number(navigator.hardwareConcurrency||0);
+  if(/Android|iPhone|iPad/i.test(navigator.userAgent))return mem>=8||cores>=8?'mobile-high':'mobile';
+  return 'desktop';
+}
+async function loadWorldCell(match){
+  const m=match.metadata||{},stateCode=m.world_state,lat=Number(m.world_lat),lon=Number(m.world_lon),span=Number(m.world_span_km||3.2);
+  if(!stateCode||!Number.isFinite(lat)||!Number.isFinite(lon))return null;
+  const key=`v3022:${stateCode}:${lat.toFixed(4)}:${lon.toFixed(4)}:${span.toFixed(1)}`;
+  const cached=await cacheGet(key);
+  if(cached?.payload){$('loadingStatus').textContent='World cell loaded from this phone’s cache…';return cached.payload}
+  $('loadingStatus').textContent='Streaming buildings, terrain, roads and water for this match…';
+  const url=new URL(`${SUPABASE_URL}/functions/v1/bridgepoint-horizon-stream-v3020`);
+  url.searchParams.set('state',stateCode);url.searchParams.set('lat',String(lat));url.searchParams.set('lon',String(lon));url.searchParams.set('span_km',String(span));
+  const r=await fetch(url,{headers:{apikey:PUBLISHABLE_KEY}});
+  if(!r.ok)throw new Error('WORLD_CELL_'+r.status);
+  const payload=await r.json();
+  if(payload?.complete===false)throw new Error(payload.error||'WORLD_CELL_FAILED');
+  payload.procedural_cover=generateCover(hashSeed(match.seed),18);
+  await cachePut(key,{saved_at:Date.now(),payload});
+  return payload;
+}
+async function waitForSynchronizedStart(match){
+  const started=performance.now();
+  try{
+    state.worldCell=await loadWorldCell(match);
+    $('loadbarFill').style.width='72%';
+    const ready=await rpc('bridgepoint_horizon_match_ready_v4302',{
+      p_player_id:ident.id,p_player_secret:ident.secret,p_match_id:match.match_id,
+      p_loaded_build:'web-v4302',p_ping_ms:Math.round(performance.now()-started),p_device_class:deviceClass()
+    });
+    $('loadingStatus').textContent=ready.all_humans_ready?'Everyone is loaded. Synchronizing launch…':`${ready.humans_ready}/${ready.humans_total} players loaded…`;
+  }catch(e){
+    console.warn(e);$('loadingStatus').textContent='World stream degraded; deterministic fallback is ready.';
+    await rpc('bridgepoint_horizon_match_ready_v4302',{
+      p_player_id:ident.id,p_player_secret:ident.secret,p_match_id:match.match_id,
+      p_loaded_build:'web-v4302-fallback',p_ping_ms:null,p_device_class:deviceClass()
+    }).catch(()=>{});
+  }
+
+  return new Promise(resolve=>{
+    const poll=setInterval(async()=>{
+      try{
+        const r=await rpc('bridgepoint_horizon_match_snapshot_v4300',{p_player_id:ident.id,p_player_secret:ident.secret});
+        if(!r?.match)return;
+        state.match=r.match;
+        const readyCount=r.match.members.filter(x=>x.loaded).length;
+        $('loadingStatus').textContent=`${readyCount}/${r.match.human_players} players loaded · same seed locked on every device`;
+        if(r.match.starts_at){clearInterval(poll);resolve(r.match)}
+      }catch{}
+    },500);
+  });
+}
+async function showLoading(match){
   $('loading').classList.add('show');$('loading').setAttribute('aria-hidden','false');
   $('mapName').textContent=String(match.map_label||'HORIZON SECTOR').toUpperCase();
   $('modeMeta').textContent=match.mode;$('humanMeta').textContent=`${match.human_players} HUMANS`;$('botMeta').textContent=`${match.bot_players} BOTS`;
-  drawMap(match);connectMatchSignal(match);
-  const start=Date.parse(match.starts_at||new Date(Date.now()+8000).toISOString());
+  drawMap(match);connectMatchSignal(match);$('loadbarFill').style.width='10%';
+  const synchronized=await waitForSynchronizedStart(match);
+  const start=Date.parse(synchronized.starts_at);
   const timer=setInterval(()=>{
     const left=Math.max(0,start-Date.now()),sec=Math.ceil(left/1000);
-    $('launchCount').textContent=sec;$('loadbarFill').style.width=`${Math.max(8,100-left/80)}%`;
-    if(left<=0){clearInterval(timer);$('loadingStatus').textContent='World seed locked. Phone-side runtime ready.';$('loadbarFill').style.width='100%';$('launchCount').textContent='GO';$('hudPreview').classList.add('show');setTimeout(()=>{$('loading').classList.remove('show')},1100)}
-  },150);
+    $('launchCount').textContent=sec;$('loadbarFill').style.width=`${Math.max(78,100-left/70)}%`;
+    if(left<=0){
+      clearInterval(timer);$('loadingStatus').textContent='World seed locked. Phone-side runtime ready.';
+      $('loadbarFill').style.width='100%';$('launchCount').textContent='GO';$('hudPreview').classList.add('show');
+      setTimeout(()=>{$('loading').classList.remove('show')},1100);
+    }
+  },100);
 }
 
 function weaponSvg(name){
@@ -211,7 +282,7 @@ function openModal(tab){
   if(tab==='LOADOUTS'){
     c.innerHTML=`<div class="eyebrow">PRE-MATCH LOADOUTS</div><h1>Choose one of five Horizon kits</h1><p style="color:#95aaa0">TDM and Extraction lock this choice when the match starts.</p><div class="catalog-grid">${state.config.loadouts.map(l=>`<article class="catalog-card ${l.slot===state.player.selected_loadout?'selected':''}" data-loadout="${l.slot}"><span class="eyebrow">LOADOUT ${l.slot}</span><h3>${l.name}</h3>${['primary','secondary','tactical','lethal','melee','field'].map(k=>`<div class="item-row"><div class="weapon-svg">${weaponSvg(l[k])}</div><div><small style="color:#95aaa0">${k.toUpperCase()}</small><br><b>${l[k]}</b></div></div>`).join('')}</article>`).join('')}</div>`;
   }else if(tab==='LOCKER'){
-    c.innerHTML=`<div class="eyebrow">LOCKER</div><h1>Free survivor rotation</h1><p style="color:#95aaa0">Ten starter characters are available. Your device receives one automatically; cosmetics can change the look without changing stats.</p><div class="catalog-grid">${state.config.free_characters.map(k=>{const t=avatarTheme(k);return `<article class="catalog-card"><div class="avatar-badge" style="--skin:${t.skin};background:linear-gradient(145deg,${t.skin},${t.armor})">${t.num}</div><h3>Survivor ${t.num}</h3><small>FREE</small></article>`}).join('')}</div>`;
+    c.innerHTML=`<div class="eyebrow">LOCKER</div><h1>Free survivor rotation</h1><p style="color:#95aaa0">Ten starter characters are available. Your device receives one automatically; cosmetics can change the look without changing stats.</p><div class="catalog-grid">${state.config.free_characters.map(k=>{const t=avatarTheme(k);return `<article class="catalog-card ${k===state.player.avatar_key?'selected':''}" data-avatar="${k}"><div class="avatar-badge" style="--skin:${t.skin};background:linear-gradient(145deg,${t.skin},${t.armor})">${t.num}</div><h3>Survivor ${t.num}</h3><small>FREE</small></article>`}).join('')}</div>`;
   }else if(tab==='BATTLE_PASS'){
     c.innerHTML=`<div class="eyebrow">BATTLE PASS</div><h1>150-level monthly track</h1><p style="color:#95aaa0">Cosmetics, wraps, emotes, character variants and blueprints. Commerce remains disabled until you explicitly approve it.</p><div class="catalog-grid">${[1,15,30,60,100].map((n,i)=>`<article class="catalog-card"><span class="eyebrow">LEVEL ${n}</span><h3>${['Founder Cache','Hazmat Wrap','Night Runner','Rooftop Raider','Blackout Legend'][i]}</h3><p style="color:#95aaa0;font-size:11px">Preview reward slot</p></article>`).join('')}</div>`;
   }else if(tab==='STORE'){
@@ -230,11 +301,30 @@ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('active',x===b));
   if(b.dataset.tab!=='PLAY')openModal(b.dataset.tab);
 });
-$('modalContent').addEventListener('click',e=>{
-  const card=e.target.closest('[data-loadout]');if(!card)return;
-  const slot=Number(card.dataset.loadout);state.player.selected_loadout=slot;localStorage.setItem('horizon-loadout',String(slot));
-  $('loadoutName').textContent=state.config.loadouts.find(x=>x.slot===slot)?.name||'Ranger';
-  document.querySelectorAll('[data-loadout]').forEach(x=>x.classList.toggle('selected',Number(x.dataset.loadout)===slot));
+$('modalContent').addEventListener('click',async e=>{
+  const loadout=e.target.closest('[data-loadout]');
+  if(loadout){
+    const slot=Number(loadout.dataset.loadout);
+    try{
+      const out=await rpc('bridgepoint_horizon_set_profile_v4302',{
+        p_player_id:ident.id,p_player_secret:ident.secret,p_avatar_key:null,p_wrap_key:null,p_loadout:slot
+      });
+      state.player=out.player;localStorage.setItem('horizon-loadout',String(slot));
+      $('loadoutName').textContent=state.config.loadouts.find(x=>x.slot===slot)?.name||'Ranger';
+      document.querySelectorAll('[data-loadout]').forEach(x=>x.classList.toggle('selected',Number(x.dataset.loadout)===slot));
+    }catch(err){status(err.message)}
+    return;
+  }
+  const avatar=e.target.closest('[data-avatar]');
+  if(avatar){
+    try{
+      const out=await rpc('bridgepoint_horizon_set_profile_v4302',{
+        p_player_id:ident.id,p_player_secret:ident.secret,p_avatar_key:avatar.dataset.avatar,p_wrap_key:null,p_loadout:null
+      });
+      state.player=out.player;await refreshParty();
+      document.querySelectorAll('[data-avatar]').forEach(x=>x.classList.toggle('selected',x.dataset.avatar===state.player.avatar_key));
+    }catch(err){status(err.message)}
+  }
 });
 
 function connectPartySignal(){
