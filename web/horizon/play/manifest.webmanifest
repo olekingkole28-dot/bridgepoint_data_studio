@@ -1,0 +1,22 @@
+{
+  "name":"BridgePoint Horizon",
+  "short_name":"Horizon",
+  "description":"BridgePoint Horizon game lobby and survival client.",
+  "id":"/app/horizon/play/",
+  "start_url":"/app/horizon/play/",
+  "scope":"/app/horizon/",
+  "display":"standalone",
+  "display_override":["window-controls-overlay","standalone"],
+  "orientation":"landscape",
+  "background_color":"#020706",
+  "theme_color":"#07120f",
+  "categories":["games","entertainment"],
+  "icons":[
+    {
+      "src":"../horizon-mark.svg",
+      "sizes":"any",
+      "type":"image/svg+xml",
+      "purpose":"any maskable"
+    }
+  ]
+}
