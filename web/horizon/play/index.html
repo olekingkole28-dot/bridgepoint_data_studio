@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07120f">
+<title>BridgePoint Horizon</title>
+<meta name="description" content="BridgePoint Horizon lobby, party and matchmaking client.">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="../horizon-mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<canvas id="sky"></canvas>
+<div class="world-bg" aria-hidden="true">
+  <div class="moon"></div><div class="fog fog-a"></div><div class="fog fog-b"></div>
+  <div class="skyline skyline-far"></div><div class="skyline skyline-near"></div>
+  <div class="ember-field"></div>
+</div>
+
+<header class="topbar">
+  <div class="brand"><img src="../horizon-mark.svg" alt=""><div><b>BRIDGEPOINT</b><span>HORIZON</span></div></div>
+  <div class="net"><span id="netDot"></span><b id="netLabel">BOOTING</b></div>
+  <button class="glass" id="inviteTop">INVITE</button>
+  <button class="glass" id="settingsBtn">⚙</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="PLAY" class="active">PLAY</button>
+  <button data-tab="BATTLE_PASS">BATTLE PASS</button>
+  <button data-tab="LOCKER">LOCKER</button>
+  <button data-tab="LOADOUTS">LOADOUTS</button>
+  <button data-tab="STORE">STORE</button>
+  <button data-tab="ARENA">ARENA</button>
+</nav>
+
+<main class="lobby">
+  <aside class="profile glass-panel">
+    <div class="eyebrow">CURRENT SURVIVOR</div>
+    <div class="avatar-badge" id="avatarBadge">01</div>
+    <input id="displayName" maxlength="32" value="Survivor" aria-label="Display name">
+    <div class="statline"><span>LEVEL</span><b>1</b></div>
+    <div class="statline"><span>PRESTIGE</span><b>0</b></div>
+    <div class="statline"><span>LOADOUT</span><b id="loadoutName">Ranger</b></div>
+    <button class="accent" id="editLocker">CHANGE SURVIVOR</button>
+  </aside>
+
+  <section class="stage">
+    <div class="stage-light"></div>
+    <div class="party-row" id="partyRow"></div>
+    <div class="party-code-wrap">
+      <span>PARTY</span><b id="partyCode">------</b>
+      <button id="copyParty">COPY</button>
+    </div>
+    <div class="status-message" id="statusMessage">Starting Horizon…</div>
+  </section>
+
+  <aside class="party glass-panel">
+    <div class="eyebrow">SQUAD</div>
+    <h2>Party Lobby</h2>
+    <p>Invite up to 3 friends. They appear beside you when they join.</p>
+    <button class="accent" id="inviteBtn">SEND FRIEND INVITE</button>
+    <div class="party-rules">
+      <span><b>4</b> max party</span>
+      <span><b>P2P</b> direct first</span>
+      <span><b>PHONE</b> host eligible</span>
+    </div>
+  </aside>
+</main>
+
+<section class="mode-dock">
+  <button class="mode" data-mode="YEAR_ONE">
+    <span class="mode-kicker">SOLO</span><b>YEAR ONE SURVIVAL</b><small>3 lives · persistent world · zombie wall endgame</small>
+  </button>
+  <button class="mode active" data-mode="TDM">
+    <span class="mode-kicker">6V6</span><b>TEAM DEATHMATCH</b><small>12 players · fast respawn · killcams</small>
+  </button>
+  <button class="mode" data-mode="EXTRACTION">
+    <span class="mode-kicker">4 SQUADS</span><b>EXTRACTION</b><small>16 players · squad survival · secure the objective</small>
+  </button>
+  <button class="play" id="playBtn"><span id="playLabel">READY</span><small id="playSub">TDM · 12 players</small></button>
+</section>
+
+<div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-card">
+    <button class="close" id="closeModal">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="loading" id="loading" aria-hidden="true">
+  <div class="loading-card">
+    <div class="loading-top">
+      <div><span class="eyebrow">MATCH FOUND</span><h1 id="mapName">BLACKOUT DISTRICT</h1></div>
+      <div class="countdown" id="launchCount">8</div>
+    </div>
+    <canvas id="mapCanvas" width="900" height="520"></canvas>
+    <div class="load-meta">
+      <span id="modeMeta">TDM</span><span id="humanMeta">0 HUMANS</span><span id="botMeta">0 BOTS</span><span id="peerMeta">P2P STARTING</span>
+    </div>
+    <div class="loadbar"><i id="loadbarFill"></i></div>
+    <p id="loadingStatus">Generating the same deterministic map on every device…</p>
+  </div>
+</div>
+
+<div class="hud-preview" id="hudPreview" aria-hidden="true">
+  <div class="pickup-demo"><div class="pickup-ring"><span>AR</span></div><small>STAND OVER ITEM TO PICK UP</small></div>
+  <div class="right-controls">
+    <button>AIM</button><button>SHOOT</button><button>RUN</button><button class="build">BUILD</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
