@@ -257,8 +257,9 @@ async function showLoading(match){
   $('loading').classList.add('show');$('loading').setAttribute('aria-hidden','false');
   $('mapName').textContent=String(match.map_label||'HORIZON SECTOR').toUpperCase();
   $('modeMeta').textContent=match.mode;$('humanMeta').textContent=`${match.human_players} HUMANS`;$('botMeta').textContent=`${match.bot_players} BOTS`;
-  drawMap(match);connectMatchSignal(match);$('loadbarFill').style.width='10%';
+  drawMap(match);$('loadbarFill').style.width='10%';
   const synchronized=await waitForSynchronizedStart(match);
+  connectMatchSignal(synchronized);startHostLease(synchronized);
   const start=Date.parse(synchronized.starts_at);
   const timer=setInterval(()=>{
     const left=Math.max(0,start-Date.now()),sec=Math.ceil(left/1000);
@@ -335,6 +336,37 @@ function connectPartySignal(){
 }
 
 const peerConfig={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']}]};
+let hostLeaseTimer=null;
+async function hostLeaseTick(){
+  const m=state.match;if(!m?.match_id)return;
+  try{
+    if(m.host_player_id===ident.id){
+      const hb=await rpc('bridgepoint_horizon_host_heartbeat_v4303',{
+        p_player_id:ident.id,p_player_secret:ident.secret,p_match_id:m.match_id
+      });
+      if(hb?.host_player_id)state.match.host_player_id=hb.host_player_id;
+      return;
+    }
+    const hostMember=m.members?.find(x=>x.player_id===m.host_player_id);
+    const rec=hostMember?state.peers.get(hostMember.player_id):null;
+    if(rec?.pc?.connectionState==='connected')return;
+    const claim=await rpc('bridgepoint_horizon_claim_host_v4303',{
+      p_player_id:ident.id,p_player_secret:ident.secret,p_match_id:m.match_id
+    });
+    if(claim?.host_player_id&&claim.host_player_id!==state.match.host_player_id){
+      state.match.host_player_id=claim.host_player_id;
+      $('peerMeta').textContent=claim.host_player_id===ident.id?'HOST MIGRATED TO YOU':'HOST MIGRATED';
+      if(state.channel){
+        state.channel.send({type:'broadcast',event:'hello',payload:{player_id:ident.id,host_epoch:claim.host_epoch}});
+      }
+    }
+  }catch(e){console.warn('host lease',e)}
+}
+function startHostLease(match){
+  state.match=match;clearInterval(hostLeaseTimer);hostLeaseTimer=setInterval(hostLeaseTick,2500);
+  hostLeaseTick();
+}
+
 function connectMatchSignal(match){
   if(!sb)return;
   if(state.channel)sb.removeChannel(state.channel).catch(()=>{});
@@ -377,6 +409,23 @@ async function handleSignal(p,ch){
     await pc.setRemoteDescription(p.sdp);
     if(p.sdp.type==='offer'){const ans=await pc.createAnswer();await pc.setLocalDescription(ans);ch.send({type:'broadcast',event:'signal',payload:{from:ident.id,to:p.from,sdp:pc.localDescription}})}
   }else if(p.candidate){try{await pc.addIceCandidate(p.candidate)}catch{}}
+}
+
+async function emitGhostEvent(type,eventKey,payload={},ttlSeconds=86400){
+  if(!state.match?.match_id)return null;
+  const cellKey=state.match.cell_seed||String(state.match.metadata?.world_state||'UNKNOWN');
+  return rpc('bridgepoint_horizon_emit_world_event_v4303',{
+    p_player_id:ident.id,p_player_secret:ident.secret,p_match_id:state.match.match_id,
+    p_cell_key:cellKey,p_event_type:type,p_event_key:eventKey,p_payload:payload,p_ttl_seconds:ttlSeconds
+  });
+}
+async function loadGhostEvents(){
+  if(!state.match)return[];
+  const cellKey=state.match.cell_seed||String(state.match.metadata?.world_state||'UNKNOWN');
+  const out=await rpc('bridgepoint_horizon_world_events_v4303',{
+    p_player_id:ident.id,p_player_secret:ident.secret,p_cell_key:cellKey,p_limit:100
+  }).catch(()=>({events:[]}));
+  return out?.events||[];
 }
 
 function animateSky(){
