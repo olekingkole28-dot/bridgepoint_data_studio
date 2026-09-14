@@ -1,0 +1,71 @@
+name: Transport Runtime v2716
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/transport-runtime-v2716.yml'
+      - 'scripts/build_transport_runtime_v2716.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: bridgepoint-transport-runtime-v2716
+  cancel-in-progress: false
+
+env:
+  SUPABASE_URL: https://xdfsjztwgsbmabshzsjw.supabase.co
+  TIPPECANOE_SHA: 4f2621186acfec33b63ddf636f665623c0fef2dd
+
+jobs:
+  dc-pilot:
+    name: DC transport PMTiles pilot
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check duckdb==1.4.1 requests==2.32.5
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends build-essential libsqlite3-dev zlib1g-dev
+          git clone --filter=blob:none https://github.com/felt/tippecanoe.git /tmp/tippecanoe
+          cd /tmp/tippecanoe
+          git checkout "$TIPPECANOE_SHA"
+          make -j2
+          sudo make install
+          tippecanoe --version
+
+      - name: Mint runtime-only GitHub OIDC identity
+        id: oidc
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESPONSE=$(curl --fail --silent --show-error             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=bridgepoint-transport-runtime-v2716")
+          TOKEN=$(printf '%s' "$RESPONSE" | python -c 'import json,sys; print(json.load(sys.stdin)["value"])')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Build and verify DC runtime PMTiles
+        env:
+          TRANSPORT_RUNTIME_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+        run: python scripts/build_transport_runtime_v2716.py --state DC
+
+      - name: Preserve pilot diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transport-runtime-v2716-dc
+          path: transport-runtime-output/
+          if-no-files-found: ignore
+          retention-days: 3
