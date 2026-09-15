@@ -19,12 +19,7 @@ if(-not (Test-Path $Builder)){throw "Missing V5200 DuckDB builder: $Builder"}
 if(-not (Test-Path $Manifest)){throw "Missing manifest: $Manifest"}
 if(-not (Test-Path $CoverageGate)){throw "Missing coverage gate: $CoverageGate"}
 
-python - <<'PY'
-import importlib.util,sys
-missing=[m for m in ('duckdb',) if importlib.util.find_spec(m) is None]
-if missing:
-    print('Missing Python packages: '+','.join(missing),file=sys.stderr);sys.exit(2)
-PY
+& python -c "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('duckdb') else 2)"
 if($LASTEXITCODE -ne 0){throw 'Python duckdb package is required: python -m pip install duckdb'}
 
 $Args=@(
