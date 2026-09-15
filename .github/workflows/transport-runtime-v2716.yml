@@ -21,10 +21,16 @@ env:
   TIPPECANOE_SHA: 4f2621186acfec33b63ddf636f665623c0fef2dd
 
 jobs:
-  dc-pilot:
-    name: DC transport PMTiles pilot
+  national-runtime:
+    name: ${{ matrix.state }} transport PMTiles
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        state: [AK,AL,AR,AS,AZ,CA,CO,CT,DE,FL,GA,GU,HI,IA,ID,IL,IN,KS,KY,LA,MA,MD,ME,MI,MN,MO,MP,MS,MT,NC,ND,NE,NH,NJ,NM,NV,NY,OH,OK,OR,PA,PR,RI,SC,SD,TN,TX,UT,VA,VI,VT,WA,WI,WV,WY]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -51,21 +57,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RESPONSE=$(curl --fail --silent --show-error             -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=bridgepoint-transport-runtime-v2716")
+          RESPONSE=$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=bridgepoint-transport-runtime-v2716")
           TOKEN=$(printf '%s' "$RESPONSE" | python -c 'import json,sys; print(json.load(sys.stdin)["value"])')
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
 
-      - name: Build and verify DC runtime PMTiles
+      - name: Build and verify runtime PMTiles
         env:
           TRANSPORT_RUNTIME_OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
-        run: python scripts/build_transport_runtime_v2716.py --state DC
+        run: python scripts/build_transport_runtime_v2716.py --state ${{ matrix.state }}
 
-      - name: Preserve pilot diagnostics
+      - name: Preserve runtime diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: transport-runtime-v2716-dc
+          name: transport-runtime-v2716-${{ matrix.state }}
           path: transport-runtime-output/
           if-no-files-found: ignore
           retention-days: 3
