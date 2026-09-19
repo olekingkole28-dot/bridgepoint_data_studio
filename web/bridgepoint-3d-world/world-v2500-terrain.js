@@ -8,8 +8,8 @@ export async function enableBridgePointTerrain({viewer,supabase,tier='MEDIUM'}){
   if(!Cesium.CustomHeightmapTerrainProvider)return{enabled:false,reason:'Custom heightmap terrain is unavailable in this Cesium build.'};
   const {data:{session}}=await supabase.auth.getSession();
   if(!session)return{enabled:false,reason:'Signed-in BridgePoint access is required for the governed 3DEP terrain sampler.'};
-  const size=tier==='LOW'?9:tier==='HIGH'?17:13;
-  const maxLevel=tier==='LOW'?10:tier==='HIGH'?13:12;
+  const size=tier==='LOW'?13:tier==='HIGH'?25:17;
+  const maxLevel=tier==='LOW'?12:tier==='HIGH'?14:13;
   const tilingScheme=new Cesium.GeographicTilingScheme();
   const cache=new Map();
   const failures=new Map();
