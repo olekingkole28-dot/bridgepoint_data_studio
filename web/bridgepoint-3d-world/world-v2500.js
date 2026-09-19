@@ -20,10 +20,10 @@ const memory = Number(navigator.deviceMemory || 4);
 const cores = Number(navigator.hardwareConcurrency || 4);
 const tier = memory <= 4 || cores <= 4 ? 'LOW' : (!mobile && memory >= 8 && cores >= 8 ? 'HIGH' : 'MEDIUM');
 const PERF = Object.freeze(tier === 'LOW'
-  ? { scale:.72, fps:30, detail:[550,850,1150], labels:70, weather:90 }
+  ? { scale:.84, fps:30, detail:[800,1450,2600], labels:105, weather:105 }
   : tier === 'HIGH'
-    ? { scale:1, fps:60, detail:[1500,2300,3500], labels:260, weather:280 }
-    : { scale:mobile?.86:.95, fps:45, detail:[950,1500,2200], labels:150, weather:170 });
+    ? { scale:1, fps:60, detail:[2200,3600,5200], labels:320, weather:320 }
+    : { scale:mobile?.92:.97, fps:45, detail:[1300,2250,3600], labels:210, weather:210 });
 
 const $ = (id) => document.getElementById(id);
 const statusEl = $('status'), card = $('propertyCard'), layerPanel = $('layerPanel'), weatherFx = $('weatherFx'), lockCard = $('lockCard');
