@@ -43,7 +43,7 @@ function Hardware {
     free_ram_gb=[math]::Round(([double]$os.FreePhysicalMemory*1KB)/1GB,1)
     cpu=$cpu.Name
     logical_processors=[int]$cpu.NumberOfLogicalProcessors
-    cpu_load_pct=[int]($cpu.LoadPercentage ?? 0)
+    cpu_load_pct=if($null -ne $cpu.LoadPercentage){[int]$cpu.LoadPercentage}else{0}
     gpu=$gpu.Name
     gpu_ram_gb=if($gpu.AdapterRAM){[math]::Round([double]$gpu.AdapterRAM/1GB,1)}else{0}
     drives=@($drives)
@@ -70,7 +70,11 @@ if([string]::IsNullOrWhiteSpace($EnrollmentCode)){
   $EnrollmentCode=Read-Host 'Paste the fresh one-time enrollment code from BridgePoint Owner > Local AI'
 }
 if([string]::IsNullOrWhiteSpace($EnrollmentCode)){throw 'A fresh enrollment code is required for the new desktop.'}
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -EnrollmentCode $EnrollmentCode @($(if($SkipModelPull){'-SkipModelPull'}))
+if($SkipModelPull){
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -EnrollmentCode $EnrollmentCode -SkipModelPull
+}else{
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -EnrollmentCode $EnrollmentCode
+}
 if($LASTEXITCODE -ne 0){throw "Local AI installer failed with exit code $LASTEXITCODE"}
 if(-not(Test-Path $Config)){throw 'Local AI enrollment did not create config.json.'}
 $cfg=Get-Content $Config -Raw|ConvertFrom-Json
