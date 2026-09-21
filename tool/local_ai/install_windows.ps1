@@ -59,14 +59,26 @@ function Ensure-Ollama {
 function Get-Hardware {
   $cs=Get-CimInstance Win32_ComputerSystem
   $cpu=Get-CimInstance Win32_Processor | Select-Object -First 1
+  $os=Get-CimInstance Win32_OperatingSystem
   $gpu=Get-CimInstance Win32_VideoController | Sort-Object AdapterRAM -Descending | Select-Object -First 1
   $ram=[math]::Round($cs.TotalPhysicalMemory/1GB,1)
+  $freeRam=[math]::Round(([double]$os.FreePhysicalMemory*1KB)/1GB,1)
   $gpuRam=if($gpu.AdapterRAM){[math]::Round([double]$gpu.AdapterRAM/1GB,1)}else{0}
-  return [ordered]@{computer=$env:COMPUTERNAME;os=(Get-CimInstance Win32_OperatingSystem).Caption;ram_gb=$ram;cpu=$cpu.Name;logical_processors=$cpu.NumberOfLogicalProcessors;gpu=$gpu.Name;gpu_ram_gb=$gpuRam}
+  $cpuLoad=try{[int](($cpu.LoadPercentage|Measure-Object -Average).Average)}catch{0}
+  $sysDrive=Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($env:SystemDrive)'" -ErrorAction SilentlyContinue
+  $freeDisk=if($sysDrive){[math]::Round([double]$sysDrive.FreeSpace/1GB,1)}else{0}
+  return [ordered]@{
+    computer=$env:COMPUTERNAME;os=$os.Caption;ram_gb=$ram;free_ram_gb=$freeRam;
+    cpu=$cpu.Name;logical_processors=$cpu.NumberOfLogicalProcessors;cpu_load_pct=$cpuLoad;
+    gpu=$gpu.Name;gpu_ram_gb=$gpuRam;system_drive_free_gb=$freeDisk
+  }
 }
 function Choose-Models($hw){
-  if([double]$hw.ram_gb -ge 24){return @('gpt-oss:20b','deepseek-r1:8b',1)}
-  if([double]$hw.ram_gb -ge 12){return @('qwen2.5:7b-instruct','deepseek-r1:1.5b',1)}
+  $ram=[double]$hw.ram_gb
+  $threads=[int]$hw.logical_processors
+  if($ram -ge 48 -and $threads -ge 12){return @('gpt-oss:20b','deepseek-r1:8b',2)}
+  if($ram -ge 24){return @('gpt-oss:20b','deepseek-r1:8b',1)}
+  if($ram -ge 12){return @('qwen2.5:7b-instruct','deepseek-r1:1.5b',1)}
   return @('qwen2.5:3b','deepseek-r1:1.5b',1)
 }
 function Start-Ollama([string]$exe){
@@ -161,20 +173,27 @@ if(-not $SkipModelPull){Pull-Model -exe $ollama -model $primary;if($reviewer -ne
 Banner 'Installing BridgePoint agent'
 Invoke-WebRequest -UseBasicParsing -TimeoutSec 60 -Uri $AgentUrl -OutFile $AgentPath
 if(-not (Test-Path $AgentPath)){throw 'BridgePoint agent download failed.'}
+$agentText=Get-Content $AgentPath -Raw
+if($agentText -notmatch '# BridgePoint Local Agent - signed channel live-artifact' -or $agentText -notmatch '\$AgentVersion\s*=\s*(\d+)'){
+  throw 'Downloaded BridgePoint agent failed signed-channel/version validation.'
+}
+$installedAgentVersion=[int]$Matches[1]
+if($installedAgentVersion -lt 718){throw "Downloaded BridgePoint agent is too old: v$installedAgentVersion"}
+Write-Host "Current BridgePoint agent: v$installedAgentVersion" -ForegroundColor Green
 
 $config=Test-ExistingEnrollment
 if(-not $config){
   if([string]::IsNullOrWhiteSpace($EnrollmentCode)){$EnrollmentCode=Read-Host 'Paste the one-time enrollment code from the main Owner Center'}
   if([string]::IsNullOrWhiteSpace($EnrollmentCode) -or $EnrollmentCode.Trim().Length -lt 24){throw 'A valid enrollment code is required.'}
-  $cap=@{provider='OLLAMA';primary_model=$primary;reviewer_model=$reviewer;agent_version=625;outbound_only=$true;execution_authority=$false;hardware_aware=$true}
+  $cap=@{provider='OLLAMA';primary_model=$primary;reviewer_model=$reviewer;agent_version=$installedAgentVersion;outbound_only=$true;execution_authority=$false;hardware_aware=$true}
   $body=@{action='enroll';enrollment_code=$EnrollmentCode.Trim();node_name=("BridgePoint Owner PC - "+$env:COMPUTERNAME);capabilities=$cap;hardware=$hw}|ConvertTo-Json -Depth 20 -Compress
   $enroll=Invoke-RestMethod -Method Post -Uri $Endpoint -ContentType 'application/json' -Body $body -TimeoutSec 60
   if(-not $enroll.ok -or -not $enroll.node_id -or -not $enroll.node_token){throw 'Enrollment did not return a usable node credential.'}
-  $config=[ordered]@{endpoint=$Endpoint;node_id=$enroll.node_id;token_protected=(Protect-Token ([string]$enroll.node_token));primary_model=$enroll.primary_model;reviewer_model=$enroll.reviewer_model;claim_limit=$claimLimit;installed_at=(Get-Date).ToUniversalTime().ToString('o');agent_path=$AgentPath;agent_version=625}
+  $config=[ordered]@{endpoint=$Endpoint;node_id=$enroll.node_id;token_protected=(Protect-Token ([string]$enroll.node_token));primary_model=$enroll.primary_model;reviewer_model=$enroll.reviewer_model;claim_limit=$claimLimit;installed_at=(Get-Date).ToUniversalTime().ToString('o');agent_path=$AgentPath;agent_version=$installedAgentVersion}
   $config|ConvertTo-Json -Depth 20|Set-Content -Encoding UTF8 $ConfigPath
 }else{
   $config.agent_path=$AgentPath
-  $config.agent_version=625
+  $config.agent_version=$installedAgentVersion
   $config|ConvertTo-Json -Depth 20|Set-Content -Encoding UTF8 $ConfigPath
 }
 
