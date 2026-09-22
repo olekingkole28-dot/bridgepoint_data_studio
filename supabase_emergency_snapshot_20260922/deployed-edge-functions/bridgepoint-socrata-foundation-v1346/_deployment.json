@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-socrata-foundation-v1346",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "4458a329f7fd1cced9f53d452ed4bb32e387063ecb40685a724d8ab0510eeefa",
+  "redactions": 3
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-source-revalidator-v587",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "609d112f0cb8cef2db7270a76857262777177a18fb37b4c0df9a37af696a5d43",
+  "redactions": 3
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-social-export-v224",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "8a9bc2552982267712a9bc48cf537f7242d623079ba3c8c91132021e05ec61e3",
+  "redactions": 0
+}

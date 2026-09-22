@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-social-publisher-v120",
+  "version": 7,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "484fb955bd2c7f0d1dd5d87d562fa485443050649b5769bf5acfa2b3de9fc083",
+  "redactions": 0
+}

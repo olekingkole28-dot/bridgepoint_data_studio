@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-social-backup-builder-v316",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "34e2ce3f0574edea0b82f97b459bc5ed79664bb95c6b47234e113e3aa682163b",
+  "redactions": 0
+}

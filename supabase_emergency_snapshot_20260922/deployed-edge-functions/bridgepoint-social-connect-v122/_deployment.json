@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-social-connect-v122",
+  "version": 5,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "da36fd86fb6bc536116c2b15f6c16fff5f0afe5b048979ff5a1acb1ab87b75eb",
+  "redactions": 0
+}

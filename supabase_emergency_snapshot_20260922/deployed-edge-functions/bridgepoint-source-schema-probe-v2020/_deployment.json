@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-source-schema-probe-v2020",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "b4e176ab2b775a5a60f72b304200d722b28019f5070ba812783edb09bfd69dbb",
+  "redactions": 0
+}

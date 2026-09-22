@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-spatial-tile-v1957",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "4f7e728f17f6a2567a7361c180b9b7c4464616090aee2709ed8942fe097a8374",
+  "redactions": 0
+}
