@@ -1,0 +1,9 @@
+{
+  "id": "1ad9b873-f1db-4f9f-bfa6-ff1565bbfeb3",
+  "slug": "bridgepoint-boundary-source-expander-v2125",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "288aa444943c4b6556d56d5c4468b2722a35ac99c757f320ea3e2530efc577f6",
+  "redactions": 0
+}

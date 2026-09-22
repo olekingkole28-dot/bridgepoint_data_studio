@@ -1,0 +1,9 @@
+{
+  "id": "650ca1a4-bbd6-4bca-8a86-44f7d623370f",
+  "slug": "bridgepoint-billing-catalog-v223",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "12319598fa6963b9c4833b5e527e6be2de5220ebf37bd00ad7abb01157268dbf",
+  "redactions": 0
+}

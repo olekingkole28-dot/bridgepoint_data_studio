@@ -1,0 +1,9 @@
+{
+  "id": "74ce0714-7ea5-4c80-a6c0-856a3a42ff35",
+  "slug": "bridgepoint-billing-readiness-v322",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "a40dac2f20f2ccd94684ba7bf670fd9f70378261a7250d1dc5693d24f1744444",
+  "redactions": 0
+}

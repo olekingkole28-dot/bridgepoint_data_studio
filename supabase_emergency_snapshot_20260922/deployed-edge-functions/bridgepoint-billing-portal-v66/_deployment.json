@@ -1,0 +1,9 @@
+{
+  "id": "11aee472-4441-42f9-b80d-1baea47f72dc",
+  "slug": "bridgepoint-billing-portal-v66",
+  "version": 6,
+  "verify_jwt": true,
+  "import_map": true,
+  "ezbr_sha256": "eb5fcdf63ab18d89e5f32ac07f16622c6e01f5aaa3e7d88e8e6e699ad5f2ad86",
+  "redactions": 0
+}

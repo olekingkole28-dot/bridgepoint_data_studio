@@ -1,0 +1,9 @@
+{
+  "id": "76d0aacd-68f6-4304-9e01-d62e8adfba39",
+  "slug": "bridgepoint-billing-smoke-v224",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "590e75c79663fb0fcbccc5fd6b85de84b3685183845813a02ec53de1a4ad068e",
+  "redactions": 0
+}

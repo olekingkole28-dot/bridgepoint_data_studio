@@ -1,0 +1,9 @@
+{
+  "id": "2edc82ec-d6a5-423a-a2e3-9dfb0e9222c6",
+  "slug": "bridgepoint-building-public-worker-v2712",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "bb865053526f2415c05b4f584de1d015868833fd355a637d6964e3f4b9a73ab9",
+  "redactions": 0
+}

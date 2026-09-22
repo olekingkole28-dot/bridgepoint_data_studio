@@ -1,0 +1,9 @@
+{
+  "id": "019c239d-45f8-4f54-9b5b-bbe34b6c247b",
+  "slug": "bridgepoint-building-archive-broker-v2710",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "20941481bffcdecbf5b84b22094efb04b2b7878db923e38c0a7faceb733e12eb",
+  "redactions": 0
+}

@@ -1,0 +1,9 @@
+{
+  "id": "57345608-6efd-4ae6-bb01-d327729c3741",
+  "slug": "bridgepoint-billing-live-bootstrap-v220",
+  "version": 4,
+  "verify_jwt": true,
+  "import_map": true,
+  "ezbr_sha256": "a268372857dd75dd6ddfe68a26d4b9751be0612577c2f6433b4cdcf67f3faa18",
+  "redactions": 0
+}

@@ -1,0 +1,9 @@
+{
+  "id": "e97e092e-ae75-473a-a6ea-68d030f90f84",
+  "slug": "bridgepoint-building-crosswalk-broker-v2752",
+  "version": 21,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "add58e4c45c332f152689d6da0b7b35de969d52ad3428598e216dc531d9cb0e2",
+  "redactions": 0
+}

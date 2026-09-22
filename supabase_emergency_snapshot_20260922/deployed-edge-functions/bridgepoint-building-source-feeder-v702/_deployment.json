@@ -1,0 +1,9 @@
+{
+  "id": "59c8ea70-1f71-446c-84ff-ba2421bbf1d6",
+  "slug": "bridgepoint-building-source-feeder-v702",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9a34cc473fa04a40b2f4c97ca6798a8e8bf380a4bf3d3d241fc2eb9b6ba61761",
+  "redactions": 0
+}

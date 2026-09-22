@@ -1,0 +1,9 @@
+{
+  "id": "1306a653-2f41-4d93-aead-03e6ad0b2e96",
+  "slug": "bridgepoint-building-index-drain-v2714",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "eece1e9f85a3932de009c8c725657b29c46e55f271be6244850473f313c87dcb",
+  "redactions": 1
+}

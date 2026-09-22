@@ -1,0 +1,9 @@
+{
+  "id": "a6fd061d-e653-4244-8b32-cda5b2f1da08",
+  "slug": "bridgepoint-bulk-archive-entry-probe-v1620",
+  "version": 2,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "7c4a5d1ff4aaf1181c317cc5c5ab258771730fe198f485a023114f32298ac6d7",
+  "redactions": 0
+}
