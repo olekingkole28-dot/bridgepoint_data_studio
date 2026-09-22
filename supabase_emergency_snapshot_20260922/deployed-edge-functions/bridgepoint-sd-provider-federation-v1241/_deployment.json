@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-sd-provider-federation-v1241",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "e98e5cb590c5b2dcfdd86d11a760bafa92c2c43c3e4ae45cb2459a46360ed29f",
+  "redactions": 4
+}

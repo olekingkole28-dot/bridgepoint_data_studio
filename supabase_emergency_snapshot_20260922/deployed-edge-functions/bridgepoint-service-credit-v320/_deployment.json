@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-service-credit-v320",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "61767338985b737989e2352ac56bd2d5245d31f2199c3277f076b2b4d727d271",
+  "redactions": 0
+}

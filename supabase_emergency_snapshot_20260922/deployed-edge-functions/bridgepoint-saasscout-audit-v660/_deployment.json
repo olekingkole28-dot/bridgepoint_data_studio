@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-saasscout-audit-v660",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "223cb864ae06781788a6fc75dc63347fa16444a17449c539f6d38631f9a2f2c6",
+  "redactions": 0
+}

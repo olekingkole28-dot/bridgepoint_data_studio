@@ -1,0 +1,11 @@
+const H={'content-type':'application/json','cache-control':'no-store'}; const NONCE='[REDACTED_LONG_LITERAL]';
+const targets=[
+'https://secure.saginawcounty.com/EqualizationSearch/Select.aspx',
+'https://www.saginawcounty.com/Apps/Equal/PropertySearch.aspx',
+'http://www.saginawcounty.com/Apps/Equal/PropertySearch.aspx',
+'https://www.saginawcountymi.gov/Apps/Equal/PropertySearch.aspx',
+'https://www.saginawcountymi.gov/robots.txt',
+'https://secure.saginawcounty.com/robots.txt'
+];
+function shape(t:string){const low=t.toLowerCase();return{len:t.length,title:(t.match(/<title[^>]*>([^<]{0,200})<\/title>/i)?.[1]||'').replace(/\s+/g,' ').trim(),has_parcel:/parcel/i.test(t),has_property:/property/i.test(t),has_equalization:/equalization/i.test(t),has_search:/search/i.test(t),has_bsa:/bsa\s*online|accessmygov/i.test(t),has_saga:/saga\s*gis|sagagis/i.test(t),has_bot:/bot|scrap|crawl|automated/i.test(t),has_terms:/terms\s+(of\s+)?(use|service)|acceptable\s+use/i.test(t),forms:[...t.matchAll(/<form\b[^>]*>/gi)].slice(0,10).map(m=>m[0].slice(0,400)),scripts:[...t.matchAll(/<script\b[^>]*src=["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]).slice(-20),links:[...t.matchAll(/href=["']([^"']+)["']/gi)].map(m=>m[1]).filter(x=>/equal|parcel|property|search/i.test(x)).slice(0,30)};}
+Deno.serve(async(req)=>{try{const u=new URL(req.url);if(req.method!=='GET'||u.searchParams.get('k')!==NONCE)return new Response(JSON.stringify({complete:false,error:'UNAUTHORIZED'}),{status:401,headers:H});const out=[];for(const url of targets){try{const r=await fetch(url,{headers:{'user-agent':'BridgePointIntelligence/1.0 (+source-compliance-probe)','accept':'text/html,text/plain,*/*'},redirect:'follow',signal:AbortSignal.timeout(20000)});const t=await r.text();out.push({url,status:r.status,final_url:r.url,content_type:r.headers.get('content-type'),server:r.headers.get('server'),shape:shape(t),head:t.slice(0,1000)});}catch(e){out.push({url,error:String(e)})}}return new Response(JSON.stringify({complete:true,version:1768,targets:out}),{headers:H});}catch(e){return new Response(JSON.stringify({complete:false,error:String(e)}),{status:500,headers:H});}});

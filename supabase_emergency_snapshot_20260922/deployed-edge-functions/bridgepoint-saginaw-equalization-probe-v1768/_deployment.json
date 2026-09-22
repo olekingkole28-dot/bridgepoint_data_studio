@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-saginaw-equalization-probe-v1768",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9604284e0ff2a9bbfcc15fed2372389366da3e5ecffff56590c6109f1960040b",
+  "redactions": 1
+}

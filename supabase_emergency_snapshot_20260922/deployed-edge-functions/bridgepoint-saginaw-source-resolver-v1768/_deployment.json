@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-saginaw-source-resolver-v1768",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "0f9cffccc4aa8e7d437964aa02917718609db988b3aa61cddca3f54fc3a829ac",
+  "redactions": 0
+}

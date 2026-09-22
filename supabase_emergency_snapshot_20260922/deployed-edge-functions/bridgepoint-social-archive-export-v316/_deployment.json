@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-social-archive-export-v316",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "a5892eea55a05b48d6bcf81343e6e7c79a5b7d4baa3045e328e21f26410e26df",
+  "redactions": 0
+}
