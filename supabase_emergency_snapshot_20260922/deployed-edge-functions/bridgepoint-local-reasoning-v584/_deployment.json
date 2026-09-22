@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-local-reasoning-v584",
+  "version": 12,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "60963567abc74df79c5e8c2803ba277312e758c1a739d107b1faf66caa9698b1",
+  "redactions": 0
+}

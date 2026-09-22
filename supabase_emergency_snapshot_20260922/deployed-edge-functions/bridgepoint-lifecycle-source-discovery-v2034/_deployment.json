@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lifecycle-source-discovery-v2034",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "ded864a7e6c58451a7ebc81f0a348c61aee2a3bac86f9cf6fd2518e2a6dff892",
+  "redactions": 0
+}

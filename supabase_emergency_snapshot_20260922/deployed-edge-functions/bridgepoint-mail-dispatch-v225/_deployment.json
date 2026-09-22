@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-mail-dispatch-v225",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "ee5e59625640f9d75b4a16cddce03a4d7c8e515e4c4a1f5344a888d6a77d0444",
+  "redactions": 0
+}

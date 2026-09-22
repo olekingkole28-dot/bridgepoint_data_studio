@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-live-earth-v2185",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "97ddd16d0331722dbf65c72a102a3faeae33a36221733f988d6027bb10af4229",
+  "redactions": 0
+}

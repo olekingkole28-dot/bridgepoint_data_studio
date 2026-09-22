@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lidar-roof-refine-v5053",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "6a75367d86d06ea1bca2b9637d1f2b455ff963353c3daf6d4f129f4ee62039fb",
+  "redactions": 0
+}

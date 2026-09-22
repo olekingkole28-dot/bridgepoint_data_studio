@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-mail-readiness-v223",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "6b21ea1f9e865fc992abefe9e5995ccdc4733c270bf5c213495cd3b344642a16",
+  "redactions": 0
+}

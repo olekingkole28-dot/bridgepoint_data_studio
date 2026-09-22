@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-louisiana-stax-re-v1815",
+  "version": 8,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "304263e7c1920f835ab7a81025e6e87acc1d774017f1377e6a5b6d9c5a9d89c2",
+  "redactions": 0
+}

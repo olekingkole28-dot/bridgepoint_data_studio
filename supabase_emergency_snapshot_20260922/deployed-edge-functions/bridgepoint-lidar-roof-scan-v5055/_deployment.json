@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lidar-roof-scan-v5055",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "258c551897854856101158300adfd2005c1c663e88f17c1a8326cb3f04abd1b5",
+  "redactions": 0
+}

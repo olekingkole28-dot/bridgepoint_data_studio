@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-mail-admin-v225",
+  "version": 2,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "e6a395f271551bd5d6f482db82b8b0a6d44f7324196856cfe9264e3cc466aa01",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-live-weather-detail-v2044",
+  "version": 3,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "0a007d372dda44376ee60fd424f7150db9c967ea269ee8251c993d8f050a56b1",
+  "redactions": 0
+}

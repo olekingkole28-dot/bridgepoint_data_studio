@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-linden-roll-v1784",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "00b1d2f56eb0b7cc678fa8a4b928b58a6698213f82735471247fec78459f781a",
+  "redactions": 0
+}

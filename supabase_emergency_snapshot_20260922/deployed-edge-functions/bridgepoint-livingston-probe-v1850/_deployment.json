@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-livingston-probe-v1850",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "0a7a149d6d8ea4714fbbcd1817165620c8e694eba318e96d5c5d97bb11ae0369",
+  "redactions": 0
+}

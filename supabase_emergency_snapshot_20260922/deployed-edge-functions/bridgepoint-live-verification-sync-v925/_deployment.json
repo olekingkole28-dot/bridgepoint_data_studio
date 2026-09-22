@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-live-verification-sync-v925",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "4d869259b5db16d15f6a399a13abff4785ef5dbacd9233248f1195b26f5e33fe",
+  "redactions": 0
+}
