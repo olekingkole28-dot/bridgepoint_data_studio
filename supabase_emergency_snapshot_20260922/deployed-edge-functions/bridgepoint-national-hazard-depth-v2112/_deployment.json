@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-national-hazard-depth-v2112",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "a75de83e22247ca8029f883e04a11ba306c5ccf782819721e6dd0316de04af10",
+  "redactions": 0
+}

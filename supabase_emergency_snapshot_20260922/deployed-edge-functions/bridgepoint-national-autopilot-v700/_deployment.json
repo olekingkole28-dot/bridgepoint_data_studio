@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-national-autopilot-v700",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "25ddceb7ffd86b91e70555497d5aaf9260067bc799ddf995a9c1f0cc9c3f9299",
+  "redactions": 0
+}

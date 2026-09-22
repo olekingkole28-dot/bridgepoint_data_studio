@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-national-hazards-v903",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "5cf8a7a773ca4db4647800b8d424168933e1fa1c9e8ca6650327804cd7fb1a27",
+  "redactions": 0
+}

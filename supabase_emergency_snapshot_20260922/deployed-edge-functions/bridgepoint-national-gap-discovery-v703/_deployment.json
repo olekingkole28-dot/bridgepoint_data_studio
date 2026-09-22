@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-national-gap-discovery-v703",
+  "version": 7,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "fbeaf63f9c4be82e4bb77d271ca99eb1a435bb305ccd11238d3afdc2e40a12a5",
+  "redactions": 0
+}
