@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-overture-infra-ingest-v2636",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "646231af4c026d3b899d3cb5d8962bef2eec02f59d990000d11ca5c22521e78a",
+  "redactions": 0
+}

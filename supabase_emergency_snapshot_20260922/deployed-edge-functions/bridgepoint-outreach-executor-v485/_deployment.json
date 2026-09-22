@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-outreach-executor-v485",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "26aeb440c800da3f40beaaf62e067aa6d149736309966b486d450b8cd3cf60ea",
+  "redactions": 0
+}

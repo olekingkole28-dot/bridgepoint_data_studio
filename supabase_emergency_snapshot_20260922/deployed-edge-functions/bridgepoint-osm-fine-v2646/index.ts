@@ -1,0 +1,43 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+const U=Deno.env.get("SUPABASE_URL")!,S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const H={"content-type":"application/json","cache-control":"no-store"};
+async function rpc(name:string,body:any){const r=await fetch(`${U}/rest/v1/rpc/${name}`,{method:"POST",headers:{apikey:S,authorization:`Bearer ${S}`,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(45000)});const t=await r.text();if(!r.ok)throw new Error(`${name}_HTTP_${r.status}:${t.slice(0,700)}`);return t?JSON.parse(t):null;}
+function tileBbox(z:number,x:number,y:number){const n=2**z;const lon1=x/n*360-180,lon2=(x+1)/n*360-180;const lat=(yy:number)=>Math.atan(Math.sinh(Math.PI*(1-2*yy/n)))*180/Math.PI;return [lat(y+1),lon1,lat(y),lon2];}
+function m(v:any){if(v==null)return null;const s=String(v).trim().toLowerCase();const q=s.match(/-?\d+(?:\.\d+)?/);if(!q)return null;let n=Number(q[0]);if(!Number.isFinite(n))return null;if(/ft|feet|foot/.test(s))n*=0.3048;return n;}
+function geom(e:any){if(e.type==='node'&&Number.isFinite(e.lon)&&Number.isFinite(e.lat))return {type:'Point',coordinates:[e.lon,e.lat]};if(Array.isArray(e.geometry)&&e.geometry.length){const c=e.geometry.filter((p:any)=>Number.isFinite(p?.lon)&&Number.isFinite(p?.lat)).map((p:any)=>[p.lon,p.lat]);if(c.length<2)return null;const closed=c.length>=4&&c[0][0]===c[c.length-1][0]&&c[0][1]===c[c.length-1][1];return closed?{type:'Polygon',coordinates:[c]}:{type:'LineString',coordinates:c};}if(e.center&&Number.isFinite(e.center.lon)&&Number.isFinite(e.center.lat))return {type:'Point',coordinates:[e.center.lon,e.center.lat]};return null;}
+function classify(e:any,state:string){const t=e.tags||{};let layer='',source='',kind='',cls='',sub='';
+ if(t.natural==='tree'){layer='TREE_OBJECTS_3D';source='OSM_TREE_OBJECTS_V2643';kind='tree';cls='tree';sub=t.species||t.genus||t['species:en']||t.leaf_type||t.leaf_cycle||'';}
+ else if(t.natural==='shrub'){layer='TREE_OBJECTS_3D';source='OSM_TREE_OBJECTS_V2643';kind='shrub';cls='shrub';sub=t.species||t.genus||t.leaf_type||'';}
+ else if(t.barrier==='hedge'){layer='BARRIERS_WALLS_FENCES';source='OSM_BARRIERS_WALLS_FENCES_V2643';kind='vegetation';cls='hedge';sub=t.hedge||t.species||'';}
+ else if(t.amenity==='fountain'||t.man_made==='fountain'){layer='LANDMARK_OBJECTS_FINE';source='OSM_LANDMARK_OBJECTS_V2643';kind='landmark';cls='fountain';sub='fountain';}
+ else if(t.highway==='street_lamp'||t.highway==='traffic_signals'){layer='STREETLIGHTS_SIGNALS';source='OSM_STREETLIGHTS_SIGNALS_V5331';kind=t.highway==='street_lamp'?'streetlight':'signal';cls=t.highway;sub=t.traffic_signals||'';}
+ else if(t.highway==='bus_stop'||t.amenity==='bus_station'||['platform','stop_position','station'].includes(t.public_transport)){layer='BASE_INFRASTRUCTURE';source='OSM_TRANSIT_STOPS_V5331';kind='transit_stop';cls=t.public_transport||t.highway||t.amenity||'transit';sub=t.bus||t.tram||t.train||'';}
+ else if(['rock','stone','cliff','bare_rock','scree'].includes(t.natural)){layer='ROCKS_BOULDERS_CLIFFS';source='OSM_NATURAL_OBJECTS_V2645';kind='natural_object';cls=t.natural;sub=t.geological||'';}
+ else if(t.barrier){layer='BARRIERS_WALLS_FENCES';source='OSM_BARRIERS_V2643';kind='barrier';cls=t.barrier;sub=t.fence_type||t.wall||'';}
+ else if(t.leisure==='swimming_pool'){layer='POOLS_PROPERTY_WATER';source='OSM_POOLS_V2643';kind='pool';cls='swimming_pool';sub=t.sport||'';}
+ else if(t.power==='generator'&&t['generator:source']==='solar'){layer='ROOFTOP_SOLAR_DETAIL';source='OSM_ROOFTOP_SOLAR_V2643';kind='solar';cls='solar_generator';sub=t['generator:method']||'';}
+ else if(['monument','memorial'].includes(t.historic)||t.tourism==='artwork'){layer='LANDMARK_OBJECTS_FINE';source='OSM_LANDMARK_OBJECTS_V2643';kind='landmark';cls=t.historic||t.tourism;sub=t.memorial||t.artwork_type||'';}
+ else if(t.indoor||((t.highway==='steps'||t.highway==='elevator')&&t.level!=null)){layer='BUILDING_INTERIOR_ARCHITECTURE';source='OSM_INDOOR_ARCHITECTURE_V2643';kind='indoor';cls=t.indoor||t.highway;sub=t.room||t.door||'';}
+ else if(['shed','barn','garage','carport','greenhouse'].includes(t.building)||['silo','storage_tank','chimney','water_tower'].includes(t.man_made)){layer='PROPERTY_IMPROVEMENTS_FINE';source='OSM_PROPERTY_IMPROVEMENTS_V2643';kind='property_improvement';cls=t.building||t.man_made;sub=t.content||'';}
+ else if(t.tunnel==='yes'||t.tunnel==='building_passage'||t.covered==='yes'){layer='TUNNELS_UNDERPASSES';source='OSM_TUNNELS_V2645';kind='tunnel';cls=t.highway?'road_or_path':t.railway?'rail':'passage';sub=t.highway||t.railway||'';}
+ else if(t.surface){layer='SURFACE_MATERIAL_FINE';source='OSM_FINE_SURFACE_V2643';kind='surface';cls=t.highway||t.leisure||t.amenity||t.landuse||t.natural||'surface';sub=t.surface;}
+ else return null;const g=geom(e);if(!g)return null;return {layer_key:layer,source_key:source,source_record_id:`${e.type}/${e.id}`,jurisdiction_code:state,asset_kind:kind,class:cls,subtype:sub||null,height_m:m(t.height),surface:t.surface||null,geometry:g,truth_class:'SOURCE_BACKED_OSM',source_vintage:e.timestamp||'current',properties:{tags:t,osm_type:e.type,osm_id:e.id,osm_version:e.version??null,osm_timestamp:e.timestamp??null,attribution:'© OpenStreetMap contributors',license:'ODbL-1.0'}};}
+Deno.serve(async(req:Request)=>{let claim:any=null;let tok='';try{if(req.method!=='POST')return new Response(JSON.stringify({complete:false,error:'POST_REQUIRED'}),{status:405,headers:H});const b=await req.json().catch(()=>({}));tok=String(b.task_token||'');claim=await rpc('bridgepoint_osm_fine_claim_v2646',{p_task_token:tok});if(!claim?.claimed)return new Response(JSON.stringify({complete:true,claimed:false,reason:claim?.reason||'NO_TILE'}),{headers:H});const [s,w,n,e]=tileBbox(Number(claim.z),Number(claim.x),Number(claim.y));const bb=`${s},${w},${n},${e}`;const q=`[out:json][timeout:20];(
+node["natural"="tree"](${bb});nwr["natural"="shrub"](${bb});nwr["barrier"="hedge"](${bb});
+node["amenity"="fountain"](${bb});
+node["man_made"="fountain"](${bb});
+node["highway"~"^(street_lamp|traffic_signals|bus_stop)$"](${bb});
+nwr["amenity"="bus_station"](${bb});
+nwr["public_transport"~"^(platform|stop_position|station)$"](${bb});
+way["barrier"~"^(fence|wall|retaining_wall)$"](${bb});
+node["barrier"~"^(gate|bollard)$"](${bb});
+nwr["leisure"="swimming_pool"](${bb});
+nwr["natural"~"^(rock|stone|cliff|bare_rock|scree)$"](${bb});
+nwr["power"="generator"]["generator:source"="solar"](${bb});
+nwr["historic"~"^(monument|memorial)$"](${bb});
+nwr["tourism"="artwork"](${bb});
+nwr["building"~"^(shed|barn|garage|carport|greenhouse)$"](${bb});
+nwr["man_made"~"^(silo|storage_tank|chimney|water_tower)$"](${bb});
+way["tunnel"](${bb});
+way["highway"~"^(footway|path|pedestrian|cycleway|steps)$"]["surface"](${bb});
+);out body center geom qt;`;const endpoints=['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter','https://lz4.overpass-api.de/api/interpreter'];let fr:Response|null=null,last='';for(const endpoint of endpoints){try{const rr=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded;charset=UTF-8','accept':'application/json','user-agent':'BridgePointIntelligence/5331 (public-data materializer)'},body:new URLSearchParams({data:q}),signal:AbortSignal.timeout(30000)});if(rr.ok){fr=rr;break}last=`${endpoint}:${rr.status}`}catch(e){last=`${endpoint}:${String((e as any)?.message||e)}`}}if(!fr)throw new Error(`OVERPASS_ALL_FAILED_${last}`);const js=await fr.json();const rows=(Array.isArray(js?.elements)?js.elements:[]).map((x:any)=>classify(x,String(claim.state_code))).filter(Boolean);let persisted=0,skipped=0;for(let i=0;i<rows.length;i+=150){const p=await rpc('bridgepoint_osm_fine_persist_v2646',{p_task_token:tok,p_rows:rows.slice(i,i+150)});persisted+=Number(p?.persisted||0);skipped+=Number(p?.skipped||0);}await rpc('bridgepoint_osm_fine_progress_v2646',{p_task_token:tok,p_state_code:claim.state_code,p_z:claim.z,p_x:claim.x,p_y:claim.y,p_lease_token:claim.lease_token,p_success:true,p_error:null});return new Response(JSON.stringify({complete:true,claimed:true,state:claim.state_code,tile:`${claim.z}/${claim.x}/${claim.y}`,elements:js?.elements?.length||0,classified:rows.length,persisted,skipped}),{headers:H});}catch(err){const msg=String((err as any)?.message||err);if(claim?.claimed&&tok){try{await rpc('bridgepoint_osm_fine_progress_v2646',{p_task_token:tok,p_state_code:claim.state_code,p_z:claim.z,p_x:claim.x,p_y:claim.y,p_lease_token:claim.lease_token,p_success:false,p_error:msg.slice(0,700)});}catch{}}return new Response(JSON.stringify({complete:false,error:msg}),{status:500,headers:H});}});

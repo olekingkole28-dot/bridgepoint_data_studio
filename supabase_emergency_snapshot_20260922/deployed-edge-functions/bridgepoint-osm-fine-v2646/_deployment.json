@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-osm-fine-v2646",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "f3bc124d53be21f52d1cd838b23b36bb140213c3d329e321733134b9d2240df9",
+  "redactions": 0
+}

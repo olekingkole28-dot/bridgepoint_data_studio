@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-overture-probe-v2005",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "8e3091b4b40419e598bd02c87f40135fb5f0824e9eeca35252eb6af25a628f27",
+  "redactions": 0
+}

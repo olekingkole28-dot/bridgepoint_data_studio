@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-overture-infra-seed-v2636",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "0a6050345810e860fbb4769c5276eb9e29fe553932ff27cee3604b286df541b2",
+  "redactions": 0
+}

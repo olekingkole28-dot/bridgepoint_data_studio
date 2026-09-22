@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-overture-building-metadata-v2711",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "6fc8b525f432791a531bad443e1c2ef65407164b97df5532de9106f4d1bb9d89",
+  "redactions": 0
+}
