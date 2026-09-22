@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-prestorm-weather-v518",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d1d066b462834f167b76fae04a4de4d7b745312aac4d3fbc508983142faa9b51",
+  "redactions": 1
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-priority-parcel-feeder-v749",
+  "version": 7,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "655289d093308a5cfe7d5d5bc5a15f4df24b13abdd34a968dc4e2095f9e2037f",
+  "redactions": 7
+}

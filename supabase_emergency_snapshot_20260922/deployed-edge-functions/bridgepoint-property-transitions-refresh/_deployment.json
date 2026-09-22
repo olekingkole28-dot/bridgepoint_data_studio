@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-property-transitions-refresh",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "137763ebe885957df61e6440d51cd0e5dee83afc226f158505a6ce99d7eda0b6",
+  "redactions": 7
+}

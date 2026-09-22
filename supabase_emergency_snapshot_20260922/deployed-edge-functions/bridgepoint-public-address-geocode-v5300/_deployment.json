@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-address-geocode-v5300",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "fd22c93d2e88204690b8c6fd37639764a86e64728ea337e3ac697a6609155264",
+  "redactions": 1
+}

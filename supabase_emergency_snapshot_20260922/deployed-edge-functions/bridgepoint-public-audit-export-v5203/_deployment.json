@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-audit-export-v5203",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "f62e5e9f7384de4523d377111b5dcf17f6e5e35a114caf47f4e4b651440837b9",
+  "redactions": 1
+}

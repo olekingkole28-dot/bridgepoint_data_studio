@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-projected-foundation-v1300",
+  "version": 17,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d847cc9d495f3cf812a523159e44965ece1f6459e1812680a585c02147d55bcc",
+  "redactions": 3
+}
