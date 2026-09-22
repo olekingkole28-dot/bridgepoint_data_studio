@@ -14,6 +14,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'screens/bridgepoint_owner_command_center.dart';
+import 'bridgepoint_migration_notice_v5605.dart';
 import 'bridgepoint_intelligence_studio_v790.dart';
 import 'bridgepoint_integrations_hub_v790.dart';
 
@@ -2129,6 +2130,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: _WorkspaceAtmosphere(
                               pageIndex: selectedNavigation)),
                       Column(children: [
+                        const BridgePointMigrationNoticeV5605(),
                         _TopBar(
                           desktop: desktop,
                           package: selectedPackage,
