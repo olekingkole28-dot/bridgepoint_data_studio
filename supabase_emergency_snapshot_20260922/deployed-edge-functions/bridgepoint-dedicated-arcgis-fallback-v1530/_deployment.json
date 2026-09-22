@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-dedicated-arcgis-fallback-v1530",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "333b51b120bb031d32541de72fa72af9066815d95945be3e511101d442db5195",
+  "redactions": 0
+}

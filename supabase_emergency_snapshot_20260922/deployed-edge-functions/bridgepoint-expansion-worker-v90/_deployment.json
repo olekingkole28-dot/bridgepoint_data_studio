@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-expansion-worker-v90",
+  "version": 11,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "6b5fd47c2a5ac08bc710daa99fabafc28219fbd767bd24a95618ffc824ef6218",
+  "redactions": 0
+}

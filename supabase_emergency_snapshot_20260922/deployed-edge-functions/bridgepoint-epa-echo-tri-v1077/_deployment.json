@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-epa-echo-tri-v1077",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "a6b19141cd16a3e1a0f84beabc9fd3f0eee7298cb561e5570ec6e0171b6bcd16",
+  "redactions": 0
+}

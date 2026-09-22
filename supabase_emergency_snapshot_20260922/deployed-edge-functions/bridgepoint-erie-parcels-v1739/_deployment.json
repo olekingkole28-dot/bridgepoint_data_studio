@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-erie-parcels-v1739",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "a45a4368c5754809b9411c8e8ad64f6c19ba76e1228e76234a91c3d137c2410a",
+  "redactions": 0
+}

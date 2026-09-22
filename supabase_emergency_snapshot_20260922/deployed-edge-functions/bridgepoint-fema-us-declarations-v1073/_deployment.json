@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-fema-us-declarations-v1073",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "6cf298065b5f89709e973ae4edde7105377a9b00056074c05cdd74000236bfc1",
+  "redactions": 0
+}

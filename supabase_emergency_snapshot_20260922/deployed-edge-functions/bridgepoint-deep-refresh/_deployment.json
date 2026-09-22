@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-deep-refresh",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "72223db66e95c1a6ecf3f55d149ba869215aa535f7eccc8241ee4350a5bc9d83",
+  "redactions": 0
+}

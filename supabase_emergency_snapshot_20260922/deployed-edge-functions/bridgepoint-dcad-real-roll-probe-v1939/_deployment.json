@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-dcad-real-roll-probe-v1939",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "959095bc954c4c4617e5ba5753808d74b36c2bccfb07a0412829d646fc9a2021",
+  "redactions": 0
+}

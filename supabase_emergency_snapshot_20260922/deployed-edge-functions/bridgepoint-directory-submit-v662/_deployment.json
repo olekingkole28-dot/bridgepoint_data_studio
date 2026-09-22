@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-directory-submit-v662",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "606e9e3ce3ded2e0625ec0fc8253352eb85bc51b9fe8946db1a9ee6cacaab972",
+  "redactions": 0
+}

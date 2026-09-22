@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-dcad-stream-probe-v1928",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "4138530f5ba1ecb1c05c9aefa30566fb200ab13929475afc1ef0859281492e48",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-fire-ingest",
+  "version": 10,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "dc93ceba295180be1abffebff3110b13e48e551554ae7fe1d98c458df1a659a8",
+  "redactions": 0
+}

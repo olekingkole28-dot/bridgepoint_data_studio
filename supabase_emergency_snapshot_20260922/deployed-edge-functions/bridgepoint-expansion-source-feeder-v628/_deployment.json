@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-expansion-source-feeder-v628",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "581a9b4e0447ab68e79d93d47a8df368fea000b0aaef8ea6f6d88ab34f794676",
+  "redactions": 0
+}

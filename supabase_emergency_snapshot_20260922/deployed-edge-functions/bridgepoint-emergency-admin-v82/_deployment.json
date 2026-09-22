@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-emergency-admin-v82",
+  "version": 5,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "14e1e4af9f80a6b372003ad01228001dbec59c5691164bc19ae19dded78e8d2a",
+  "redactions": 0
+}
