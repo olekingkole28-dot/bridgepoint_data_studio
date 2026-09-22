@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usfws-fee-realty-v5450",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "ba70a022fda14b9c22bf2a1afafd815537ae252d1b75af20cf2a25e758cfa580",
+  "redactions": 3
+}

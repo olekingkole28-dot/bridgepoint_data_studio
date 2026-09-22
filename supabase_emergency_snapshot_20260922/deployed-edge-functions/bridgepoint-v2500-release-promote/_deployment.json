@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-v2500-release-promote",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "1148662667ada8f976f855dd12c2fb7fb5d20191a026ab808b890a53b227dec8",
+  "redactions": 0
+}

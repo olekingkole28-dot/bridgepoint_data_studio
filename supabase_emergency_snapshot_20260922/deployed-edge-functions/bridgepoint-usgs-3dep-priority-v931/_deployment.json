@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usgs-3dep-priority-v931",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "7865e883dde6b9b5a773f18ebc16dc327844d3ac1a88e3755ed6d34223b5c60e",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usfs-surface-ownership-v5445",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d8406ab93ef99e5b2c85fcf91d32ee8473e1f5d65c0aa8103e060596edc5d444",
+  "redactions": 3
+}

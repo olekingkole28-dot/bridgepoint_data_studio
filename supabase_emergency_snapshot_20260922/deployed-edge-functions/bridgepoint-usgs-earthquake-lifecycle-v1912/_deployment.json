@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usgs-earthquake-lifecycle-v1912",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "25b9dfab811b3d9b3377ad4ce23ad331efd265b164733e91e2cc95a181cc8590",
+  "redactions": 0
+}

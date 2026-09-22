@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usgs-refresh",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "8f2dd0ad9eb46db2ec30458fd0d446d8590e01951934932ed4bab9e03b413478",
+  "redactions": 0
+}

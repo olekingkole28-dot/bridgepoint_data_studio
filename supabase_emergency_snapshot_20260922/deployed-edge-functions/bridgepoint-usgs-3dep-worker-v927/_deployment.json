@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usgs-3dep-worker-v927",
+  "version": 7,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "5da4b9d7fd6313b943f9221b81ad39479a485f640d32916f0313cd45e374e90b",
+  "redactions": 0
+}

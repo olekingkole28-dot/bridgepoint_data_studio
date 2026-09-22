@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-valencia-relay-v1681",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "3fb5a6b2819699a1bc1f3fb41f36783b6ef61b172a0751a2f123a14125cfe68e",
+  "redactions": 0
+}

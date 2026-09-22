@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-washtenaw-pin-v1766",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "01cbe02956385e2c40e841b2b731955c0a31c98ce14968a740e04d7a978ff217",
+  "redactions": 1
+}

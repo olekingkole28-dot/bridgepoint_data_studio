@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usgs-lidar-stac-v2635",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "e70d4071c4f1797a795e64d6c713b70133e33a4a25188d4e3d869d0427571f3a",
+  "redactions": 0
+}
