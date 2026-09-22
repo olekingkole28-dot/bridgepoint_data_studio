@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-forsyth-excess-v1786",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "1038c2fbee9b437e0cd1eec213128ad737d47c5be44053844ad9ba236daca073",
+  "redactions": 0
+}

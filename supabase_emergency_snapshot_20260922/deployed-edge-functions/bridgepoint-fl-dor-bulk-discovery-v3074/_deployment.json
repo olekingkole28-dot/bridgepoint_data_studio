@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-fl-dor-bulk-discovery-v3074",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "907d7c3aa5a208af0722d31ae3c2f77ef52c304fc810f66c0216fefbefebe73c",
+  "redactions": 0
+}

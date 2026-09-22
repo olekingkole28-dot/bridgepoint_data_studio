@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-go",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "03da70e647f7dd2903276b72ea51857733cc41da1edecc4dad7ec38a584ec702",
+  "redactions": 0
+}

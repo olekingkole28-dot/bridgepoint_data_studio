@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-foundation-source-feeder-v633",
+  "version": 8,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "b1e6950f41b1953226cdfe18bbe7dee74bc4ad34bd98c04de6f5b7a06c7fb0e7",
+  "redactions": 0
+}

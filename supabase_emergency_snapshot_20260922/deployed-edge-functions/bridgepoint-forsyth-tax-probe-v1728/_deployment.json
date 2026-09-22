@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-forsyth-tax-probe-v1728",
+  "version": 7,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "825ff4c4cc79e1c9c7cc14aabc8906317eb6dab82ef4cfbce2a9b30507799f23",
+  "redactions": 0
+}

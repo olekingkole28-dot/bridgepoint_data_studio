@@ -1,0 +1,23 @@
+import { createClient } from "npm:@supabase/supabase-js@2.112.4";
+const SOURCE="https://geo.forsythco.com/gis/rest/services/Public/Tax_Parcel/FeatureServer/0/query";
+const CANDIDATE="6b4fe57b-22bd-47da-9c97-7b44da7753e4";
+const RUN="87951312-272c-4661-881d-e35af993377d";
+Deno.serve(async(req:Request)=>{let offset=0;try{
+ if(req.method!=="POST") return new Response("method",{status:405});
+ const body=await req.json().catch(()=>({}));
+ const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});
+ const auth=await sb.rpc("bridgepoint_expansion_worker_auth_v90",{p_task_token:String(body.task_token||req.headers.get("x-bridgepoint-worker-token")||"")});
+ if(auth.error||auth.data!==true) return Response.json({complete:false,error:"UNAUTHORIZED"},{status:401});
+ const {data:c,error:ce}=await sb.schema("automation").from("geographic_source_candidates_v86").select("decision_status,source_url,metadata").eq("candidate_id",CANDIDATE).single(); if(ce||!c) throw new Error(`CANDIDATE:${ce?.message||'missing'}`);
+ const {data:v,error:ve}=await sb.schema("automation").from("source_compliance_validation_v720").select("activation_status,rights_status,privacy_status,local_law_status,allowed_use_scope").eq("candidate_id",CANDIDATE).single(); if(ve||!v) throw new Error(`COMPLIANCE:${ve?.message||'missing'}`);
+ if(c.decision_status!=="ACCEPTED"||v.activation_status!=="APPROVED"||v.rights_status!=="PASS"||v.privacy_status!=="PASS"||v.local_law_status!=="PASS") throw new Error("LEGAL_GATE_NOT_APPROVED");
+ if(!String(v.allowed_use_scope||"").includes("PARCELID_ONLY")) throw new Error("PARCELID_ONLY_SCOPE_REQUIRED");
+ offset=Math.max(0,Number(body.offset??0)); const limit=Math.min(5000,Math.max(1,Number(body.limit??5000)));
+ const u=new URL(SOURCE); u.searchParams.set("where","PARCELID IS NOT NULL"); u.searchParams.set("outFields","OBJECTID,PARCELID"); u.searchParams.set("returnGeometry","false"); u.searchParams.set("orderByFields","OBJECTID"); u.searchParams.set("resultOffset",String(offset)); u.searchParams.set("resultRecordCount",String(limit)); u.searchParams.set("f","json");
+ const r=await fetch(u,{headers:{"user-agent":"BridgePointIntelligence/1.0 (Forsyth parcel-id foundation; no raw resale)"},signal:AbortSignal.timeout(45000)}); if(!r.ok) throw new Error(`ARCGIS_HTTP_${r.status}`); const j=await r.json(); if(!Array.isArray(j.features)) throw new Error("No features: "+JSON.stringify(j).slice(0,500));
+ const seen=new Set<string>(); const rows=[] as any[]; let blank=0,dupeInPage=0;
+ for(const f of j.features){const a=f.attributes||{}; const id=String(a.PARCELID??"").trim(); if(!id){blank++;continue;} if(seen.has(id)){dupeInPage++;continue;} seen.add(id); rows.push({run_id:RUN,candidate_id:CANDIDATE,state_code:"GA",source_record_id:id,source_updated_at:new Date().toISOString(),payload:{parcel_id:id,property_number:id,county_fips:"13117",county_name:"Forsyth County",state_code:"GA",source_mode:"FORSYTH_COUNTY_OPEN_DATA_PARCELID_ONLY_V1812",owner_retained:false,address_retained:false,assessment_retained:false,tax_retained:false,legal_description_retained:false,geometry_retained:false,raw_data_retained:false,raw_resale:false},materialization_status:"PENDING"});}
+ let attempted=0; for(let i=0;i<rows.length;i+=500){const chunk=rows.slice(i,i+500); const q=await sb.schema("staging").from("geographic_source_records_v90").upsert(chunk,{onConflict:"candidate_id,source_record_id",ignoreDuplicates:true}); if(q.error) throw q.error; attempted+=chunk.length;}
+ const done=await sb.schema("automation").rpc("complete_forsyth_offset_shard_v1812",{p_offset:offset,p_remote_rows:j.features.length,p_unique_rows:rows.length,p_stage_attempted:attempted}); if(done.error) throw new Error(`COMPLETE_RPC:${done.error.message}`);
+ return Response.json({complete:true,version:1812,offset,requested:limit,remote_records:j.features.length,unique_in_page:rows.length,blank,dupe_in_page:dupeInPage,attempted_stage:attempted,eof:j.features.length<limit,progress:done.data});
+}catch(e){const msg=String((e as any)?.message||e);try{const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false,autoRefreshToken:false}});await sb.schema("automation").rpc("fail_forsyth_offset_shard_v1812",{p_offset:offset,p_error:msg});}catch{} return Response.json({complete:false,version:1812,error:msg,offset},{status:500});}});

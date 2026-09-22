@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-forsyth-tax-v1785",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9019b10104aee846333aa239667e988cb897b1754dccd8fdbd8623fcca8c7b3d",
+  "redactions": 0
+}

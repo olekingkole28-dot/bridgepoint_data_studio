@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-genesee-relay-v1691",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "36cce4824407a40317b61e6bbf6f74427502c06a56e5aae985e6bafe2949593e",
+  "redactions": 0
+}

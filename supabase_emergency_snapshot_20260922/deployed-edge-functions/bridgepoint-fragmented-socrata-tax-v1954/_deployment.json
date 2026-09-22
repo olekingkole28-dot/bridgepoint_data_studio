@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-fragmented-socrata-tax-v1954",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "e1aec01225cca7c80dbf2f6aa1dcfabf50f6761373d85f5fcf4c414705dc5d48",
+  "redactions": 0
+}

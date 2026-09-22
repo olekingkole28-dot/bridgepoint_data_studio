@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-geographic-checkout-v1056",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "0401a6767dd51206c5945c4cf7d5841316272f02a0daa38437221e8853e49ecf",
+  "redactions": 0
+}
