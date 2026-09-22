@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-surface-sample-v2654",
+  "version": 3,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "dc04c817068c7e45270ae6c9b776e28983ec9fe42671da14154017c0bc68783b",
+  "redactions": 0
+}

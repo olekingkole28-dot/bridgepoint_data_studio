@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-surface-bulk-v2673",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "a29028aacc5fe1440eb6d17955b333da59da49c94b8376b76da9ef4ab75e2ab6",
+  "redactions": 7
+}

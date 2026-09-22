@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-stripe-webhook-v220",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": true,
+  "ezbr_sha256": "cbafd3d3ad7aea3b1a1756fb9830c736593aee717f03c81e1944c1c27f6732b9",
+  "redactions": 3
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tcad-prop-ingest-v1935",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "2e00b043b24dbc7f7e08bc83b53d768503511174ecd06285e873c6b67519a038",
+  "redactions": 0
+}

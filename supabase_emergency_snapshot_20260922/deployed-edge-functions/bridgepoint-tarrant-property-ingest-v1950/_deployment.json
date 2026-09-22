@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tarrant-property-ingest-v1950",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "1ecfd43d4c80aaba96ad95187602b680341112075ebb15348467cb197f4ba5ef",
+  "redactions": 0
+}
