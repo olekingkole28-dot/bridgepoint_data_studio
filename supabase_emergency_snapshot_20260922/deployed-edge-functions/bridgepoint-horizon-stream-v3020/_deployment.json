@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-horizon-stream-v3020",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "cf0cb93b30df5367e3f796403effce849e17d401af21692a5fd73afa42f1e668",
+  "redactions": 0
+}

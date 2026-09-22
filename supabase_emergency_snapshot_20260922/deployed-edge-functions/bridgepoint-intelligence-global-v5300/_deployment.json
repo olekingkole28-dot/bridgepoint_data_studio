@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-intelligence-global-v5300",
+  "version": 10,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "0b63e85cd3746a86c6cd87ef8b9d69c80de7bfa3b70a4d86108d01f314999d9f",
+  "redactions": 0
+}

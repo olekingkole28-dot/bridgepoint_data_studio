@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-indexnow-v646",
+  "version": 2,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "3e18977b8904bf9b3e50852b8669d7ab66b3237650618e3016b96b76f2be8a15",
+  "redactions": 0
+}

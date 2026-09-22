@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-iot-ingest-v519",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "afaed6bfe43397c97dc14fa9bd74df073a0a03ce7aaf5ffec2642dca5587bbbb",
+  "redactions": 0
+}

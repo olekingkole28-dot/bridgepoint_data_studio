@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-kansas-public-orka-v1812",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "bfd18f9e66db80100406f8946e88c6c68929c66f7a75e8d69fd120bceb3d3f91",
+  "redactions": 0
+}

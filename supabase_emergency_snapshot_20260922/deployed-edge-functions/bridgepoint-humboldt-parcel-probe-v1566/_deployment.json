@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-humboldt-parcel-probe-v1566",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "db2b88dcbdc8a8ca4a8f04892bf9247672f7fdb90020fab6a7ae621e3e1151fc",
+  "redactions": 0
+}

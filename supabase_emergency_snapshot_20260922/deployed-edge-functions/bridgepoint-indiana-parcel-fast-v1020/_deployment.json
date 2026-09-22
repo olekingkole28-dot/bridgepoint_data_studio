@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-indiana-parcel-fast-v1020",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d808816980627221423fe0f75178501129da3f779b641a237d71b3c8ec09c44c",
+  "redactions": 0
+}

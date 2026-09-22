@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-horizon-world-v3020",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "fbe2e3944b4dd5596becc4f6be9c052fcc96c7c4240308768b6a749be2c80629",
+  "redactions": 0
+}

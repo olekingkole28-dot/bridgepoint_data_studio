@@ -1,0 +1,32 @@
+import { createClient } from "npm:@supabase/supabase-js@2.55.0";
+const U=Deno.env.get("SUPABASE_URL")!,S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const db=createClient(U,S,{auth:{persistSession:false,autoRefreshToken:false}});
+const H={"content-type":"application/json","cache-control":"no-store"};
+const V=1549;
+const CID="0a388323-1105-4638-9aff-059ee9222e11";
+const TID="3150dfa8-d6f4-4ec6-aef3-b46b957d49e0";
+const URL="https://eoc.iowa.gov/arcgis/rest/services/Public/AdminBoundaries/MapServer/0";
+const FIELDS=["OBJECTID","LOWPARCELID","PARCELID","STATEAREA","SITEADRESS","LOCALFIPS","STCOFIPS","BPTCUNITID"];
+const TOTAL=2428041;
+async function getJson(url:string,ms:number){const r=await fetch(url,{headers:{accept:"application/json","user-agent":"BridgePointIntelligence/1.0"},signal:AbortSignal.timeout(ms)});const t=await r.text();if(!r.ok)throw new Error(`HTTP_${r.status}:${t.slice(0,180)}`);const j=JSON.parse(t);if(j?.error)throw new Error(`ARCGIS_${j.error?.code||''}:${j.error?.message||''}`);return j;}
+async function fetchWindow(lo:number,hi:number,timeout=45000){const where=`OBJECTID>${lo} AND OBJECTID<=${hi}`;const q=`${URL}/query?where=${encodeURIComponent(where)}&outFields=${encodeURIComponent(FIELDS.join(','))}&returnGeometry=false&returnCentroid=true&outSR=4326&f=json`;return await getJson(q,timeout);}
+function mapRows(features:any[]){return features.map((f:any)=>{const a={...(f?.attributes||{})};const id=a.OBJECTID;if(id==null)throw new Error("OBJECTID_MISSING");a._bridgepoint_source_record_id=String(id);const g=f?.centroid||f?.geometry||{};if(Number.isFinite(g?.x)&&Number.isFinite(g?.y)){a._bridgepoint_longitude=g.x;a._bridgepoint_latitude=g.y;}return a;});}
+Deno.serve(async req=>{try{
+ if(req.method!=="POST")return new Response(JSON.stringify({complete:false,error:"POST_REQUIRED"}),{status:405,headers:H});
+ const b=await req.json().catch(()=>({}));const tok=String(b.task_token||req.headers.get("x-bridgepoint-worker-token")||"");const a=await db.rpc("bridgepoint_expansion_worker_auth_v90",{p_task_token:tok});if(a.error||a.data!==true)return new Response(JSON.stringify({complete:false,error:"UNAUTHORIZED"}),{status:401,headers:H});
+ const {data:t,error:te}=await db.schema("automation").from("geographic_source_tasks_v90").select("source_task_id,candidate_id,task_status,cursor,result,attempt_count,max_attempts").eq("source_task_id",TID).single();if(te)throw te;if(String(t.candidate_id)!==CID)throw new Error("TASK_CANDIDATE_MISMATCH");
+ if(!["QUEUED","RETRY","PENDING","RUNNING"].includes(String(t.task_status)))return new Response(JSON.stringify({complete:true,version:V,skipped:"TASK_NOT_RUNNABLE",status:t.task_status}),{headers:H});
+ const {data:c,error:ce}=await db.schema("automation").from("geographic_source_candidates_v86").select("decision_status,metadata").eq("candidate_id",CID).single();if(ce)throw ce;if(c.decision_status!=="ACCEPTED"||c.metadata?.compliance_gate_v720!=="APPROVED")throw new Error("COMPLIANCE_NOT_APPROVED");if(c.metadata?.iowa_dedicated_foundation_v1539!==true||c.metadata?.dedicated_iowa_lane_v1540!==true)throw new Error("DEDICATED_LANE_NOT_ARMED");
+ const cf=Array.isArray(c.metadata?.foundation_out_fields)?c.metadata.foundation_out_fields.map(String):[];if(JSON.stringify(cf)!==JSON.stringify(FIELDS))throw new Error("FOUNDATION_ALLOWLIST_MISMATCH");
+ await db.schema("automation").from("geographic_source_tasks_v90").update({task_status:"RUNNING",updated_at:new Date().toISOString(),last_error:null}).eq("source_task_id",TID);
+ const cur=t.cursor||{};const seen=Number(cur.keyset_rows_seen||0)||0;const ceiling=Number(cur.iowa_oid_window_ceiling||0)||0;let width=Math.min(Math.max(Number(cur.iowa_oid_window_width||1000),100),1000);let lo=ceiling,hi=lo+width,j:any;const started=Date.now();
+ try{j=await fetchWindow(lo,hi,35000);}catch(e){width=200;hi=lo+width;j=await fetchWindow(lo,hi,50000);}
+ const raw=Array.isArray(j?.features)?j.features:[];const rows=mapRows(raw);const ids=rows.map((x:any)=>Number(x.OBJECTID)).filter((x:number)=>Number.isFinite(x));if(new Set(ids).size!==ids.length)throw new Error("OBJECTID_COLLISION");
+ const nextSeen=seen+rows.length;const ms=Date.now()-started;let nextWidth=width;if(ms<3000)nextWidth=Math.min(1000,width*2);else if(ms<10000)nextWidth=Math.min(1000,width+200);else if(ms>30000)nextWidth=Math.max(100,Math.floor(width/2));
+ const done=nextSeen>=TOTAL;
+ if(hi>25000000&&!done)throw new Error(`IOWA_OID_WINDOW_SAFETY_LIMIT:${hi}:${nextSeen}/${TOTAL}`);
+ const spatialRows=rows.filter((x:any)=>Number.isFinite(x._bridgepoint_longitude)&&Number.isFinite(x._bridgepoint_latitude)).length;
+ const st=await db.rpc("bridgepoint_expansion_worker_stage_records_v90",{p_source_task_id:TID,p_records:rows,p_next_cursor:{pagination_mode:"IOWA_HSEMD_BOUNDED_OID_WINDOW_V1549",last_oid:ids.length?Math.max(...ids):Number(cur.last_oid||0)||0,keyset_rows_seen:nextSeen,estimated_total_rows:TOTAL,object_id_field:"OBJECTID",foundation_out_fields:FIELDS,privacy_minimized:true,iowa_oid_window_ceiling:hi,iowa_oid_window_width:nextWidth},p_done:done,p_result:{batch_size:rows.length,last_batch_records:rows.length,last_oid:ids.length?Math.max(...ids):Number(cur.last_oid||0)||0,keyset_rows_seen:nextSeen,estimated_total_rows:TOTAL,privacy_minimized:true,projected_fields:FIELDS,fetch_ms:ms,window_low:lo,window_high:hi,window_width:width,next_window_width:nextWidth,iowa_hsemd_foundation_version:V,owner_mailing_value_fields_requested:false,bounded_oid_window:true,centroid_requested:true,spatial_rows_in_batch:spatialRows,source_url:URL,last_batch_at:new Date().toISOString()}});if(st.error)throw st.error;
+ return new Response(JSON.stringify({complete:true,version:V,records:rows.length,seen:nextSeen,total:TOTAL,window_low:lo,window_high:hi,done,fetch_ms:ms,window_width:width,next_window_width:nextWidth,privacy_minimized:true,centroid_requested:true,spatial_rows:spatialRows}),{headers:H});
+ }catch(e){const msg=String((e as any)?.message||e);try{await db.schema("automation").from("geographic_source_tasks_v90").update({task_status:"QUEUED",last_error:msg,next_retry_at:new Date(Date.now()+10000).toISOString(),updated_at:new Date().toISOString()}).eq("source_task_id",TID)}catch{}return new Response(JSON.stringify({complete:false,version:V,error:msg}),{status:500,headers:H});}
+});

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-interior-sanborn-v3200",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "309176e20d80f22995d23895d25485d875cdad57e0c084fa2da5921c73dcd2cb",
+  "redactions": 0
+}
