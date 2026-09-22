@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lancaster-wedge-ingest-v1761",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "365a26fc418c19de128c5aae8fafd5b0d86060a56623ed71b2f8ee063fe5d814",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lidar-fine-prepare-v2664",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "78b6a55233842fb8fc4f9489026cd82d833ee0948028417ac170b285818a2ad0",
+  "redactions": 0
+}

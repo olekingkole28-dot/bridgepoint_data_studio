@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lancaster-wedge-probe-v1752",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "16a1f2b0e117ddf36df11540b25b1c07a5fa478329306ebcd32259c3214020bd",
+  "redactions": 0
+}

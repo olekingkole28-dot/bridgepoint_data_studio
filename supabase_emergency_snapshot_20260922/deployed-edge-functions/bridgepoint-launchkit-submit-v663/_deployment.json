@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-launchkit-submit-v663",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "1a96064ac97b1597ca0b369a07272a9fb43c5ba90c96f168183b2de851fe2aeb",
+  "redactions": 0
+}

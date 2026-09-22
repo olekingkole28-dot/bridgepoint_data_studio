@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lidar-roof-decode-v5053",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "e7c9fbf8a5561b0a15b2d1e6af44ded75453bf6a5d9ccba144266da7d2c07072",
+  "redactions": 0
+}

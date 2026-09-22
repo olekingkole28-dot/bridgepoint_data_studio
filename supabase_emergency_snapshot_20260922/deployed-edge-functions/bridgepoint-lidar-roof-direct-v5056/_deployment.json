@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lidar-roof-direct-v5056",
+  "version": 2,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "98b8dadc8268624a7a15fb6e86993fee7870cc14884d8af309f33320cba556a2",
+  "redactions": 0
+}

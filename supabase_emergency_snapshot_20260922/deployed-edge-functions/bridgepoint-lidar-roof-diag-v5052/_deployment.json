@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lidar-roof-diag-v5052",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "7872a593f1898b6e2d2b84276d3ba5db24325c99c28140849781cacc316aaf08",
+  "redactions": 0
+}

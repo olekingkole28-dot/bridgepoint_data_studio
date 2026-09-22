@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lidar-roof-cell-v5058",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "fa64c908759003aa0ef91be746848ce9abb81a94e06bc8769555f8fe403e3301",
+  "redactions": 0
+}
