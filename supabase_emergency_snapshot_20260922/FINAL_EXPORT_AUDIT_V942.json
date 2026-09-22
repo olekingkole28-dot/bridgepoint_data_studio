@@ -1,0 +1,84 @@
+{
+  "audit_version": 942,
+  "captured_at": "2026-09-22",
+  "managed_supabase_project": "xdfsjztwgsbmabshzsjw",
+  "managed_supabase_url": "https://xdfsjztwgsbmabshzsjw.supabase.co",
+  "public_client_key": "sb_publishable_lM9oWQeHjBmgOIiteeOicQ_PTyAeF25",
+  "database": {
+    "physical_tables": 1590,
+    "state_export_tables": 3,
+    "generic_nonstaging_tables": 1538,
+    "staging_priority_20_tables": 18,
+    "raw_geographic_staging_priority_30_tables": 1,
+    "secret_metadata_only_tables": 30,
+    "state_table_data_bytes": 381018824704,
+    "p10_data_bytes": 388060962816,
+    "p20_data_bytes": 51324125184,
+    "p30_data_bytes": 248954494976,
+    "schema_control_objects": 17450,
+    "migrations": 2485,
+    "realtime_publications": 2,
+    "publication_tables": 7,
+    "foreign_servers": 1,
+    "large_objects": 0
+  },
+  "storage": {
+    "buckets": 9,
+    "objects": 1510,
+    "bytes": 40043289038
+  },
+  "auth": {
+    "users": 7,
+    "identities": 7,
+    "providers": {
+      "email": 7
+    },
+    "sessions_not_exported": 134,
+    "refresh_tokens_not_exported": 585,
+    "one_time_tokens_not_exported": 1
+  },
+  "edge_functions": {
+    "deployed": 385,
+    "snapshotted_private_git_branch": 385,
+    "branch": "supabase-emergency-snapshot-20260922",
+    "source_missing": 0
+  },
+  "source": {
+    "public_repo": "olekingkole28-dot/bridgepoint-live",
+    "public_repo_github_pages": true,
+    "private_repo": "olekingkole28-dot/bridgepoint_data_studio",
+    "private_emergency_branch": "supabase-emergency-snapshot-20260922"
+  },
+  "client_cutover_locations": [
+    "bridgepoint_data_studio/lib/main.dart",
+    "bridgepoint_data_studio/lib/main_v2.dart",
+    "bridgepoint-live/app.js",
+    "bridgepoint-live/app/world-v2300-config.js",
+    "bridgepoint-live/world-v2300-config.js"
+  ],
+  "local_strategy": "Self-host a Supabase-compatible local backend so existing Flutter/web RPC/auth/storage behavior can be retained; repoint URL and publishable key rather than rewriting application logic.",
+  "intentionally_not_exported_as_plaintext": [
+    "Supabase hosted JWT signing keys/service-role secrets",
+    "Vault secret values",
+    "refresh/session/one-time auth tokens",
+    "OAuth provider secrets",
+    "foreign server credentials/options",
+    "custom LOGIN role passwords"
+  ],
+  "reentry_or_rotation_required": [
+    "new local JWT/API signing keys",
+    "12 Vault/external secret values as required by surviving features",
+    "SMTP/email provider credentials if enabled",
+    "Stripe/social/other external-provider credentials if enabled",
+    "foreign-server credentials if the Overture FDW is retained",
+    "DNS/custom-domain routing to the local/public endpoint"
+  ],
+  "priority_order": [
+    "V939 state Parquet runtime data",
+    "all Supabase Storage objects",
+    "schema/auth/control plane",
+    "all non-staging database rows not covered by V939",
+    "additional staging",
+    "raw geographic staging last"
+  ]
+}
