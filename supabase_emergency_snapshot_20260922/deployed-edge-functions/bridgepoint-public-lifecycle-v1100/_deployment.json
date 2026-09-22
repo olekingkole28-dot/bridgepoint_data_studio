@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-lifecycle-v1100",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "f63887570654111721751edbf31ab7d742c4ff872b9d24bf51c8b4d070547a0b",
+  "redactions": 1
+}

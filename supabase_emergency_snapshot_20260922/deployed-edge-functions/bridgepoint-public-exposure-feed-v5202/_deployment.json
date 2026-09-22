@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-exposure-feed-v5202",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "4a81d69a19452982b5c32240edc09640a4bd24acd14830dbd17f2176dc1bb907",
+  "redactions": 0
+}

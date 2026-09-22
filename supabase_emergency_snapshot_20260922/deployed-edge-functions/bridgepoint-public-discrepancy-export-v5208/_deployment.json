@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-discrepancy-export-v5208",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "6d6c99aba6dfbe5bde15ac2ebf5c7ddd72980d5e31ad40ed4bfe7e11424589e3",
+  "redactions": 1
+}
