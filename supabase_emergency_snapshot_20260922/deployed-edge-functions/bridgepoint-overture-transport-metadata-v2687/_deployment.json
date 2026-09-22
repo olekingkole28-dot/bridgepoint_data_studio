@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-overture-transport-metadata-v2687",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "924627f9a0874a59e264d3078941bb5f69e94c0f976c43cec13796ad587b0c83",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-pa-pasda-parcel-federation-v1420",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9cb75ee6a791c77d2d38da218ec80357bef35e47c7eaad728313c420aa150d0c",
+  "redactions": 0
+}

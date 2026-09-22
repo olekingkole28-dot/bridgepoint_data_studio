@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-overture-transport-ingest-v2639",
+  "version": 7,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "26ccfb64dd2dace0506fbbef6e42c4f62d0ab340be7798388b43afadb243961c",
+  "redactions": 0
+}

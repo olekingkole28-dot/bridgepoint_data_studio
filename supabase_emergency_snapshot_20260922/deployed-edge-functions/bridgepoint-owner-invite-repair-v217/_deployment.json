@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-owner-invite-repair-v217",
+  "version": 4,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "77571e1bf08a2df5d8a33b979c18211ce7924a917dddb697ec2ee8edda71cb48",
+  "redactions": 0
+}

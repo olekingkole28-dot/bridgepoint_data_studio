@@ -1,0 +1,1 @@
+Deno.serve((_req:Request)=>new Response(JSON.stringify({complete:false,error:'One-time owner invite repair is closed.'}),{status:410,headers:{'Content-Type':'application/json'}}));

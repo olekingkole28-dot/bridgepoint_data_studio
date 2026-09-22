@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-owner-invite-v153",
+  "version": 5,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "82075487a866f5074cf800352a930b16edf716cf7c9beb15dad1d5747cc10aa2",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-owner-print-pack-v2160",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "c270ddc1a9f0c8219d46753c204cf995176c085b00f8f22fc64b2928970796bb",
+  "redactions": 0
+}

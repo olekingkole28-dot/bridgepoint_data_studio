@@ -1,0 +1,26 @@
+import { asyncBufferFromUrl, parquetReadObjects } from 'npm:hyparquet@1.30.0';
+import { compressors } from 'npm:hyparquet-compressors@1.1.1';
+import { Buffer } from 'node:buffer';
+const U=Deno.env.get('SUPABASE_URL')!,S=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SEG='OVERTURE_TRANSPORT_20260819_V2626',CON='OVERTURE_TRANSPORT_CONNECTOR_20260819_V2681',VERSION=2694;
+const TD=new TextDecoder('utf-8',{fatal:false});
+const REGIONS=[[-124.763068,24.521304,-66.949895,49.384358],[-179.146711,51.215567,-129.974167,71.387815],[172.461667,51.357688,179.778470,53.010750],[-178.334698,18.910361,-154.806773,28.402123],[-171.089874,-14.548699,-168.143300,-11.046934],[144.618068,13.234189,146.064525,20.553247],[-67.945404,17.674678,-64.565594,18.516023]];
+async function rpc(n:string,b:any){const r=await fetch(`${U}/rest/v1/rpc/${n}`,{method:'POST',headers:{apikey:S,authorization:`Bearer ${S}`,'content-type':'application/json'},body:JSON.stringify(b),signal:AbortSignal.timeout(60000)});const t=await r.text();if(!r.ok)throw new Error(`${n}:${t.slice(0,1000)}`);return t?JSON.parse(t):null}
+function bytes(v:any):Uint8Array|null{if(v instanceof Uint8Array)return v;if(v instanceof ArrayBuffer)return new Uint8Array(v);if(ArrayBuffer.isView(v))return new Uint8Array(v.buffer,v.byteOffset,v.byteLength);return null}
+function txt(v:any):string|null{if(v==null)return null;const b=bytes(v),s=b?TD.decode(b):String(v);return s.replace(/\u0000/g,'').replace(/\0/g,'')||null}
+function geom(v:any){const b=bytes(v);if(b)return Buffer.from(b).toString('hex');if(typeof v==='string'&&/^[0-9A-Fa-f]+$/.test(v)&&v.length%2===0)return v;throw new Error(`GEOMETRY_BINARY_EXPECTED:${Object.prototype.toString.call(v)}`)}
+function cfg(k:string){if(k===SEG)return{columns:['id','geometry','subtype','class'],asset_kind:'transport_segment'};if(k===CON)return{columns:['id','geometry'],asset_kind:'transport_connector'};throw new Error(`SOURCE_NOT_ALLOWED:${k}`)}
+const FILTER:any={$or:[...REGIONS.map(([w,s,e,n])=>({$and:[{'bbox.xmin':{$lte:e}},{'bbox.xmax':{$gte:w}},{'bbox.ymin':{$lte:n}},{'bbox.ymax':{$gte:s}}]})),{'bbox.xmin':{$eq:null}}]};
+Deno.serve(async req=>{let c:any=null,t='',src='';try{
+ const b=await req.json().catch(()=>({}));t=String(b.task_token||'');src=String(b.source_key||SEG);if(await rpc('bridgepoint_expansion_worker_auth_v90',{p_task_token:t})!==true)return new Response('unauthorized',{status:401});const cf=cfg(src);
+ c=await rpc('bridgepoint_transport_row_group_claim_v2692',{p_task_token:t,p_source_key:src,p_chunk_size:30000});if(!c?.claimed)return Response.json(c||{claimed:false});
+ const start=Number(c.row_start),end=Number(c.row_end),direct=c.direct_jurisdiction?String(c.direct_jurisdiction):null;
+ const file=await asyncBufferFromUrl({url:String(c.parquet_url),requestInit:{headers:{'user-agent':`BridgePointIntelligence/${VERSION}-transport-rowgroup`}}});
+ const opts:any={file,compressors,columns:cf.columns,rowStart:start,rowEnd:end,usePageIndex:true,useOffsetIndex:true,geoparquet:false,utf8:false};if(!direct)opts.filter=FILTER;
+ const raw:any[]=await parquetReadObjects(opts);const rows=[] as any[];
+ for(const x of raw){const id=txt(x?.id);if(!id||x?.geometry==null)continue;rows.push({source_key:src,layer_key:'TRANSPORT_NETWORK_DETAIL',source_record_id:id,asset_kind:cf.asset_kind,class:txt(x.class),subtype:txt(x.subtype),height_m:null,surface:null,geometry:geom(x.geometry),truth_class:'SOURCE_BACKED_OVERTURE_TRANSPORT',source_vintage:'2026-08-19.0',properties:{license:'ODbL-1.0',ingest_profile:direct?'ROW_GROUP_DIRECT_JURISDICTION_V2694':'ROW_GROUP_BOUNDARY_FILTER_V2694',source_type:src===SEG?'segment':'connector',row_group_index:Number(c.row_group_index)}})}
+ let persisted=0,directVerified=0,fallbackClipped=0;
+ for(let i=0;i<rows.length;i+=100){const p=await rpc('bridgepoint_transport_rows_persist_v2693',{p_task_token:t,p_rows:rows.slice(i,i+100),p_direct_jurisdiction:direct});persisted+=Number(p?.persisted||0);directVerified+=Number(p?.direct_verified||0);fallbackClipped+=Number(p?.fallback_clipped||0)}
+ const pr=await rpc('bridgepoint_transport_row_group_progress_v2692',{p_task_token:t,p_source_key:src,p_item_id:c.item_id,p_row_group_index:Number(c.row_group_index),p_lease_token:c.lease_token,p_chunk_end:end,p_us:rows.length,p_persisted:persisted,p_error:null});
+ return Response.json({complete:true,version:VERSION,source_key:src,item:c.item_id,row_group_index:c.row_group_index,row_start:start,row_end:end,physical_rows_advanced:end-start,direct_jurisdiction:direct,filtered_candidates:rows.length,persisted,direct_verified:directVerified,fallback_clipped:fallbackClipped,row_group_done:pr?.done===true,profile:direct?'ROW_GROUP_DIRECT_JURISDICTION':'ROW_GROUP_BOUNDARY_FILTER'});
+}catch(e){const msg=String((e as any)?.message||e);if(c?.claimed&&t&&src){try{await rpc('bridgepoint_transport_row_group_progress_v2692',{p_task_token:t,p_source_key:src,p_item_id:c.item_id,p_row_group_index:Number(c.row_group_index),p_lease_token:c.lease_token,p_chunk_end:Number(c.row_start||0),p_us:0,p_persisted:0,p_error:msg.slice(0,1500)})}catch{}}return Response.json({complete:false,version:VERSION,error:msg},{status:500})}});
