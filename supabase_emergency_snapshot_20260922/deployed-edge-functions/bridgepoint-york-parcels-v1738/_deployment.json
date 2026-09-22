@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-york-parcels-v1738",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "53398722b89b878f8abe6c7c0f7506498292fa653fd87cc80c2377684a35c9a3",
+  "redactions": 3
+}

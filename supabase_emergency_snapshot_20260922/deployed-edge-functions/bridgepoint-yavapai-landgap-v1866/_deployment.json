@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-yavapai-landgap-v1866",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9cf1e4cd4a532ecf48246f629ccd54e8c9b6e73c3edf2a10f5f2b36f60657b1d",
+  "redactions": 3
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-yavapai-apn-v1782",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "5faa2f530e110ce4a47f37a0b3edca25a438158109cad44d20506ae9854e8b87",
+  "redactions": 0
+}

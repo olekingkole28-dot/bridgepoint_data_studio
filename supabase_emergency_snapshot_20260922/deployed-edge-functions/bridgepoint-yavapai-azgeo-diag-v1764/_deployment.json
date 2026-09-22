@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-yavapai-azgeo-diag-v1764",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "f60cf202b921ae685776dd58529a4f543c6fb6bb385d2f44bf3af12a8279c785",
+  "redactions": 1
+}
