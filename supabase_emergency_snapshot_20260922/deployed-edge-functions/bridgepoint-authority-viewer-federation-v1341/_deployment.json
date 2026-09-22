@@ -1,0 +1,14 @@
+{
+  "id": "e6c65b67-64ee-4057-84b4-0b8eb49f6b8e",
+  "slug": "bridgepoint-authority-viewer-federation-v1341",
+  "name": "bridgepoint-authority-viewer-federation-v1341",
+  "status": "ACTIVE",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_e6c65b67-64ee-4057-84b4-0b8eb49f6b8e_3/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "a18ae2a0a352c1312b0eecc0392a1959aee0c42eb1fbace33141856b73eff1fb",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

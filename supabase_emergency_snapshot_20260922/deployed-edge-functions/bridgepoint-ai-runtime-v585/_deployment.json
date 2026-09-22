@@ -1,0 +1,14 @@
+{
+  "id": "b962411d-103c-4556-8b94-3597577a17f6",
+  "slug": "bridgepoint-ai-runtime-v585",
+  "name": "bridgepoint-ai-runtime-v585",
+  "status": "ACTIVE",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_b962411d-103c-4556-8b94-3597577a17f6_2/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "55f41a8e114ee648bc49e890bbef5b29e0bc435882c7fe0b8b49e4abef67283b",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

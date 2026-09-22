@@ -1,0 +1,14 @@
+{
+  "id": "74771e92-5a07-4871-a752-96ed5466fd4a",
+  "slug": "bridgepoint-arcgis-license-enrich-v1517",
+  "name": "bridgepoint-arcgis-license-enrich-v1517",
+  "status": "ACTIVE",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_74771e92-5a07-4871-a752-96ed5466fd4a_4/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "aca06599cbc35b3730a21fc3446d6643afaf60994ee81808101f764ad83574bb",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

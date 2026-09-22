@@ -1,0 +1,14 @@
+{
+  "id": "2330a6c8-b7ac-4f83-826a-b73da1b8ec34",
+  "slug": "bridgepoint-authority-directory-seeder-v1342",
+  "name": "bridgepoint-authority-directory-seeder-v1342",
+  "status": "ACTIVE",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_2330a6c8-b7ac-4f83-826a-b73da1b8ec34_6/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "86e6d05f04d8a676cba589f4fae84c05f813479312304a41e21dff2f9a219bd7",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

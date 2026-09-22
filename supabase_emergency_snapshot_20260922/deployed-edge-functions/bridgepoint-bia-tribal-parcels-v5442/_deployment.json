@@ -1,0 +1,14 @@
+{
+  "id": "cd7527a6-d411-48b5-8eb9-bb1b3d0af3c5",
+  "slug": "bridgepoint-bia-tribal-parcels-v5442",
+  "name": "bridgepoint-bia-tribal-parcels-v5442",
+  "status": "ACTIVE",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_cd7527a6-d411-48b5-8eb9-bb1b3d0af3c5_1/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "1d790f2abb78133bed206aecf93c61244f50afce1c87f3371c7f3ef1793051fe",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

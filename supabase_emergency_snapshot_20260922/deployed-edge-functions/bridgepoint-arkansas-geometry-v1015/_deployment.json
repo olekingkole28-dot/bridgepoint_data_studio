@@ -1,0 +1,14 @@
+{
+  "id": "9da5954a-6098-42d9-a654-25faa6ba5d30",
+  "slug": "bridgepoint-arkansas-geometry-v1015",
+  "name": "bridgepoint-arkansas-geometry-v1015",
+  "status": "ACTIVE",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_9da5954a-6098-42d9-a654-25faa6ba5d30_2/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "17058dec2ffd97c2b38eef49badb2f5f4996aa99fac0954ec88e1fa0b860fbf7",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

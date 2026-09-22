@@ -1,0 +1,14 @@
+{
+  "id": "007c565e-4c94-4d94-bba9-4a8f9076c6a0",
+  "slug": "bridgepoint-anchor-pilot-v674",
+  "name": "bridgepoint-anchor-pilot-v674",
+  "status": "ACTIVE",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_007c565e-4c94-4d94-bba9-4a8f9076c6a0_1/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "d73d5eba369c723143c24a9c4b93eaf059ab9486dd4d005e18885dd69814328a",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

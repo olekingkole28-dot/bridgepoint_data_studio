@@ -1,0 +1,14 @@
+{
+  "id": "c519fd5f-2ddf-434b-bb80-be3ea210694a",
+  "slug": "bridgepoint-arkansas-parcel-fast-v1013",
+  "name": "bridgepoint-arkansas-parcel-fast-v1013",
+  "status": "ACTIVE",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_c519fd5f-2ddf-434b-bb80-be3ea210694a_2/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "d5b547eb47d25dfdd83d947802a151bd60efaf37723f8146c417af70c0c00283",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

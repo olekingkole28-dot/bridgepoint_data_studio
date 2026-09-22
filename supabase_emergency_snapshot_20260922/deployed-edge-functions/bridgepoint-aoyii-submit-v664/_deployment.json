@@ -1,0 +1,14 @@
+{
+  "id": "a166376b-134c-40bf-922d-72a280541a0f",
+  "slug": "bridgepoint-aoyii-submit-v664",
+  "name": "bridgepoint-aoyii-submit-v664",
+  "status": "ACTIVE",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_a166376b-134c-40bf-922d-72a280541a0f_2/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "baf7cf3a2f74a63387cb7111c01a4074e221d57629779bd3d55066c7b876e026",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

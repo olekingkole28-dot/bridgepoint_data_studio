@@ -1,0 +1,14 @@
+{
+  "id": "66f88a95-3468-440e-9108-867d0c233efa",
+  "slug": "bridgepoint-approved-source-legal-report-v5596",
+  "name": "bridgepoint-approved-source-legal-report-v5596",
+  "status": "ACTIVE",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_66f88a95-3468-440e-9108-867d0c233efa_2/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "6c6492c302994f72e0fbcc9135c52a8932b1079beafb64aee94ab3137e324c34",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "2f37fa95-61d0-4a65-91a9-28be2113e71c",
+  "slug": "bridgepoint-berrien-pin-v1793",
+  "name": "bridgepoint-berrien-pin-v1793",
+  "status": "ACTIVE",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_2f37fa95-61d0-4a65-91a9-28be2113e71c_1/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "95af6f6ac6ff1b8429782415eb3444b6e0f594d26e471f9900002bd302279bfe",
+  "redactions": 0,
+  "secret_values_preserved": true
+}

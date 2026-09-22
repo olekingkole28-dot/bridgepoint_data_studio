@@ -1,0 +1,14 @@
+{
+  "id": "645cfc9e-3638-4ad9-8350-d04916dfa30d",
+  "slug": "bridgepoint-bernalillo-upc-v1779",
+  "name": "bridgepoint-bernalillo-upc-v1779",
+  "status": "ACTIVE",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "entrypoint_path": "/tmp/user_fn_xdfsjztwgsbmabshzsjw_645cfc9e-3638-4ad9-8350-d04916dfa30d_3/source/index.ts",
+  "import_map_path": null,
+  "ezbr_sha256": "689c2ee7e1d6a03eab4c1242b3f4fca161936318995a3538c5415797809951cc",
+  "redactions": 0,
+  "secret_values_preserved": true
+}
