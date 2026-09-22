@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-census-geocoder-v1070",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "93b8d3162d90df87ff8eaef0f90be2ff8014426329bfa2b5efd0b1bd2c06ad91",
+  "redactions": 0
+}

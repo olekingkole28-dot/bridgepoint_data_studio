@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-clay-covn-endpoint-v1741",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "8805aed0a725f1452b732fb0f5bcba9ba4a10dd1959dad0d03123bf6309f88b5",
+  "redactions": 0
+}

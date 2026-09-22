@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-clay-covn-ingest-v1750",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "a12b52b6baf5dbe450d1623fcc18cc46c3268d78981186f7b3e89cf325202382",
+  "redactions": 0
+}

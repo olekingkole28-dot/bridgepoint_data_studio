@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-clay-collector-probe-v1747",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "b51a52ae359fbc1843bfabc7766825dff8643303fbbd867e14d2941f5aff51d1",
+  "redactions": 0
+}

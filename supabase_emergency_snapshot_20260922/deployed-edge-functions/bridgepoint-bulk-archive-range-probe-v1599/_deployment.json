@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-bulk-archive-range-probe-v1599",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9ae50d5b7b425418cfb1fd55d2f2f8c2df3923d3c7cf2dac0921575c3e4b1cfc",
+  "redactions": 0
+}

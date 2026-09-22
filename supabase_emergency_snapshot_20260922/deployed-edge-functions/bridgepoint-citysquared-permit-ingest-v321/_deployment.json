@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-citysquared-permit-ingest-v321",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "5c79f35077e59711a6b62e15e0ee6feead879d0f96735f95cc00a2aebbadffe9",
+  "redactions": 0
+}

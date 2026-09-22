@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-bulk-archive-stream-probe-v1598",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "ed89377a52c1af274cc0363dbae2226ad3b83f21a196237935668191276b7311",
+  "redactions": 0
+}

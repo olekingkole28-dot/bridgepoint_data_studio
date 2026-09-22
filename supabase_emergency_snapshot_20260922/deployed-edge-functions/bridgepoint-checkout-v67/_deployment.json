@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-checkout-v67",
+  "version": 15,
+  "verify_jwt": true,
+  "import_map": true,
+  "ezbr_sha256": "c0b20d11d327845380b2d677a6b89307d5b1462f912b6ad30b2b31dcf51a258e",
+  "redactions": 0
+}
