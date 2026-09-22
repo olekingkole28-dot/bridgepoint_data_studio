@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usfs-surface-gapfill-v5403",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "2b86db19a3e5225c15d5eff76c44a6de8e24bd5b41834da2cdaac4bf6544281b",
+  "redactions": 1
+}

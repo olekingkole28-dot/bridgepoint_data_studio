@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-us-county-parcel-fallback-v961",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "4a4854df9e93eb2ec9a68fe327bd14203593310491a9ba2ddf406f0e10fe10eb",
+  "redactions": 3
+}

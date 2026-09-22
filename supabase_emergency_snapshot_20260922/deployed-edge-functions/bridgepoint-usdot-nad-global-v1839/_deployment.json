@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usdot-nad-global-v1839",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "afe3434cb3174a6f9a5b20da93a6983c8afa905bec3496415b338862112cf26e",
+  "redactions": 1
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-usfs-national-parcels-v5409",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "bfb783ee47ef0b739301c1035a4d69adf43b776a6f0a0faaf3d717ca88612db9",
+  "redactions": 3
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-us-county-seed-v745",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "435b5355789749b351ffbfe60a4851940c2fe412765047e222a8caf0f71ccdf0",
+  "redactions": 1
+}
