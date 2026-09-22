@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-wcad-socrata-v1950",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "00488644bae304db08c0021d6b947c00282b906e58a08a66d753cdeebc9b4f89",
+  "redactions": 0
+}

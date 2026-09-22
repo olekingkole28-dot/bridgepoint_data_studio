@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-worldcover-cog-test-v2674",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "8d344570a1718fb5dc6eabc7904de27cfbc9422363386dd18d7a9fb76f611f4f",
+  "redactions": 0
+}

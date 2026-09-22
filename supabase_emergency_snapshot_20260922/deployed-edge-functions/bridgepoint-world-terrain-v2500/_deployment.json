@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-world-terrain-v2500",
+  "version": 3,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "b4d9c8a13f61b528c2268c50b9cb5642c9a2880d98eb181c01ff9878b62b0a27",
+  "redactions": 2
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-weather-center-v136",
+  "version": 6,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "702bdebc80694a9e4f1be4644cddb8d77535fd5466c7d77c933e6c155d236d6d",
+  "redactions": 2
+}

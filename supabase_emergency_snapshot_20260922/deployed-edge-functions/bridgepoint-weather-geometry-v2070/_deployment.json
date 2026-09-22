@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-weather-geometry-v2070",
+  "version": 3,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "bb7e19232d0f4c26e27af5f5fbfd19233074c8b7847a6394707b158ce9ec880c",
+  "redactions": 0
+}
