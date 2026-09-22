@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lafayette-parcel-sample-v1622",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "551b7ec150ec1ecc62788a0a2c5b708cfee756df038ad4dedc641a7ec78538b9",
+  "redactions": 0
+}

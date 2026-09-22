@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lafayette-dbf-probe-v1652",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9ad440cc52b5e1f9b831681737213fe8f3567e08e067a035a2e1202fafe51751",
+  "redactions": 0
+}

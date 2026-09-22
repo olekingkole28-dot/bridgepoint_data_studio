@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lancaster-devnet-probe-v1754",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d626979022b00f95f826466e431422fe48cb4c036c158752f40f0dc6a30ca082",
+  "redactions": 0
+}

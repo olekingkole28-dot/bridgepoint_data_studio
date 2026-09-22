@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lancaster-search-probe-v1756",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "b778be211ca3b8f25f40dbbe391d6ee273ac9e7f0476b47b02eb09b5f3ce7392",
+  "redactions": 0
+}

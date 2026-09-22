@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-ks-ky-provider-federation-v1257",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "cb305758423f6cc16381e995d616311ebba7751df5e4fce82f03e292c8a2a355",
+  "redactions": 0
+}

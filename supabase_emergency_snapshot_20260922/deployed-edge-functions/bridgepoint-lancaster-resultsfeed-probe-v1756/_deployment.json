@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lancaster-resultsfeed-probe-v1756",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "1087d5a314aa22ea996088d7ef8518265aa60685142d29b87ab18a94baffcfe6",
+  "redactions": 0
+}

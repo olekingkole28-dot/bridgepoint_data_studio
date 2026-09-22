@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-lancaster-public-search-ingest-v1761",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "91b6ceaf3eed1fe1dada927b77fdddbf11557c25fc5d1a10a93a6049d53d6e0c",
+  "redactions": 0
+}
