@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-ct-hic-registry-refresh-v85",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "75766be455c0c6dcff64950944f70f5cc3edb7b4ca1d56e05496731eb607ce47",
+  "redactions": 0
+}

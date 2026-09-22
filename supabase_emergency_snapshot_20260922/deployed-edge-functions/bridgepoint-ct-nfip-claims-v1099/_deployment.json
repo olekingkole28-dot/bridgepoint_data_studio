@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-ct-nfip-claims-v1099",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "53cf363e79c84f95e9cee3e34227ab2c1772a542eba3b9221517c37d538accbf",
+  "redactions": 0
+}

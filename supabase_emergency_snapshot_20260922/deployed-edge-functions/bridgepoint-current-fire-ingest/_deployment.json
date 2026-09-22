@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-current-fire-ingest",
+  "version": 8,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d61829874a3bfa0546b399f0c7a486525a1797488bf398016108583a8d714b45",
+  "redactions": 0
+}

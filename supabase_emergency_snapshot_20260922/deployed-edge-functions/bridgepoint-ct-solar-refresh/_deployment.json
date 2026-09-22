@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-ct-solar-refresh",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "c0a613a3309efdd4927ac30bfc698edfe1db0d759cf7864bb52d8f16e449862e",
+  "redactions": 0
+}

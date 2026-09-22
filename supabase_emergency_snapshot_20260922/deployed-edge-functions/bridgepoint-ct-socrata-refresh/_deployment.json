@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-ct-socrata-refresh",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "faa7cd7ae86cf4826fc272e72abf584f73bf1cf0c8512aaa524733a8da1cb9a9",
+  "redactions": 0
+}

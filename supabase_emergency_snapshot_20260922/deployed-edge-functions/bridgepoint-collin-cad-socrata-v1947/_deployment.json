@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-collin-cad-socrata-v1947",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9ef6dcbca9d907ec7b4b8d0233d66e562d4e89dc2fc9fb04d6dea18bc36803f2",
+  "redactions": 0
+}

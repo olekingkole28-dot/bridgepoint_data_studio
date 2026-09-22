@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-ct-code-enforcement-v328",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "3ff6ec80443991b6b090599a0a9a2349b4a8c1009278a8da022b2318cbda5e0c",
+  "redactions": 0
+}

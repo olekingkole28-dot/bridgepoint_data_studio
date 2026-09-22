@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-county-federation-v1144",
+  "version": 6,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "2cb9494a051a63423e9115779c2b77b4d68449dc58122ae10c9fb40d7c2905dc",
+  "redactions": 0
+}

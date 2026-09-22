@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-dallas-certroll-socrata-v1953",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "689e2bbd219a20197933a4fc9ac3ed60f5fd506d6aed798dfcfc27da6bb98e91",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-dcad-account-ingest-v1941",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "26e1688e806b84597ca6e1378793315736c23252742c14e30e58cd671a57c1d0",
+  "redactions": 0
+}

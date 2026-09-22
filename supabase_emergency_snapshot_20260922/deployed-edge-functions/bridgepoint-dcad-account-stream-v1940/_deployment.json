@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-dcad-account-stream-v1940",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "95f98a06a6844535866509eaf64d179d6fe382eb6735c89b835c3c754f849160",
+  "redactions": 0
+}

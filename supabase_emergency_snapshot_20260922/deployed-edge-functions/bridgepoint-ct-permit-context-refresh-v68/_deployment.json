@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-ct-permit-context-refresh-v68",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "1ff1133f80dcbf65785a267ebf7601cc5a0f5177b38f2a94ed9b590bfed6d1a1",
+  "redactions": 0
+}

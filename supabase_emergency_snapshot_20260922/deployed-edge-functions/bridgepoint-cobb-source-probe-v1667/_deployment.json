@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-cobb-source-probe-v1667",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "6ae46488c9a1eb5cf600b56aa2613fc2f8712d19cca81ca459680e8d84a9f86f",
+  "redactions": 0
+}
