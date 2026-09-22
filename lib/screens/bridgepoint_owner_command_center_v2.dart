@@ -7,6 +7,7 @@ import 'bridgepoint_owner_download_center_v1896.dart';
 import 'bridgepoint_owner_engine_health_v777.dart';
 import 'bridgepoint_owner_global_control.dart';
 import 'bridgepoint_owner_overview_v2.dart';
+import 'bridgepoint_owner_platform_telemetry_v5605.dart';
 import 'bridgepoint_owner_surface_audit_v792.dart';
 import 'bridgepoint_owner_v2_requirements_v832.dart';
 
@@ -62,6 +63,7 @@ class _BridgePointOwnerCommandCenterV2State extends State<BridgePointOwnerComman
       2 => const BridgePointOwnerEngineHealthV777(),
       3 => const BridgePointOwnerV2Requirements(),
       4 => const BridgePointOwnerDownloadCenterV1896(),
+      5 => const BridgePointOwnerPlatformTelemetryV5605(),
       _ => _advancedMenu(),
     };
 
@@ -72,7 +74,8 @@ class _BridgePointOwnerCommandCenterV2State extends State<BridgePointOwnerComman
         ButtonSegment(value: 2,icon: Icon(Icons.speed_rounded),label: Text('Automation')),
         ButtonSegment(value: 3,icon: Icon(Icons.rule_folder_rounded),label: Text('Build')),
         ButtonSegment(value: 4,icon: Icon(Icons.download_rounded,color: _cyan),label: Text('Downloads & 3D')),
-        ButtonSegment(value: 5,icon: Icon(Icons.tune_rounded,color: _gold),label: Text('Advanced')),
+        ButtonSegment(value: 5,icon: Icon(Icons.monitor_heart_outlined,color: _cyan),label: Text('Traffic')),
+        ButtonSegment(value: 6,icon: Icon(Icons.tune_rounded,color: _gold),label: Text('Advanced')),
       ],selected: <int>{_tab},onSelectionChanged: (value) => setState(() {_tab = value.first;_advanced = null;})))),
       Expanded(child: page),
     ]);
