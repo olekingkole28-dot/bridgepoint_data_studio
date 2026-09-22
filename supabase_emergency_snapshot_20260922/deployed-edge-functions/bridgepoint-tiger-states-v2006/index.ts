@@ -1,0 +1,26 @@
+import JSZip from "npm:jszip@3.10.1";
+const U=Deno.env.get("SUPABASE_URL")!;
+const S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const H={"content-type":"application/json","cache-control":"no-store"};
+const MAIN="https://www2.census.gov/geo/tiger/GENZ2025/kml/cb_2025_us_state_500k.zip";
+const TERR=[
+ {fips:"60",code:"AS",name:"American Samoa",url:"https://www2.census.gov/geo/tiger/GENZ2025/kml/cb_2025_60_tract_500k.zip"},
+ {fips:"66",code:"GU",name:"Guam",url:"https://www2.census.gov/geo/tiger/GENZ2025/kml/cb_2025_66_tract_500k.zip"},
+ {fips:"69",code:"MP",name:"Commonwealth of the Northern Mariana Islands",url:"https://www2.census.gov/geo/tiger/GENZ2025/kml/cb_2025_69_tract_500k.zip"},
+ {fips:"78",code:"VI",name:"U.S. Virgin Islands",url:"https://www2.census.gov/geo/tiger/GENZ2025/kml/cb_2025_78_tract_500k.zip"}
+];
+async function rpc(name:string,body:any){const r=await fetch(`${U}/rest/v1/rpc/${name}`,{method:"POST",headers:{apikey:S,authorization:`Bearer ${S}`,"content-type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(25000)});const t=await r.text();if(!r.ok)throw new Error(`${name}_HTTP_${r.status}:${t.slice(0,800)}`);return t?JSON.parse(t):null;}
+function de(s:string){return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'");}
+function sd(block:string,name:string){const m=block.match(new RegExp(`<SimpleData\\s+name=["']${name}["'][^>]*>([\\s\\S]*?)<\\/SimpleData>`,`i`));return m?de(m[1].trim()):null;}
+function ring(s:string){const out:number[][]=[];for(const token of de(s).trim().split(/\s+/)){const p=token.split(",");const x=Number(p[0]),y=Number(p[1]);if(Number.isFinite(x)&&Number.isFinite(y))out.push([x,y]);}if(out.length>=3){const a=out[0],b=out[out.length-1];if(a[0]!==b[0]||a[1]!==b[1])out.push([a[0],a[1]]);}return out;}
+function polygonList(block:string){const ps:any[]=[];for(const m of block.matchAll(/<Polygon\b[\s\S]*?<\/Polygon>/gi)){const p=m[0];const om=p.match(/<outerBoundaryIs\b[\s\S]*?<coordinates[^>]*>([\s\S]*?)<\/coordinates>[\s\S]*?<\/outerBoundaryIs>/i);if(!om)continue;const outer=ring(om[1]);if(outer.length<4)continue;const rings:any[]=[outer];for(const x of p.matchAll(/<innerBoundaryIs\b[\s\S]*?<coordinates[^>]*>([\s\S]*?)<\/coordinates>[\s\S]*?<\/innerBoundaryIs>/gi)){const rr=ring(x[1]);if(rr.length>=4)rings.push(rr);}ps.push(rings);}return ps;}
+function parseMain(kml:string){const features:any[]=[];for(const m of kml.matchAll(/<Placemark\b[\s\S]*?<\/Placemark>/gi)){const b=m[0];const state=sd(b,"STUSPS")||sd(b,"STUSAB");const geoid=sd(b,"GEOID")||sd(b,"STATEFP");const nm=sd(b,"NAME")||(b.match(/<name>([\s\S]*?)<\/name>/i)?.[1]?.trim()||state);if(!state||!/^[A-Z]{2}$/.test(state))continue;const ps=polygonList(b);if(!ps.length)continue;features.push({type:"Feature",properties:{STUSAB:state,GEOID:geoid,NAME:de(nm||state),SOURCE_URL:MAIN,SOURCE_GEOGRAPHY:"STATE_500K"},geometry:ps.length===1?{type:"Polygon",coordinates:ps[0]}:{type:"MultiPolygon",coordinates:ps}});}return features;}
+async function kmlFromZip(url:string){const r=await fetch(url,{headers:{accept:"application/zip,application/octet-stream","user-agent":"BridgePointIntelligence/1.0"},signal:AbortSignal.timeout(30000)});if(!r.ok)throw new Error(`CENSUS_ZIP_HTTP_${r.status}:${url}`);const bytes=new Uint8Array(await r.arrayBuffer());const zip=await JSZip.loadAsync(bytes);const name=Object.keys(zip.files).find(n=>/\.kml$/i.test(n));if(!name)throw new Error(`KML_MISSING:${url}`);return {kml:await zip.files[name].async("string"),bytes:bytes.length,name};}
+Deno.serve(async(req:Request)=>{try{
+ if(req.method!=="POST")return new Response(JSON.stringify({complete:false,version:2010,error:"POST_REQUIRED"}),{status:405,headers:H});
+ const b=await req.json().catch(()=>({}));const token=String(b.task_token||"");const ok=await rpc("bridgepoint_expansion_worker_auth_v90",{p_task_token:token});if(ok!==true)return new Response(JSON.stringify({complete:false,version:2010,error:"UNAUTHORIZED"}),{status:401,headers:H});
+ const main=await kmlFromZip(MAIN);const features=parseMain(main.kml);if(features.length<52)throw new Error(`MAIN_FEATURE_COUNT_${features.length}`);
+ const terrStats:any[]=[];
+ for(const t of TERR){const z=await kmlFromZip(t.url);const all:any[]=[];for(const m of z.kml.matchAll(/<Placemark\b[\s\S]*?<\/Placemark>/gi))all.push(...polygonList(m[0]));if(!all.length)throw new Error(`TERRITORY_EMPTY_${t.code}`);features.push({type:"Feature",properties:{STUSAB:t.code,GEOID:t.fips,NAME:t.name,SOURCE_URL:t.url,SOURCE_GEOGRAPHY:"[REDACTED_LONG_LITERAL]"},geometry:{type:"MultiPolygon",coordinates:all}});terrStats.push({state_code:t.code,polygons:all.length,zip_bytes:z.bytes,kml_file:z.name});}
+ const p=await rpc("bridgepoint_tiger_state_persist_v2006",{p_task_token:token,p_features:features});return new Response(JSON.stringify({complete:true,version:2010,source:"[REDACTED_LONG_LITERAL]",main_parsed:features.length-TERR.length,total_classifier_features:features.length,territories:terrStats,persist:p}),{headers:H});
+}catch(e){return new Response(JSON.stringify({complete:false,version:2010,error:String((e as any)?.message||e)}),{status:500,headers:H});}});

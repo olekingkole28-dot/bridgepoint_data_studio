@@ -1,0 +1,30 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+const U=Deno.env.get("SUPABASE_URL")!,S=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const RUN="4c01fc6f-fc75-4fca-9c22-89eec618cd23",CAND="deb9a154-f318-45e4-9e06-d3d3749332fa";
+const KEY="[REDACTED_LONG_LITERAL]";
+const FILES=[
+"https://www.tuscco.com/wp-content/uploads/2026/05/2026-Real-Property-Valuation-Notices-Numerical-by-Parcel-01-21.pdf",
+"https://www.tuscco.com/wp-content/uploads/2026/05/2026-Real-Property-Valuation-Notices-Numerical-by-Parcel-22-30.pdf",
+"https://www.tuscco.com/wp-content/uploads/2026/05/2026-Real-Property-Valuation-Notices-Numerical-by-Parcel-31.pdf",
+"https://www.tuscco.com/wp-content/uploads/2026/05/2026-Real-Property-Valuation-Notices-Numerical-by-Parcel-32-45.pdf"];
+const H={"content-type":"application/json","cache-control":"no-store"};
+const UA="BridgePointIntelligence/1.0 (+county-public-record-ingest)";
+function norm(x:string){return x.replace(/\s+/g,"").replace(/[‐‑‒–—]/g,"-")}
+function findParcels(t:string){const clean=t.replace(/[‐‑‒–—]/g,"-");const patterns=[/63\s*-\s*\d{2}\s*-\s*\d{2}\s*-\s*\d{2}\s*-\s*\d\s*-\s*\d{3}\s*-\s*\d{3}\.\d{3}/g,/\b\d{2}\s*-\s*\d{2}\s*-\s*\d{2}\s*-\s*\d{2}\s*-\s*\d\s*-\s*\d{3}\s*-\s*\d{3}\.\d{3}\b/g];const out:string[]=[];for(const re of patterns)for(const m of clean.matchAll(re)){const id=norm(m[0]);if(!out.includes(id))out.push(id)}return out}
+async function headLen(url:string){const r=await fetch(url,{method:"HEAD",headers:{"user-agent":UA},signal:AbortSignal.timeout(20000)});if(!r.ok)throw new Error(`PDF_HEAD_${r.status}`);const n=Number(r.headers.get("content-length")||0);if(!Number.isFinite(n)||n<=0)throw new Error("PDF_LENGTH_MISSING");if((r.headers.get("accept-ranges")||"").toLowerCase()!=="bytes")throw new Error("PDF_BYTE_RANGES_UNAVAILABLE");return n;}
+async function rangeFetch(url:string,begin:number,end:number){const r=await fetch(url,{headers:{Range:`bytes=${begin}-${end-1}`,"user-agent":UA,accept:"application/pdf"},signal:AbortSignal.timeout(30000)});if(r.status!==206)throw new Error(`PDF_RANGE_${r.status}_${begin}_${end}`);return new Uint8Array(await r.arrayBuffer());}
+Deno.serve(async(req:Request)=>{try{
+ const u=new URL(req.url);if(req.method!=="GET"||!u.pathname.endsWith('/'+KEY))return new Response(JSON.stringify({complete:false,error:"UNAUTHORIZED"}),{status:401,headers:H});
+ const file=Math.min(3,Math.max(0,Number(u.searchParams.get('file')||0))),start=Math.max(1,Number(u.searchParams.get('start')||1)),pages=Math.min(12,Math.max(1,Number(u.searchParams.get('pages')||3)));
+ const sb=createClient(U,S,{auth:{persistSession:false,autoRefreshToken:false}});
+ const {data:c,error:ce}=await sb.schema('automation').from('geographic_source_candidates_v86').select('decision_status').eq('candidate_id',CAND).single();if(ce||c?.decision_status!=='ACCEPTED')throw new Error('CANDIDATE_NOT_ACCEPTED');
+ const {data:v,error:ve}=await sb.schema('automation').from('source_compliance_validation_v720').select('activation_status').eq('candidate_id',CAND).single();if(ve||v?.activation_status!=='APPROVED')throw new Error('COMPLIANCE_NOT_APPROVED');
+ const lib:any=await import("npm:pdfjs-serverless@1.3.1");const len=await headLen(FILES[file]);const initEnd=Math.min(65536,len);const initial=await rangeFetch(FILES[file],0,initEnd);
+ class HttpRangeTransport extends lib.PDFDataRangeTransport{url:string;failures:string[]=[];constructor(length:number,url:string,initialData:Uint8Array){super(length,initialData,false);this.url=url;}requestDataRange(begin:number,end:number){rangeFetch(this.url,begin,end).then(chunk=>this.onDataRange(begin,chunk)).catch(e=>{this.failures.push(String(e?.message||e));console.error('range_fail',begin,end,e);});}abort(){}}
+ const transport=new HttpRangeTransport(len,FILES[file],initial);const task=lib.getDocument({range:transport,disableRange:false,disableStream:true,disableAutoFetch:true,rangeChunkSize:65536,useSystemFonts:true});const pdf=await task.promise;const totalPages=pdf.numPages;const end=Math.min(totalPages,start+pages-1);const set=new Set<string>();let sampleText="";
+ for(let p=start;p<=end;p++){const page=await pdf.getPage(p);const tc=await page.getTextContent();const text=(tc.items as any[]).map((x:any)=>String(x.str||'')).join(' ');if(p===start)sampleText=text.slice(0,10000);for(const id of findParcels(text))set.add(id);await page.cleanup();}
+ const rows=[...set].map(id=>({run_id:RUN,candidate_id:CAND,state_code:'AL',source_record_id:id,record_hash:id,payload:{parcel_id:id,county_name:'Tuscaloosa County',county_fips:'01125',source_year:2026,source_document_file:file+1,source_document_page_range:[start,end],privacy_projection:'PARCEL_ID_ONLY'},materialization_status:'PENDING'}));let attempted=0;
+ for(let i=0;i<rows.length;i+=500){const chunk=rows.slice(i,i+500);const {error}=await sb.schema('staging').from('geographic_source_records_v90').upsert(chunk,{onConflict:'candidate_id,source_record_id',ignoreDuplicates:true});if(error)throw error;attempted+=chunk.length;}
+ const {count}=await sb.schema('staging').from('geographic_source_records_v90').select('*',{count:'exact',head:true}).eq('candidate_id',CAND);try{await pdf.cleanup();}catch{}try{if(typeof task.destroy==='function')await task.destroy();}catch{}
+ return new Response(JSON.stringify({complete:true,worker_version:1740,file:file+1,start_page:start,end_page:end,total_pages:totalPages,pdf_bytes:len,unique_parcels_found:set.size,parcel_ids:[...set].slice(0,20),staged_attempted:attempted,total_candidate_staged:count||0,range_failures:transport.failures.slice(0,3),sample_text:sampleText}),{headers:H});
+ }catch(e){return new Response(JSON.stringify({complete:false,worker_version:1740,error:String((e as any)?.message||e),stack:String((e as any)?.stack||'').slice(0,4000)}),{status:500,headers:H});}});

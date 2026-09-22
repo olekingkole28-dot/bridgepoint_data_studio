@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tiger-states-v2006",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "5cea74ca9446146e691fa3140fcda2168301ec151476f2d512420e9da1d7d21f",
+  "redactions": 2
+}

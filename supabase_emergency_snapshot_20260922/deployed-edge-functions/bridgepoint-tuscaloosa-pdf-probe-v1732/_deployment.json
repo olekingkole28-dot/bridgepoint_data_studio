@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-pdf-probe-v1732",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "31a14f859b9fc0956bbc88ddccce5c2d542c1c42fc460722c391960a0283d073",
+  "redactions": 1
+}

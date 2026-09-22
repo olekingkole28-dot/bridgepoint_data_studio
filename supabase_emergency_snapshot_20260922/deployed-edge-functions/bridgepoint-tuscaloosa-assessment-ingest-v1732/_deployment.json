@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-assessment-ingest-v1732",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "134310165d4a348d09ed5e6f0a04f8aeceb48abb4260ddaf496eb9f39420d369",
+  "redactions": 1
+}

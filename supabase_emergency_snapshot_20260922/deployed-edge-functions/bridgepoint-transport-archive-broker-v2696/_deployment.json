@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-transport-archive-broker-v2696",
+  "version": 8,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "7ec6045f6a8c42273ed03cb5ce9b6ef1aad10751babb3c94141b7758283a02ca",
+  "redactions": 4
+}

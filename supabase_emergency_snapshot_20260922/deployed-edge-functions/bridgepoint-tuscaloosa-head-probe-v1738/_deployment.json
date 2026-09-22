@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-head-probe-v1738",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "4f96c3d9359d76843a97a18474e62cb72071be76d516c35b4c5bae43b752ffaa",
+  "redactions": 1
+}

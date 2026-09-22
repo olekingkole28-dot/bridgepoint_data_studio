@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-flagship-v1788",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "5e61e3796a46cbfc398ee1f6dc0db54e3d994ed12e0fed571a96f91762fb54c2",
+  "redactions": 1
+}

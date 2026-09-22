@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-texas-parcel-fast-v1022",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d0429d970122fa2a6f2d8296b9b5f7d642b03031c1c0811fa094d4fe7589c7d9",
+  "redactions": 3
+}

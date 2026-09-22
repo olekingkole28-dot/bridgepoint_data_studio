@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-transport-runtime-broker-v2716",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "e4664db80c008c701c960585fda35166ac5b67cbd390efd20ac4c063716e2aca",
+  "redactions": 1
+}
