@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-telegraph-publish-v691",
+  "version": 3,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "730e427f408909a12a8781e60e6524eabcee87e99cb7128bd64a41ff3695ee6e",
+  "redactions": 0
+}

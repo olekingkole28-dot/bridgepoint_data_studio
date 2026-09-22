@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-team-invite-v80",
+  "version": 5,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "185e2e57cbd6fc86a6c54eabcc8608175cddbeae44b311be143bfe7b4740cfeb",
+  "redactions": 0
+}

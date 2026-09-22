@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-terrain-bulk-v2672",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "cc80bf8b7f6e5d46b1c1532c774f8348d5af827a9e59d5ee7d06c711a00dd66e",
+  "redactions": 3
+}

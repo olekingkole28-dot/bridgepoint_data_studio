@@ -1,0 +1,70 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+const cors={
+  "Access-Control-Allow-Origin":"*",
+  "Access-Control-Allow-Headers":"authorization, apikey, content-type",
+};
+const respond=(body:unknown,status=200)=>new Response(JSON.stringify(body),{
+  status,headers:{...cors,"Content-Type":"application/json"},
+});
+
+Deno.serve(async(req:Request)=>{
+  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
+  if(req.method!=="POST")return respond({complete:false,error:"Method not allowed"},405);
+  try{
+    const authorization=req.headers.get("Authorization");
+    if(!authorization)return respond({complete:false,error:"Authentication required"},401);
+    const supabaseUrl=Deno.env.get("SUPABASE_URL")!;
+    const anon=Deno.env.get("SUPABASE_ANON_KEY")!;
+    const service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const input=await req.json();
+    const email=String(input.email??"").trim().toLowerCase();
+    const memberRole=String(input.member_role??"MEMBER").trim().toUpperCase();
+
+    const rpc=await fetch(supabaseUrl+"/rest/v1/rpc/bridgepoint_invite_team_member_v80",{
+      method:"POST",
+      headers:{apikey:anon,Authorization:authorization,"Content-Type":"application/json"},
+      body:JSON.stringify({p_email:email,p_member_role:memberRole}),
+    });
+    const result=await rpc.json().catch(()=>({complete:false,error:"Invitation could not be saved"}));
+    if(!rpc.ok)return respond({complete:false,error:result.message??result.error??"Invitation could not be saved"},rpc.status);
+    if(result.email_required!==true)return respond({
+      ...result,
+      email_sent:false,
+      delivery_status:"NOT_REQUIRED",
+      delivery_message:"This person already had a verified BridgePoint account, so access was granted immediately.",
+    });
+
+    const appUrl=Deno.env.get("BRIDGEPOINT_APP_URL")??"https://bridgepointintelligence.online";
+    const invite=await fetch(supabaseUrl+"/auth/v1/invite?redirect_to="+encodeURIComponent(appUrl),{
+      method:"POST",
+      headers:{apikey:service,Authorization:"Bearer "+service,"Content-Type":"application/json"},
+      body:JSON.stringify({
+        email,
+        data:{
+          bridgepoint_invitation_id:result.invitation_id,
+          bridgepoint_organization_id:result.organization_id,
+          bridgepoint_member_role:memberRole,
+        },
+      }),
+    });
+    if(!invite.ok){
+      const detail=await invite.json().catch(()=>({}));
+      return respond({
+        ...result,
+        complete:false,
+        email_sent:false,
+        delivery_status:"FAILED",
+        email_message:detail.msg??detail.message??"The invitation was saved, but the email provider did not accept it.",
+      },424);
+    }
+    return respond({
+      ...result,
+      email_sent:true,
+      delivery_status:"ACCEPTED_BY_EMAIL_PROVIDER",
+      delivery_message:"The secure invitation email was accepted for delivery.",
+    });
+  }catch(error){
+    return respond({complete:false,error:String(error)},500);
+  }
+});
