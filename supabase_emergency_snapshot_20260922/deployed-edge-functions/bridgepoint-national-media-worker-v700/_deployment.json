@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-national-media-worker-v700",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "41d3b79cf89711982b00fa9d1b9c3d17792b5c68e98fee42fef51015cec989aa",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-noaa-national-ingest",
+  "version": 3,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "e1bb65f7cabb3de3e920c5f9de3ea028f64ab1e164446c97d6182a6122bc1fe1",
+  "redactions": 0
+}

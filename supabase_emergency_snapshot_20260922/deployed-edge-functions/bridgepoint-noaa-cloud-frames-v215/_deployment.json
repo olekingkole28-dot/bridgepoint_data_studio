@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-noaa-cloud-frames-v215",
+  "version": 5,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "d216a762a61d23b1c7b2c5ab755c24dd9a9c5027b3d820ebae9e2ebfc7f76056",
+  "redactions": 0
+}

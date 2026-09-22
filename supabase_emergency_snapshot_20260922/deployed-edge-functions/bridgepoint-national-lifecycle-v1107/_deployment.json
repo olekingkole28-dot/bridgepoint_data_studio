@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-national-lifecycle-v1107",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "092aa8e5670d62095eea210f3e6d77cd7d6be86550ea568b0790c6928809259f",
+  "redactions": 0
+}

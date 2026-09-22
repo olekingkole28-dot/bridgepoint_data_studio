@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-noaa-live-health-v212",
+  "version": 4,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "5f091384c42bc49d46582c84bb7e417777e3a9f1301f5d2e0816a3f6700263f5",
+  "redactions": 0
+}

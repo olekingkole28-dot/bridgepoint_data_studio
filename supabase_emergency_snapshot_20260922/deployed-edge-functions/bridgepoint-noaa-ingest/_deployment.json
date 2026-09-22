@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-noaa-ingest",
+  "version": 8,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "cde14d26e46c38ffe54dd796924660996efe6923a48077fcf3fa63aecfffb8af",
+  "redactions": 0
+}

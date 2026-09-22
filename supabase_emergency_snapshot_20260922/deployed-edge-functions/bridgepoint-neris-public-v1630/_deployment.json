@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-neris-public-v1630",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "764a27d39e588bff33199d3f49083dec064b48a0449e25dd2e85417106743bbe",
+  "redactions": 0
+}

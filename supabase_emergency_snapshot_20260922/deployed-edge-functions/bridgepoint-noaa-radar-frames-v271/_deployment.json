@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-noaa-radar-frames-v271",
+  "version": 4,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "217bfcfbf966e15b8bb70c1494afa3d7d43954980b526e32a21ff44629cc7340",
+  "redactions": 0
+}

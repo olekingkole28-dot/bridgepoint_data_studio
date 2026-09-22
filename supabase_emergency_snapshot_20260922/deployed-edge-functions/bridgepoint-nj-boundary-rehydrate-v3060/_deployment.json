@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-nj-boundary-rehydrate-v3060",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "fff6d188d9dcd5c278afe9075e59fd52f0799639aedbee64835e4554ffe28d43",
+  "redactions": 0
+}
