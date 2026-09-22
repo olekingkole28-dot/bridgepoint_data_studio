@@ -1,0 +1,8 @@
+{
+  "slug": "living-world-grib-ingest-v2634",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "828725f496759492f92ad19516e73d4ea717f27117261dae84ec204dcc20cb4e",
+  "redactions": 1
+}

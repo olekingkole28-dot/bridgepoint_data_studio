@@ -1,0 +1,2 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+Deno.serve(()=>new Response(JSON.stringify({complete:false,status:'disabled',message:'Legacy CT property-transition sync retired by BridgePoint V564. The governed property-transition refresh remains active.'}),{status:410,headers:{'content-type':'application/json','cache-control':'no-store'}}));

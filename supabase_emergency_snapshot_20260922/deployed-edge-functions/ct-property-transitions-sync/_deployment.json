@@ -1,0 +1,8 @@
+{
+  "slug": "ct-property-transitions-sync",
+  "version": 9,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "87e635b91a8ffd44a25fcb7dfc51a059c229b49d28f2832d9042b4e1f8156a1b",
+  "redactions": 0
+}
