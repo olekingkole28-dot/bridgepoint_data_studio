@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-clay-covn-probe-v1741",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "78eb1a4802df720091317ce30d7422f8e2715f0401d6c7d101c32ea0226e63d7",
+  "redactions": 0
+}

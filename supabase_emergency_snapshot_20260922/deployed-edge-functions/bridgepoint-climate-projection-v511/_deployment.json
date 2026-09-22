@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-climate-projection-v511",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "0ba76dc0bc4248af23b59693ad600ff83d03ee1430392e8c623dac23d3b9a99e",
+  "redactions": 0
+}

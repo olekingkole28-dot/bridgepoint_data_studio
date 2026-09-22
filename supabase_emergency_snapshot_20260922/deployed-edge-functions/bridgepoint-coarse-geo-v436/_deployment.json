@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-coarse-geo-v436",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "72be75cb3d3f73ccea8e9139cc60b326aac789ea956547f37d87e1d4b627087a",
+  "redactions": 0
+}

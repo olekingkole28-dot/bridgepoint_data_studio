@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-clay-kcmo-v1787",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "41b91ef703cf19a5ae321fb8a7f662b99ddba33b48a80b4fd53b075b86b89898",
+  "redactions": 0
+}
