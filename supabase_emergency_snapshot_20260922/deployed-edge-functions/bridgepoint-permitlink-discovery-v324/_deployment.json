@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-permitlink-discovery-v324",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "3c9adb47fd1e3d7f8a4b3227977b1a65ad7032a01924417f0e768c907dc658f2",
+  "redactions": 0
+}

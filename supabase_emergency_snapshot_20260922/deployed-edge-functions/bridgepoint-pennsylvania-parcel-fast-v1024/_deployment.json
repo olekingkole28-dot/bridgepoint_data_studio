@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-pennsylvania-parcel-fast-v1024",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "79b908cfc55e81b75f86b0ccacb8aa664573979ef57db9da1b78e555b2b75f11",
+  "redactions": 0
+}

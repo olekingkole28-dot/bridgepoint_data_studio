@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-present-weather-v2301",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "836c1c662c6b496db17c53146ffc1dee27819ab68c7e20130b4433a3558dc9b2",
+  "redactions": 0
+}
