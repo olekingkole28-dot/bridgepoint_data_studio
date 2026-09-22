@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-mrms-point-v521",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "42c8988200a5f4cd9b27a7939fe9dd77ca4af805c8371ec593a6b1d19db3ee10",
+  "redactions": 0
+}

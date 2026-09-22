@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-mo-provider-federation-v1260",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d732246d0dcccdcf1f44f64366ce6b9c0d2e3a34df30ba4d8ae5b87efcfcf803",
+  "redactions": 0
+}

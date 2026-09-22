@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-mtmorris-shards-v1848",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "97abf484116510acdaffbd8938885ed51d8a3c438c6b193df1455722ebebb26f",
+  "redactions": 0
+}

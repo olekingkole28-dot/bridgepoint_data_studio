@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-mi-dnr-lots-gapfill-v5400",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "d4877a998ab214b647660c57a22e0c3cafcf707dab650d539ab23ecdc72cfed2",
+  "redactions": 0
+}

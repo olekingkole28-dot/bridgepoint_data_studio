@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-municipal-permit-ingest-v319",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "3519d7d9631303e88cb39b9507e8e3384f4874fb9c551835c5f40baa8440ea9e",
+  "redactions": 0
+}

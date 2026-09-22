@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-materializer-lane-v1791",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "e40239855e2b47e87796d3e5280bf4811dd7a58f06f73e537e9312131b1f0a95",
+  "redactions": 0
+}

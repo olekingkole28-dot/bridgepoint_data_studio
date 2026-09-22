@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-nad-diag-v1837",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "0867f97b9ce00763d50aeb86e213ff81297e141a46ac214cc4491a60b83e2396",
+  "redactions": 0
+}

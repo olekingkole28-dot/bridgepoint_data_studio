@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-manual-socrata-v2021",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "4201694fe1acfe54bf906a68741f14317ed9bd111d01dfdf85034b2b892f5a38",
+  "redactions": 0
+}

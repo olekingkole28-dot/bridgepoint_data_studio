@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-municipal-source-discovery-v238",
+  "version": 4,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "9a37be553ccc43f3d8762e8c7ffed5523a6c98df3eca83ab1f9a30719e6a2c24",
+  "redactions": 0
+}

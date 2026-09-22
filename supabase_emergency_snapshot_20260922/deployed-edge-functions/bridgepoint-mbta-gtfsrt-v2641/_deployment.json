@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-mbta-gtfsrt-v2641",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "c24f2ec2d117ae14c5d079754d566997636925713ecbd3e8b252a7424c4c125b",
+  "redactions": 0
+}
