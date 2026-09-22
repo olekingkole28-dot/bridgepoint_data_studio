@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-official-web-source-probe-v2152",
+  "version": 5,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "8ca62aac47b45dd1d677d3e2ed10f424682c18551d9d1024b26c03e71ecaa46e",
+  "redactions": 0
+}

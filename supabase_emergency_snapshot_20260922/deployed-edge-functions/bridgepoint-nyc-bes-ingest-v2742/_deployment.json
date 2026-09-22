@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-nyc-bes-ingest-v2742",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "f695bc2ecd0f5a3767c2903c2fa9f1300b1d109f74606b39022b329d3f07b6a4",
+  "redactions": 0
+}

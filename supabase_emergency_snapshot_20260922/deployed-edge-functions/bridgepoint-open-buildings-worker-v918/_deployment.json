@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-open-buildings-worker-v918",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "badc80aa746e0b638dc1fad34a0096474d200386cf60bc09367b2735be0d4c3f",
+  "redactions": 0
+}

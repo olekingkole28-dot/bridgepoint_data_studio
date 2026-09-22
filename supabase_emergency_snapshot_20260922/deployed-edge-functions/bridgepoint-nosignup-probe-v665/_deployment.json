@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-nosignup-probe-v665",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "596e01b9239d9aa6a31bfc47c90497fd12245a59531c01bf1a351b3a3d33f605",
+  "redactions": 0
+}

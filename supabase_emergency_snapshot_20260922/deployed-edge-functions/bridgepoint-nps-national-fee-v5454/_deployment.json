@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-nps-national-fee-v5454",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "08b9964e05b9c1b446f7d7c814d25590e7525491751e4f2962d2384bdca23838",
+  "redactions": 0
+}

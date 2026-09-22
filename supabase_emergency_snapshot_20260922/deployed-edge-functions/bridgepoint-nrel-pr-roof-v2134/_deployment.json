@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-nrel-pr-roof-v2134",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "f92f400a78246e851a161615bd17987ad3b7be672c3f780833a8655e16f84df7",
+  "redactions": 0
+}
