@@ -916,7 +916,9 @@ class _AuthScreenState extends State<_AuthScreen> {
   bool create = false,
       loading = false,
       showPassword = false,
-      acceptTerms = false;
+      acceptTerms = false,
+      googleOAuth = false,
+      appleOAuth = false;
   String? error;
 
   @override
@@ -924,6 +926,54 @@ class _AuthScreenState extends State<_AuthScreen> {
     super.initState();
     final mode = (Uri.base.queryParameters['mode'] ?? '').trim().toLowerCase();
     create = mode == 'signup' || mode == 'create' || mode == 'trial';
+    unawaited(_loadOAuthProviders());
+  }
+
+  Future<void> _loadOAuthProviders() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_supabaseUrl/auth/v1/settings'),
+        headers: const {
+          'apikey': _supabasePublishableKey,
+          'Accept': 'application/json',
+        },
+      );
+      if (response.statusCode != 200) return;
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      final external = payload['external'] as Map<String, dynamic>? ?? const {};
+      if (!mounted) return;
+      setState(() {
+        googleOAuth = external['google'] == true;
+        appleOAuth = external['apple'] == true;
+      });
+    } catch (_) {
+      // Email/password remains available if provider discovery is unavailable.
+    }
+  }
+
+  Future<void> _socialSignUp(OAuthProvider provider) async {
+    if (create && !acceptTerms) {
+      setState(() {
+        error =
+            'Review and accept the Terms, Privacy Notice, Acceptable Use rules, and Data Disclaimer to create an account.';
+      });
+      return;
+    }
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        provider,
+        redirectTo: '$_bridgePointLiveUrl/app/',
+        authScreenLaunchMode: LaunchMode.platformDefault,
+      );
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   Future<void> submit() async {
@@ -991,6 +1041,39 @@ class _AuthScreenState extends State<_AuthScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppTheme.textMuted)),
               const SizedBox(height: 24),
+              if (create && (googleOAuth || appleOAuth)) ...[
+                if (googleOAuth)
+                  OutlinedButton(
+                    onPressed: loading
+                        ? null
+                        : () => _socialSignUp(OAuthProvider.google),
+                    child: const Text('Continue with Google'),
+                  ),
+                if (googleOAuth && appleOAuth) const SizedBox(height: 8),
+                if (appleOAuth)
+                  OutlinedButton(
+                    onPressed: loading
+                        ? null
+                        : () => _socialSignUp(OAuthProvider.apple),
+                    child: const Text('Continue with Apple'),
+                  ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Row(children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text('OR USE EMAIL',
+                          style: TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: .8)),
+                    ),
+                    Expanded(child: Divider()),
+                  ]),
+                ),
+              ],
               if (create) ...[
                 TextField(
                     controller: displayName,
