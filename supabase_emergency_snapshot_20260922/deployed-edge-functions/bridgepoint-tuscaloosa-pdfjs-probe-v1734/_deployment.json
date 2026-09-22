@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-pdfjs-probe-v1734",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "910bbdfe2e38e2458cd45a88012fb5f074f3c3be817ba22a605a6653702087e4",
+  "redactions": 1
+}

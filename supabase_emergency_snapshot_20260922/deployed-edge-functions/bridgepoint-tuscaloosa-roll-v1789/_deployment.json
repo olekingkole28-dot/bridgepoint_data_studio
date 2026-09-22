@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-roll-v1789",
+  "version": 7,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "5a18d0f06a4ab130d63dd1520bb62ac140b8d411728690e3db96929c45fe7921",
+  "redactions": 1
+}

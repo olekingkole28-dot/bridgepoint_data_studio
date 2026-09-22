@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-tax-probe-v1731",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "b17589e0ecf02341b96b67da784b7bf0b6d571a6caf625fe34b8e5cefd767f64",
+  "redactions": 0
+}

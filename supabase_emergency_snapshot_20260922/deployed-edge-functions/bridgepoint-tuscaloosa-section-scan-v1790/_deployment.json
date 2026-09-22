@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-section-scan-v1790",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "0f02dc4d9ad63c1a934bbc316f0c84e7544404ed8559c771ec738ff6532965a4",
+  "redactions": 1
+}

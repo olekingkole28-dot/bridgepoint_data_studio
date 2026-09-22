@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-range-diag-v1736",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "c07fb967e4dac954d326d2e4684a1c482c5f44fccdc4f709ac2f10c0bbe02e1d",
+  "redactions": 1
+}

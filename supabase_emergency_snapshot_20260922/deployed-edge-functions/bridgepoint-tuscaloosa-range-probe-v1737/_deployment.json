@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-range-probe-v1737",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "3311e0d4c171ba6a28931486fa557253e47cc0f5e95a64a580e46ba3c86f4fbe",
+  "redactions": 1
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-tuscaloosa-scan-v1789",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "e08fa0cb7eebba46e3f950c5fd921eca2301ecfd6eae60259339f207e0c87319",
+  "redactions": 1
+}

@@ -1,0 +1,10 @@
+const H={"content-type":"application/json","cache-control":"no-store"};
+const KEY="[REDACTED_LONG_LITERAL]";
+const PDF_URL="https://www.tuscco.com/wp-content/uploads/2026/05/2026-Real-Property-Valuation-Notices-Numerical-by-Parcel-01-21.pdf";
+Deno.serve(async(req:Request)=>{try{const u=new URL(req.url);if(req.method!=="GET"||u.searchParams.get("k")!==KEY)return new Response(JSON.stringify({complete:false,error:"UNAUTHORIZED"}),{status:401,headers:H});
+ let pdfjs:any; try{pdfjs=await import("npm:pdfjs-dist@4.10.38/legacy/build/pdf.mjs");}catch(e){return new Response(JSON.stringify({complete:false,stage:"IMPORT",error:String((e as any)?.stack||e)}),{status:500,headers:H});}
+ let task:any; try{task=pdfjs.getDocument({url:PDF_URL,disableAutoFetch:true,disableStream:true,rangeChunkSize:65536,disableWorker:true,httpHeaders:{"User-Agent":"BridgePointIntelligence/1.0 (+county-public-record-ingest)"}});}catch(e){return new Response(JSON.stringify({complete:false,stage:"GETDOCUMENT_CONSTRUCT",error:String((e as any)?.stack||e)}),{status:500,headers:H});}
+ let doc:any; try{doc=await task.promise;}catch(e){return new Response(JSON.stringify({complete:false,stage:"DOCUMENT_LOAD",error:String((e as any)?.stack||e)}),{status:500,headers:H});}
+ let text=""; try{const p=await doc.getPage(1);const tc=await p.getTextContent();text=(tc.items as any[]).map((x:any)=>x.str||"").join(" ");await p.cleanup();}catch(e){return new Response(JSON.stringify({complete:false,stage:"PAGE_TEXT",pages:doc?.numPages??null,error:String((e as any)?.stack||e)}),{status:500,headers:H});}
+ const pages=doc.numPages; await doc.cleanup(); await doc.destroy();return new Response(JSON.stringify({complete:true,pages,page1_text:text.slice(0,12000),text_length:text.length}),{headers:H});
+ }catch(e){return new Response(JSON.stringify({complete:false,stage:"OUTER",error:String((e as any)?.stack||e)}),{status:500,headers:H});}});
