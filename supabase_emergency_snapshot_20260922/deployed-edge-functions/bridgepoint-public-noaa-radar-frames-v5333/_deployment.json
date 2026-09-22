@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-noaa-radar-frames-v5333",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "af897349cae6b3242eb31d7a66243890405be2fd61c9f5c160b20c7997237c1f",
+  "redactions": 0
+}

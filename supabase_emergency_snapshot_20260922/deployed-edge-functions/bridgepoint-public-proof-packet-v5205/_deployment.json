@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-proof-packet-v5205",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "997d717ce8a9b688be72801236973dcb79b22d890bc46358aa87bbd976496932",
+  "redactions": 1
+}

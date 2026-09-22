@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-property-snapshot-v673",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": true,
+  "ezbr_sha256": "4091c7df76d361c3c78ff801575aac0012a1eccc5b7babb9c9f68122e53398f7",
+  "redactions": 1
+}

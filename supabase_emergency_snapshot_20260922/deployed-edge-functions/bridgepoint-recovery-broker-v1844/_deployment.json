@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-recovery-broker-v1844",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "b1e40b5f4461a64c5f416e13b28eeb64473154e08425ad59c47d11cfeb5a7dde",
+  "redactions": 9
+}

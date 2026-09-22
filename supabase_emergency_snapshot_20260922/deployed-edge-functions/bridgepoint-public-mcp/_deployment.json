@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-public-mcp",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "e84e28c9f7b61236d053fb71a877e2b737cfa7132f5eaf1c0b48d8c1172a9ac8",
+  "redactions": 2
+}

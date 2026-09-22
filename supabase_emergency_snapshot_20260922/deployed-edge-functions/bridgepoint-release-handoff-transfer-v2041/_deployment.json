@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-release-handoff-transfer-v2041",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "239f01498a8557a07524e38f695ec7765c92e8b5957b40425752e9628b7d13f6",
+  "redactions": 0
+}

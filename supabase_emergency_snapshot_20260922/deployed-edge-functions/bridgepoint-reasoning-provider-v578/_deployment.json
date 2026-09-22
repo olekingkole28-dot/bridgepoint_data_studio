@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-reasoning-provider-v578",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "b35070494d0387e86acba262835793bd241ba8067f3673a7bdd31549766eb35f",
+  "redactions": 5
+}
