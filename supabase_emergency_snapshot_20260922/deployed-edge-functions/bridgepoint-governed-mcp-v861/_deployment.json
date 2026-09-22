@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-governed-mcp-v861",
+  "version": 1,
+  "verify_jwt": true,
+  "import_map": false,
+  "ezbr_sha256": "9803dda5a30ecb6a82d5b926066f9d13c92f3e0aa9c33382bf46f26a1b7551c0",
+  "redactions": 0
+}

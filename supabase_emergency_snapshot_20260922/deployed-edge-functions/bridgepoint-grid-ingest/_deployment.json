@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-grid-ingest",
+  "version": 8,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "3cd70a688de4f19c52c9b98f3464c7925afc4ab5c4aaf918f229453679e9ea24",
+  "redactions": 0
+}

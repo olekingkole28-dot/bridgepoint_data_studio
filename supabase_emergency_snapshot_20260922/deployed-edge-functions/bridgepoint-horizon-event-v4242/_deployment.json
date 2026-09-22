@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-horizon-event-v4242",
+  "version": 3,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "73e098e47301ba01e0c065850fc6b1dc889dc3a26901c953c71fd643cebe4399",
+  "redactions": 0
+}

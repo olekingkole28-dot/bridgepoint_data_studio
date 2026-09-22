@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-hcad-account-shard-v1944",
+  "version": 2,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "a2afb8f6df4ed7db5c915d8c5d95099dc3ffde460c65833dbb1ff9cc8be0dd0f",
+  "redactions": 0
+}

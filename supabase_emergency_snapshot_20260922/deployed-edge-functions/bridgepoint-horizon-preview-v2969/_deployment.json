@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-horizon-preview-v2969",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "66b5557ba73600d6eba69b9561b9f3e82e35c0446438a9685b199874cb6357f3",
+  "redactions": 0
+}

@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-hamilton-tn-assessor-probe-v1815",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "11afe511a41d3b508294cc8ab239066e0544e707fee1d89ab7a7e77d70f9072e",
+  "redactions": 0
+}

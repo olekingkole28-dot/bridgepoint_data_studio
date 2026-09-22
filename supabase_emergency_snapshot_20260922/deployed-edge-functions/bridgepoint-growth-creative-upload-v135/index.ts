@@ -1,0 +1,27 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+const U=Deno.env.get('SUPABASE_URL')!;
+const A=Deno.env.get('SUPABASE_ANON_KEY')!;
+const S=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const H={'content-type':'application/json'};
+const service=createClient(U,S,{auth:{persistSession:false}});
+Deno.serve(async(req:Request)=>{try{
+  if(req.method!=='POST')return new Response(JSON.stringify({complete:false,error:'POST required'}),{status:405,headers:H});
+  const auth=req.headers.get('authorization')||'';
+  const user=createClient(U,A,{global:{headers:{Authorization:auth}},auth:{persistSession:false}});
+  const {data:me,error:authErr}=await user.auth.getUser();
+  if(authErr||!me.user)return new Response(JSON.stringify({complete:false,error:'Sign in required'}),{status:401,headers:H});
+  const owner=await user.rpc('bridgepoint_growth_center_v102');
+  if(owner.error)return new Response(JSON.stringify({complete:false,error:'Owner access required'}),{status:403,headers:H});
+  const name=(req.headers.get('x-filename')||'creative.bin').replace(/[^a-zA-Z0-9._-]/g,'_');
+  const mime=(req.headers.get('content-type')||'application/octet-stream').toLowerCase();
+  const allowed=new Set(['video/mp4','image/png','image/jpeg','image/webp']);
+  if(!allowed.has(mime))throw new Error('Unsupported creative file type');
+  const bytes=new Uint8Array(await req.arrayBuffer());
+  if(bytes.byteLength<1||bytes.byteLength>50*1024*1024)throw new Error('File must be between 1 byte and 50 MB');
+  const safeName=`owner/${me.user.id}/${Date.now()}-${name}`;
+  const {error}=await service.storage.from('bridgepoint-growth-creatives').upload(safeName,bytes,{contentType:mime,upsert:false,cacheControl:'3600'});
+  if(error)throw error;
+  const {data}=service.storage.from('bridgepoint-growth-creatives').getPublicUrl(safeName);
+  await service.schema('security').from('security_events_v147').insert({user_id:me.user.id,event_type:'GROWTH_CREATIVE_UPLOADED',severity:'INFO',summary:'Owner uploaded a BridgePoint growth creative.',metadata:{object_name:safeName,mime,size:bytes.byteLength}});
+  return new Response(JSON.stringify({complete:true,name:safeName,size:bytes.byteLength,public_url:data.publicUrl}),{headers:H});
+}catch(e){return new Response(JSON.stringify({complete:false,error:String((e as any)?.message||e)}),{status:400,headers:H})}});

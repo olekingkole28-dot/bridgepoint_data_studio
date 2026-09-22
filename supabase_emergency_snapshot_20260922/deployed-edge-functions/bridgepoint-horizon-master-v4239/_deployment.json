@@ -1,0 +1,8 @@
+{
+  "slug": "bridgepoint-horizon-master-v4239",
+  "version": 1,
+  "verify_jwt": false,
+  "import_map": false,
+  "ezbr_sha256": "b12f676b951982477f22c4a98d7203ce342bcc416231f86b1f497b56ecb4db4e",
+  "redactions": 0
+}
