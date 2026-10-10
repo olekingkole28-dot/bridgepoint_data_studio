@@ -14,11 +14,11 @@ All job schedules use the existing ingestion code and idempotent event upserts. 
 
 ## Status at deployment/change time
 
-- USGS worker and dispatcher were already deployed. Its scheduler had been inactive; last scheduled run before reactivation was 2026-10-07.
-- SWIC worker was already deployed. Its scheduler had been inactive; last successful SWIC refresh in its state table was 2026-10-07.
-- GDACS ingest worker was deployed and its event-family coverage was marked `APPROVED_CC_BY_4_0_ATTRIBUTION_REQUIRED`; last recorded successful import was 2026-09-27. No GDACS cron job existed before this change.
+- USGS worker and dispatcher were already deployed. Its scheduler is now active, but the dispatcher still has a strict queue gate (HTTP queue must be below 10). State at the latest check: 802 cumulative pressure skips, zero in-flight requests, zero consecutive failures, and last HTTP 200 response on 2026-10-06. Shared queue was 41, so a fresh post-reactivation USGS import is not yet verified.
+- SWIC worker was already deployed. Its schedule is active and its state records a successful refresh on 2026-10-10 04:19:19 UTC. The worker reported one CAP detail fetch failure, so the refresh was partial rather than error-free.
+- GDACS ingest worker was deployed and its event-family coverage was marked `APPROVED_CC_BY_4_0_ATTRIBUTION_REQUIRED`; its last recorded successful import before reactivation was 2026-09-27. A guarded manual test request (ID 1413282) was queued on 2026-10-10 04:20 UTC; its HTTP response and resulting source-table update had not been observed at the latest check.
 - The shared `net.http_request_queue` ranged from 32 to 42 items during this change, mostly existing ArcGIS and projected-GML calls. Because of this, the pressure gates can skip requests while the queue is elevated.
-- A one-off SWIC request was enqueued as request ID 1413241. At the most recent check, its response and a newer SWIC success timestamp had not yet been confirmed. Treat the worker as scheduled/activated but not yet verified successful until the state table updates.
+- A one-off SWIC request was enqueued as request ID 1413241. By the latest check, the WMO state had advanced and recorded a successful refresh at 2026-10-10 04:19:19 UTC, with `last_error` reporting `1 CAP detail fetches failed`. The original request ID remained in the pg_net queue view during that check; the state-table update is evidence of partial ingestion, not the scheduler row alone.
 
 ## Verification queries
 
