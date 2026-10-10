@@ -120,6 +120,25 @@ function publicCountry(row: Record<string, unknown>) {
   };
 }
 
+function publicInfrastructureSource(row: Record<string, unknown>) {
+  return {
+    source_key: cleanText(row.source_key, 120),
+    scope: cleanText(row.scope, 32),
+    country_code: cleanText(row.country_code, 12),
+    jurisdiction_code: cleanText(row.jurisdiction_code, 40),
+    source_name: cleanText(row.source_name, 200),
+    authority_name: cleanText(row.authority_name, 160),
+    rights_class: cleanText(row.rights_class, 60),
+    ingest_mode: cleanText(row.ingest_mode, 60),
+    status: cleanText(row.status, 60),
+    discovered_count: Number(row.discovered_count || 0),
+    materialized_count: Number(row.materialized_count || 0),
+    geometry_truth: cleanText(row.geometry_truth, 100),
+    last_verified_at: cleanText(row.last_verified_at, 80),
+    updated_at: cleanText(row.updated_at, 80)
+  };
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response(null, { headers: HEADERS });
   if (request.method !== "POST") {
@@ -130,7 +149,7 @@ Deno.serve(async (request: Request) => {
 
   try {
     const now = new Date().toISOString();
-    const [progressRows, countryRows, eventRows, signalRows] = await Promise.all([
+    const [progressRows, countryRows, eventRows, signalRows, infrastructureSourceRows] = await Promise.all([
       readRows("bridgepoint_global_progress_v5700", { select: "*", singleton: "eq.true", limit: "1" }),
       readRows("bridgepoint_global_country_progress_v5710", {
         select: "country_code,active_canonical,with_boundary,materialized_boundary_rows,building_footprints,building_3d_models,addresses,roof_records,source_count,complete_sources,source_cache_updated_at,updated_at",
@@ -145,12 +164,17 @@ Deno.serve(async (request: Request) => {
       readRows("intelligence_global_signal_v5503", {
         select: SIGNAL_COLUMNS, domain: "eq.SPACE_WEATHER",
         expires_at: "gt." + now, order: "observed_at.desc", limit: "20"
+      }),
+      readRows("intelligence_bridge_source_v5540", {
+        select: "source_key,scope,country_code,jurisdiction_code,source_name,authority_name,rights_class,ingest_mode,status,discovered_count,materialized_count,geometry_truth,last_verified_at,updated_at",
+        order: "updated_at.desc", limit: "25"
       })
     ]);
 
     const events = eventRows.map((row: Record<string, unknown>) => toPublicEvent(row));
     const signals = signalRows.map((row: Record<string, unknown>) => toPublicSignal(row));
     const countries = countryRows.map((row: Record<string, unknown>) => publicCountry(row));
+    const infrastructureSources = infrastructureSourceRows.map((row: Record<string, unknown>) => publicInfrastructureSource(row));
     const progress = publicProgress(progressRows[0] as Record<string, unknown> | undefined);
     const observedTimes = [...events, ...signals]
       .map((item: Record<string, unknown>) => Date.parse(String(item.observed_at || "")))
@@ -162,9 +186,11 @@ Deno.serve(async (request: Request) => {
     return new Response(JSON.stringify({
       ok: true, version: 1, generated_at: now, latest_observed_at: latestObservedAt,
       global_progress: progress, countries,
+      infrastructure_sources: infrastructureSources,
       recent_public_events: events, space_weather_signals: signals,
       summary: {
         country_rows_loaded: countries.length,
+        infrastructure_source_rows_loaded: infrastructureSources.length,
         recent_public_events_loaded: events.length,
         space_weather_signals_loaded: signals.length,
         event_domains: EVENT_DOMAINS
