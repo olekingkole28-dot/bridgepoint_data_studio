@@ -22,6 +22,7 @@ Reuse these foundations; do not create a competing data model.
 2. An allow-listed response that excludes coordinates, tracks, heading, speed and altitude from the general overview.
 3. A Flutter screen that presents:
    - canonical property identity, building-footprint and materialized-boundary metrics;
+   - registered infrastructure sources, rights class, ingest mode, status and discovered/materialized counts;
    - recent public-source hazard events;
    - space-weather signals;
    - country coverage and source-refresh metadata.
@@ -65,7 +66,7 @@ Join facilities and supply dependencies to hazards, public outage/disruption rep
 ## Acceptance criteria
 
 - The deployed endpoint rejects unauthenticated requests.
-- Response size is bounded: at most 40 country rows, 60 public events and 20 space-weather signals.
+- Response size is bounded: at most 40 country rows, 25 infrastructure source rows, 60 public events and 20 space-weather signals.
 - Event payload contains no coordinates, track, heading, speed or altitude.
 - Source key and observation time are displayed when present.
 - Flutter handles missing progress, empty feeds, endpoint failures and retry without inventing values.
