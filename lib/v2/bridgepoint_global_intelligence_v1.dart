@@ -210,6 +210,56 @@ class _BridgePointGlobalIntelligenceV1State
     );
   }
 
+  Widget _sourceRow(Map<String, dynamic> source) {
+    final status = '${source['status'] ?? 'Unknown status'}';
+    final discovered = _number(source['discovered_count']);
+    final materialized = _number(source['materialized_count']);
+    final scope = _label(source['scope']);
+    final rights = _label(source['rights_class']);
+    final mode = _label(source['ingest_mode']);
+    final verified = _date(source['last_verified_at']);
+    final hasRecords = (source['materialized_count'] is num)
+        ? (source['materialized_count'] as num) > 0
+        : int.tryParse('${source['materialized_count'] ?? '0'}')! > 0;
+    final statusColor = hasRecords ? _green : _amber;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF071523),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withValues(alpha: .22)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Text(
+            '${source['source_name'] ?? source['source_key'] ?? 'Registered source'}',
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
+          )),
+          const SizedBox(width: 8),
+          _pill(_label(status), statusColor),
+        ]),
+        const SizedBox(height: 6),
+        Text('Authority: ${source['authority_name'] ?? 'Not specified'}',
+            style: const TextStyle(color: _muted, fontSize: 11.5)),
+        const SizedBox(height: 7),
+        Wrap(spacing: 6, runSpacing: 6, children: [
+          _pill(scope, _blue),
+          _pill(rights, _cyan),
+          _pill(mode, _amber),
+        ]),
+        const SizedBox(height: 7),
+        Text('Discovered: $discovered  •  Materialized: $materialized',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5)),
+        Text('Last verified: $verified  •  Geometry: ${source['geometry_truth'] ?? 'unspecified'}',
+            style: const TextStyle(color: _muted, fontSize: 10.5)),
+        Text('Source key: ${source['source_key'] ?? 'Unknown'}',
+            style: const TextStyle(color: _muted, fontSize: 10.5)),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
         future: _request,
@@ -221,6 +271,7 @@ class _BridgePointGlobalIntelligenceV1State
           final countries = _rows(payload['countries']);
           final events = _rows(payload['recent_public_events']);
           final signals = _rows(payload['space_weather_signals']);
+          final sourceRows = _rows(payload['infrastructure_sources']);
           final error = snapshot.error;
 
           return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -282,6 +333,11 @@ class _BridgePointGlobalIntelligenceV1State
                 _metric('Materialized boundaries', progress['materialized_global_boundaries'], _blue, 'Boundary records, not assumed coverage'),
                 _metric('Countries represented', progress['materialized_country_count'], _amber, 'Countries with materialized records'),
               ]),
+              _section('Infrastructure source readiness',
+                'Registered source status, rights class and materialized counts. A discovered or enabled source is not necessarily fully ingested or current.',
+                sourceRows.isEmpty
+                  ? const Text('No infrastructure source records were returned.', style: TextStyle(color: _muted))
+                  : Column(children: sourceRows.take(12).map(_sourceRow).toList())),
               _section('Latest public-source events',
                 'Recent earthquake, global-hazard and volcano records. These are records returned to this screen, not a claim of complete worldwide event coverage.',
                 events.isEmpty
