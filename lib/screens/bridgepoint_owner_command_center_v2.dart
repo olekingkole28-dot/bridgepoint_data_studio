@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../bridgepoint_integrations_hub_v790.dart';
+import '../v2/bridgepoint_global_intelligence_v1.dart';
 import 'bridgepoint_operations_hub.dart';
 import 'bridgepoint_owner_ai_cockpit.dart';
 import 'bridgepoint_owner_download_center_v1896.dart';
@@ -64,6 +65,7 @@ class _BridgePointOwnerCommandCenterV2State extends State<BridgePointOwnerComman
       3 => const BridgePointOwnerV2Requirements(),
       4 => const BridgePointOwnerDownloadCenterV1896(),
       5 => const BridgePointOwnerPlatformTelemetryV5605(),
+      6 => BridgePointGlobalIntelligenceV1(onOpenWorld: () {}),
       _ => _advancedMenu(),
     };
 
@@ -75,7 +77,8 @@ class _BridgePointOwnerCommandCenterV2State extends State<BridgePointOwnerComman
         ButtonSegment(value: 3,icon: Icon(Icons.rule_folder_rounded),label: Text('Build')),
         ButtonSegment(value: 4,icon: Icon(Icons.download_rounded,color: _cyan),label: Text('Downloads & 3D')),
         ButtonSegment(value: 5,icon: Icon(Icons.monitor_heart_outlined,color: _cyan),label: Text('Traffic')),
-        ButtonSegment(value: 6,icon: Icon(Icons.tune_rounded,color: _gold),label: Text('Advanced')),
+        ButtonSegment(value: 6,icon: Icon(Icons.public_rounded,color: _cyan),label: Text('Global Feeds')),
+        ButtonSegment(value: 7,icon: Icon(Icons.tune_rounded,color: _gold),label: Text('Advanced')),
       ],selected: <int>{_tab},onSelectionChanged: (value) => setState(() {_tab = value.first;_advanced = null;})))),
       Expanded(child: page),
     ]);
