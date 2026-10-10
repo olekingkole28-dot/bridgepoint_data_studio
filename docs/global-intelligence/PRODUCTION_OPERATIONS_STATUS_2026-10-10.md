@@ -6,7 +6,7 @@ This note records the narrow scheduler changes made to the existing production S
 
 | Job | Schedule | Change | Safety gate |
 |---|---|---|---|
-| `bridgepoint-global-earthquake-v5830` (job 988) | Every 15 minutes | Activated existing USGS global-earthquake dispatcher. | Its database dispatcher already applies HTTP queue, active-session, I/O, lock and failure-backoff checks; it skips dispatch when queue is 10+ or load is elevated. |
+| `bridgepoint-global-earthquake-v5830` (job 988) | Every 15 minutes | Activated existing USGS global-earthquake dispatcher and widened its pressure gate. | Queue ceiling is now 44 (was 10); active-client, I/O and lock limits are 20, 8 and 2 respectively. Advisory lock, in-flight request handling and failure backoff remain in place. |
 | `bridgepoint-wmo-swic-v5823` (job 984) | Every 2 minutes | Activated existing SWIC worker and added pressure guards to the scheduled command. | Enqueue only when HTTP queue < 44, active client sessions < 20, I/O waits < 8 and lock waits < 2. Sends task token from the existing private worker-secret table; no token stored in this repository. |
 | `bridgepoint-global-gdacs-v5833` (job 1030) | Every 30 minutes | Added and activated a scheduled call to the existing GDACS ingest worker. | Same HTTP queue/database pressure guards as SWIC. Uses task token from existing private worker-secret table. |
 
@@ -14,10 +14,10 @@ All job schedules use the existing ingestion code and idempotent event upserts. 
 
 ## Status at deployment/change time
 
-- USGS worker and dispatcher were already deployed. Its scheduler is now active, but the dispatcher still has a strict queue gate (HTTP queue must be below 10). State at the latest check: 802 cumulative pressure skips, zero in-flight requests, zero consecutive failures, and last HTTP 200 response on 2026-10-06. Shared queue was 41, so a fresh post-reactivation USGS import is not yet verified.
+- USGS worker and dispatcher were already deployed. Its schedule is active and the pressure gate was widened while preserving in-flight/backoff controls. A new request (ID 1413303) was accepted by the dispatcher at 2026-10-10 04:22 UTC, but its HTTP response and source update were not observed at the latest check. Last verified source import remains 2026-10-06; cumulative pressure skips before the adjustment were 802.
 - SWIC worker was already deployed. Its schedule is active and its state records a successful refresh on 2026-10-10 04:19:19 UTC. The worker reported one CAP detail fetch failure, so the refresh was partial rather than error-free.
 - GDACS ingest worker was deployed and its event-family coverage was marked `APPROVED_CC_BY_4_0_ATTRIBUTION_REQUIRED`; its last recorded successful import before reactivation was 2026-09-27. A guarded manual test request (ID 1413282) was queued on 2026-10-10 04:20 UTC; its HTTP response and resulting source-table update had not been observed at the latest check.
-- The shared `net.http_request_queue` ranged from 32 to 42 items during this change, mostly existing ArcGIS and projected-GML calls. Because of this, the pressure gates can skip requests while the queue is elevated.
+- The shared `net.http_request_queue` ranged from 20 to 41 items during this change, mostly existing ArcGIS and projected-GML calls. The widened USGS gate has a hard cap of 44 and still skips under high database activity.
 - A one-off SWIC request was enqueued as request ID 1413241. By the latest check, the WMO state had advanced and recorded a successful refresh at 2026-10-10 04:19:19 UTC, with `last_error` reporting `1 CAP detail fetches failed`. The original request ID remained in the pg_net queue view during that check; the state-table update is evidence of partial ingestion, not the scheduler row alone.
 
 ## Verification queries
@@ -52,6 +52,10 @@ where source_code in (
   'GDACS_FLOOD_GLOBAL_V5833'
 );
 ```
+
+## Migration tracking note
+
+The changed dispatcher definition is committed as `supabase/migrations/20261010042500_bridgepoint_global_lifecycle_dispatch_pressure_gate_v5830.sql` in the feature branch. The Supabase migration-application tool was blocked, so the production function was changed and verified through SQL, but the migration-history ledger may still need reconciliation before release. Do not claim the migration ledger is synchronized without checking it.
 
 ## Important limitation
 
