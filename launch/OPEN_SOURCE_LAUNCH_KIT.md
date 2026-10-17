@@ -2,8 +2,7 @@
 
 > **Publish gate:** Use these announcements only after both repositories below are public,
 > their licenses and notices are visible, and the release checklist has been completed.
-> Do not announce that the “entire platform is open source” while the Flutter source repo
-> remains private.
+> Do not claim that production data, provider access, third-party datasets, or all external assets are included just because the source repositories are public.
 
 ## Canonical links
 
@@ -93,7 +92,7 @@ customer data, credentials, or a blanket licence to redistribute third-party dat
 
 ## Release checklist
 
-- [ ] Both repositories are public and the canonical links work in a logged-out browser.
+- [x] Both repositories are public according to GitHub repository metadata; still test canonical links in a logged-out browser.
 - [ ] Apache-2.0 LICENSE and NOTICE are visible in each repository.
 - [ ] Personal account identifiers, tokens, private exports, and local config are reviewed.
 - [ ] Third-party assets, data, fonts, imagery, and attribution terms are reviewed.
