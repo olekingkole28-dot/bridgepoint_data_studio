@@ -1,6 +1,6 @@
 # BridgePoint Intelligence — Flutter application
 
-> **Open-source release preparation:** this repository contains the Flutter/Dart application, product screens, app-specific world integration, Supabase functions/migrations, and release automation. It is licensed under Apache-2.0 for first-party code and documentation, subject to the boundaries in [NOTICE](NOTICE) and [OPEN_SOURCE_SCOPE.md](OPEN_SOURCE_SCOPE.md). The full multi-repository source release is not complete while this repository remains private.
+> **Open-source release preparation:** this repository contains the Flutter/Dart application, product screens, app-specific world integration, Supabase functions/migrations, and release automation. It is licensed under Apache-2.0 for first-party code and documentation, subject to the boundaries in [NOTICE](NOTICE) and [OPEN_SOURCE_SCOPE.md](OPEN_SOURCE_SCOPE.md). Both the web/data-workflow repository and this Flutter companion repository are now public. See [OPEN_SOURCE_SCOPE.md](OPEN_SOURCE_SCOPE.md) for the boundaries: public source code does not include production database contents, credentials, third-party datasets, or external provider entitlements.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidance and [SECURITY.md](SECURITY.md) for responsible vulnerability reporting. External data, production records, provider access, credentials, and third-party assets are not granted by the source-code licence.
 
@@ -10,7 +10,7 @@ Live Connecticut property intelligence, automated opportunity scoring, evidence-
 
 - Every customer starts with a seven-day All Intelligence trial.
 - The first ten non-founder customers receive 50% off their selected package for their first six paid months.
-- Founder/owner access is configured through the deployment's authentication and entitlement rules. Before a public release, verify that privileged access is enforced server-side and that private account identifiers are not hard-coded into client-visible paths.
+- Founder/owner access is configured through the deployment's authentication and entitlement rules. For deployment, verify that privileged access is enforced server-side and that no private account identifiers or privileged credentials are exposed in client-visible paths.
 - The workspace refreshes automatically and reads modern V36/V37/V38 intelligence engines.
 
 ## Run locally
