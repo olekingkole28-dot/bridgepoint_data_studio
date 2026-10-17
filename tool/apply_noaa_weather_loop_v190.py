@@ -17,7 +17,28 @@ if start<0:
 show_radar=text.find('bool _showRadar = true;',start)
 if show_radar<0:
     raise SystemExit('v830 radar state field missing')
-main_radar_if=text.find('if (_showRadar)',show_radar)
+
+def find_radar_condition(offset):
+    print('v845 radar locator',{'len':len(text),'offset':offset,'global_tile':text.find('TileLayer('),'global_wms':text.find('WMSTileLayerOptions('),'global_guard':text.find('if (_showRadar'),'show':text.find('_showRadar',offset),'guard_spaced':text.find('if (_showRadar',offset),'guard_compact':text.find('if(_showRadar',offset),'tile':text.find('TileLayer(',offset),'wms':text.find('WMSTileLayerOptions(',offset)})
+    # Accept only a line-level _showRadar collection guard whose next widget is
+    # a nearby TileLayer. This excludes timer callbacks and avoids provider URLs.
+    cursor=offset
+    while True:
+        show=text.find('_showRadar',cursor)
+        if show<0:
+            return -1
+        line_start=text.rfind('\n',offset,show)+1
+        line_end=text.find('\n',show)
+        if line_end<0:
+            line_end=len(text)
+        line=text[line_start:line_end]
+        next_tile=text.find('TileLayer(',line_end,line_end+320)
+        if line.lstrip().startswith('if') and next_tile>=0:
+            return line_start+len(line)-len(line.lstrip())
+        cursor=show+len('_showRadar')
+
+
+main_radar_if=find_radar_condition(show_radar)
 if main_radar_if<0:
     raise SystemExit('v830 main radar condition missing')
 main_tile=text.find('TileLayer(',main_radar_if)
@@ -59,7 +80,7 @@ if '_radarAnimationTimer' not in text[show_radar:main_radar_if]:
     text=text[:show_radar]+text[show_radar:].replace(field,fields,1)
     # Recompute positions after insertion.
     show_radar=text.find('bool _showRadar = true;',start)
-    main_radar_if=text.find('if (_showRadar)',show_radar)
+    main_radar_if=find_radar_condition(show_radar)
     main_tile=text.find('TileLayer(',main_radar_if)
     main_wms=text.find('WMSTileLayerOptions(',main_tile)
     marker_layer=text.find('MarkerLayer(markers: markers)',main_wms)
@@ -103,7 +124,7 @@ if lifecycle.count('void dispose()')>=1:
 
 # Recompute main WMS positions after lifecycle edits.
 show_radar=text.find('bool _showRadar = true;',start)
-main_radar_if=text.find('if (_showRadar)',show_radar)
+main_radar_if=find_radar_condition(show_radar)
 main_tile=text.find('TileLayer(',main_radar_if)
 main_wms=text.find('WMSTileLayerOptions(',main_tile)
 marker_layer=text.find('MarkerLayer(markers: markers)',main_wms)
@@ -137,11 +158,18 @@ if 'otherParameters:' not in wms:
 text=text[:main_wms]+wms+text[main_wms+wms_end_rel:]
 
 # Gate only the main raw-radar layer at deep property zoom.
-main_radar_if=text.find('if (_showRadar)',show_radar)
+main_radar_if=find_radar_condition(show_radar)
 main_tile=text.find('TileLayer(',main_radar_if)
 if main_radar_if<0 or main_tile<0 or main_tile-main_radar_if>250:
     raise SystemExit('v830 main radar condition/tile adjacency missing')
-text=text[:main_radar_if]+text[main_radar_if:main_tile].replace('if (_showRadar)','if (_showRadar && _viewportZoom <= 10.5)',1)+text[main_tile:]
+condition_segment=text[main_radar_if:main_tile]
+if '_viewportZoom <= 10.5' not in condition_segment:
+    condition_segment,count=re.subn(r'if\s*\(\s*_showRadar\s*\)','if (_showRadar && _viewportZoom <= 10.5)',condition_segment,count=1)
+    if count!=1:
+        raise SystemExit(f'v830 main radar condition replacement count={count}')
+    text=text[:main_radar_if]+condition_segment+text[main_tile:]
+else:
+    print('v830 main radar zoom gate already present; continuing')
 
 # Add the timeline immediately before the existing top-right map controls.
 controls=text.find('Positioned(',main_tile)

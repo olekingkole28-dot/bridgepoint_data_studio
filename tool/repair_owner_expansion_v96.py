@@ -13,7 +13,7 @@ indices=[i for i,line in enumerate(lines) if needle in line]
 # legacy approval block to repair.
 def canonical_owner_global_present():
     owner_path=Path('lib/screens/bridgepoint_owner_global_control.dart')
-    command_path=Path('lib/screens/bridgepoint_owner_command_center.dart')
+    command_path=Path('lib/screens/bridgepoint_owner_command_center_v2.dart')
     if not owner_path.exists() or not command_path.exists():
         return False
     owner=owner_path.read_text(encoding='utf-8')

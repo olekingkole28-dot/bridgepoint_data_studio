@@ -3,6 +3,9 @@ from pathlib import Path
 p=Path('lib/main.dart')
 text=p.read_text(encoding='utf-8')
 original=text
+def checkpoint(label):
+    print('v847 v189 checkpoint',label,{'len':len(text),'wms':text.count('WMSTileLayerOptions('),'maps':text.count('class _IntelligenceMapPage')})
+checkpoint('start')
 
 # Section color system: controlled, repeatable accents instead of random colors.
 anchor='class _WorkspaceAtmosphere extends StatelessWidget{'
@@ -94,6 +97,7 @@ new_compact="""          final item = items[index];
 """
 if old_compact not in text: raise SystemExit('compact nav anchor missing')
 text=text.replace(old_compact,new_compact,1)
+checkpoint('navigation')
 
 # Expansion control center now loads adaptive ETAs with the live control response.
 old_load="""  Future<void> loadControl()async{
@@ -142,6 +146,11 @@ new_steps="""          const SizedBox(height:12),const Text('BUILD PROGRESS',sty
 """
 if old_steps not in text: raise SystemExit('expansion steps UI anchor missing')
 text=text.replace(old_steps,new_steps,1)
+checkpoint('expansion')
+# Preserve the last fully validated premium/navigation/ETA payload. Later map
+# compatibility rewrites are optional and may encounter already-modern surfaces;
+# they must never destroy this valid handoff.
+safe_handoff_text=str(text)
 
 # Intelligence map: visibly advertise markets actively being built.
 old_cov="""        final coverageMarkets=_detailList(coverage['markets']);
@@ -151,8 +160,11 @@ new_cov="""        final coverageMarkets=_detailList(coverage['markets']);
         final buildingMarkets=coverageMarkets.where((m)=>'${m['data_status']}'=='BUILDING').toList();
         final highPriority = points.where((p) {
 """
-if old_cov not in text: raise SystemExit('coverage market anchor missing')
-text=text.replace(old_cov,new_cov,1)
+if old_cov in text:
+    text=text.replace(old_cov,new_cov,1)
+elif "final buildingMarkets=coverageMarkets.where" not in text:
+    raise SystemExit('coverage market anchor missing')
+checkpoint('map_coverage')
 
 old_marker="""          final requested=market['interest_registered']==true;
           markers.add(Marker(point:center,width:74,height:56,child:Tooltip(
@@ -174,8 +186,11 @@ new_marker="""          final requested=market['interest_registered']==true;fina
             )),
           )));
 """
-if old_marker not in text: raise SystemExit('coverage marker anchor missing')
-text=text.replace(old_marker,new_marker,1)
+if old_marker in text:
+    text=text.replace(old_marker,new_marker,1)
+elif "final building=market['data_status']=='BUILDING'" not in text:
+    raise SystemExit('coverage marker anchor missing')
+checkpoint('map_marker')
 
 old_heading="""            _PageHeading(
               title: 'Intelligence Map',
@@ -194,11 +209,67 @@ new_heading="""            _PageHeading(
             if(buildingMarkets.isNotEmpty)...[const SizedBox(height:10),Container(width:double.infinity,padding:const EdgeInsets.all(11),decoration:BoxDecoration(color:AppTheme.green.withOpacity(.07),borderRadius:BorderRadius.circular(12),border:Border.all(color:AppTheme.green.withOpacity(.22))),child:Row(children:[const _PulseDot(color:AppTheme.green),const SizedBox(width:9),Expanded(child:Text('BUILDING NOW • ${buildingMarkets.map((m)=>'${m['state_name']} (${m['state_code']})').join(' • ')} • Tap the state marker to see coverage status.',style:const TextStyle(color:Colors.white,fontSize:9.5,fontWeight:FontWeight.w800))) ]))],
             const SizedBox(height: 18),
 """
-if old_heading not in text: raise SystemExit('map heading anchor missing')
-text=text.replace(old_heading,new_heading,1)
+if old_heading in text:
+    text=text.replace(old_heading,new_heading,1)
+elif "if(buildingMarkets.isNotEmpty)" not in text:
+    raise SystemExit('map heading anchor missing')
+checkpoint('map_heading')
 
+if text.count('WMSTileLayerOptions(')<3 or len(text)<int(len(original)*0.8):
+    raise SystemExit(f'v189 destructive mutation blocked: before={len(original)} after={len(text)} wms={text.count("WMSTileLayerOptions(")}')
 for marker in ['_bridgePointPageAccent','bridgepoint_expansion_eta_v188','BUILDING NOW','Current step ETA:']:
     if marker not in text: raise SystemExit(f'missing v189 marker {marker}')
 if text==original: raise SystemExit('No v189 premium navigation/expansion changes applied')
-p.write_text(text,encoding='utf-8')
+# Write an immutable canonical handoff, then require a genuinely settled disk state.
+# CI proved an overlapping legacy writer can survive the original 0.5 second guard.
+# Keep the validated V189 payload separate from every mutable working variable,
+# reassert only that exact payload, and require three consecutive hash matches.
+import hashlib
+import os
+import time
+
+canonical_text=str(text)
+canonical_bytes=canonical_text.encode('utf-8')
+canonical_sha=hashlib.sha256(canonical_bytes).hexdigest()
+if len(canonical_text)<int(len(original)*0.8) or canonical_text.count('WMSTileLayerOptions(')<3:
+    fallback=safe_handoff_text
+    fallback_bytes=fallback.encode('utf-8')
+    fallback_valid=(
+        len(fallback)>=int(len(original)*0.8)
+        and fallback.count('WMSTileLayerOptions(')>=3
+        and '_bridgePointPageAccent' in fallback
+        and 'Current step ETA:' in fallback
+    )
+    if not fallback_valid:
+        raise SystemExit('v189 canonical and safe handoffs invalid before write')
+    print('v852 v189 optional map rewrite rejected; restoring validated premium/navigation/ETA handoff',
+          {'rejected_bytes':len(canonical_text),'rejected_wms':canonical_text.count('WMSTileLayerOptions('),
+           'safe_bytes':len(fallback),'safe_wms':fallback.count('WMSTileLayerOptions(')})
+    canonical_text=fallback
+    canonical_bytes=fallback_bytes
+    canonical_sha=hashlib.sha256(canonical_bytes).hexdigest()
+
+handoff=p.with_name('.main.dart.v189-handoff')
+deadline=time.monotonic()+12.0
+stable_reads=0
+attempt=0
+while time.monotonic()<deadline and stable_reads<3:
+    attempt+=1
+    persisted=p.read_bytes() if p.exists() else b''
+    persisted_sha=hashlib.sha256(persisted).hexdigest() if persisted else ''
+    if persisted==canonical_bytes and persisted_sha==canonical_sha:
+        stable_reads+=1
+        time.sleep(0.20)
+        continue
+    stable_reads=0
+    print('v851 v189 post-write drift',{'attempt':attempt,'expected':len(canonical_bytes),'observed':len(persisted),'expected_sha':canonical_sha[:12],'observed_sha':persisted_sha[:12],'observed_wms':persisted.count(b'WMSTileLayerOptions(')})
+    handoff.write_bytes(canonical_bytes)
+    os.replace(handoff,p)
+    time.sleep(0.20)
+
+persisted=p.read_bytes() if p.exists() else b''
+persisted_sha=hashlib.sha256(persisted).hexdigest() if persisted else ''
+if stable_reads<3 or persisted!=canonical_bytes or persisted_sha!=canonical_sha or persisted.count(b'WMSTileLayerOptions(')<3:
+    raise SystemExit(f'v189 handoff failed to settle: expected={len(canonical_bytes)} observed={len(persisted)} stable_reads={stable_reads} expected_sha={canonical_sha[:12]} observed_sha={persisted_sha[:12]} wms={persisted.count(b"WMSTileLayerOptions(")}')
 print('Applied premium navigation colors, build-state map status, and expansion ETAs v189')
+print('v851 v189 settled handoff',{'bytes':len(persisted),'wms':persisted.count(b'WMSTileLayerOptions('),'sha256':canonical_sha,'stable_reads':stable_reads})

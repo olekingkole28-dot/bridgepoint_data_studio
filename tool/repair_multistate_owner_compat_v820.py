@@ -175,7 +175,9 @@ if 'BUILDING NOW' not in text:
 # keep that newer heading instead of failing the release; BUILDING markers remain.
 heading_start=text.find("            _PageHeading(\n              title: 'Intelligence Map',")
 if heading_start>=0 and 'BUILDING NOW • ${buildingMarkets' not in text:
-    layout_start=text.find('            LayoutBuilder(',heading_start)
+    # Only splice against the map heading's own nearby layout. An unbounded
+    # search can jump into a later class and delete unrelated source/WMS layers.
+    layout_start=text.find('            LayoutBuilder(',heading_start,heading_start+4000)
     if layout_start>heading_start:
         new_heading="""            _PageHeading(
               title: 'Intelligence Map',

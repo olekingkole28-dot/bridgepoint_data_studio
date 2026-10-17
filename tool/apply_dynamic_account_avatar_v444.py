@@ -3,8 +3,14 @@ import re
 import subprocess
 import sys
 
+# These are the last additive owner overlays. Apply them first, then normalize the
+# historically generated structural regions before validating/adding the avatar.
 subprocess.run([sys.executable,'tool/apply_owner_ai_visibility_v602.py'],check=True)
 subprocess.run([sys.executable,'tool/apply_owner_global_ai_v678.py'],check=True)
+subprocess.run([sys.executable,'tool/repair_dashboard_anchor_v736.py'],check=True)
+# v735 deliberately restores canonical auth structure. Re-apply only the approved
+# secure remembered-email/nickname behavior afterward while retaining signup deeplinks.
+subprocess.run([sys.executable,'tool/restore_remembered_auth_v735.py'],check=True)
 
 path=Path('lib/main.dart')
 body=path.read_text(encoding='utf-8')
@@ -34,6 +40,13 @@ def require_release_contract(value: str) -> None:
         'national Properties copy': 'Authorized U.S. property universe' in value,
         'no CT-only Properties subtitle': 'Connecticut property universe • search, inspect, and open intelligence' not in value,
         'autocomplete enter selection': re.search(r'onSubmitted\s*:\s*\(_\)\s*\{\s*onFieldSubmitted\(\);\s*\}',value) is not None,
+        'v602 owner workforce': 'bridgepoint-v602-owner-ai-workers-forgotten-work' in value,
+        'v678 owner global controls': '// bridgepoint-v678-native-owner-global-ai' in value,
+        'v735 resilience gate': 'bridgepoint_public_system_status_v320' in value,
+        'secure remembered auth': 'bridgepoint-v735-secure-remembered-auth' in value,
+        'remembered auth control': 'Save my info for next time' in value,
+        'signup deeplink preserved': "create=mode=='signup'||mode=='create'||mode=='trial'" in value,
+        'no password persistence': 'bridgepoint_remember_password' not in value,
     }
     missing=[label for label,passed in checks.items() if not passed]
     if missing:
@@ -42,7 +55,7 @@ def require_release_contract(value: str) -> None:
 
 if marker in body:
     require_release_contract(body)
-    print('BridgePoint v444 dynamic avatar + localization + V728 national release contract verified.')
+    print('BridgePoint v444 dynamic avatar + localization + national + owner-control + remembered-auth release contract verified after v736 normalization.')
     raise SystemExit(0)
 
 start=body.find('class _TopBar extends StatelessWidget')
@@ -188,8 +201,6 @@ while "'KJ'" in top and replaced<2:
         break
     replaced+=1
 
-# V728 source deliberately removed founder initials before the final release layer.
-# Convert those neutral placeholders into the dynamic account avatar here.
 for placeholder in (
     'const Icon(Icons.account_circle_outlined, color: AppTheme.textMuted, size: 38)',
     'const Icon(Icons.account_circle_outlined, color: AppTheme.textMuted, size: 36)',
@@ -216,6 +227,11 @@ if "onAvatarTap:()=>_navigateTrainingLabel('Settings')" not in body:
         1,
     )
 
-require_release_contract(body)
 path.write_text(body,encoding='utf-8')
-print('Applied BridgePoint v444 dynamic account avatar with V728 national/localization release guard.')
+# Re-run the authoritative structural contract after avatar mutation, then restore the
+# narrowly approved remembered-email/nickname behavior that canonical auth intentionally omits.
+subprocess.run([sys.executable,'tool/repair_dashboard_anchor_v736.py'],check=True)
+subprocess.run([sys.executable,'tool/restore_remembered_auth_v735.py'],check=True)
+body=path.read_text(encoding='utf-8')
+require_release_contract(body)
+print('Applied BridgePoint v444 dynamic account avatar after v736 normalization; final national/localization/owner/resilience/remembered-auth contract passed.')

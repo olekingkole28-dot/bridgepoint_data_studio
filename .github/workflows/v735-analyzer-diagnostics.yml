@@ -1,0 +1,145 @@
+name: V735 Analyzer Diagnostics
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [chatgpt/completion-release-v735]
+  workflow_dispatch:
+
+concurrency:
+  group: bridgepoint-v735-analyzer-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze-generated-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate final BridgePoint source quietly
+        shell: bash
+        run: |
+          set -euo pipefail
+          log=/tmp/bridgepoint-generation.log
+          : > "$log"
+          run_py() {
+            echo "RUN $1"
+            if ! python "$1" >>"$log" 2>&1; then
+              echo "=== GENERATOR FAILURE: $1 ==="
+              tail -160 "$log"
+              exit 1
+            fi
+          }
+          run_py tool/repair_v94_script_v735.py
+          run_py tool/apply_launch_v94.py
+          run_py tool/repair_owner_expansion_v96.py
+          run_py tool/apply_launch_v95.py
+          run_py tool/apply_satellite_map_v98.py
+          run_py tool/apply_map_viewport_v124.py
+          run_py tool/apply_technology_clarity_v100.py
+          run_py tool/apply_exports_v101.py
+          run_py tool/apply_growth_center_v105.py
+          run_py tool/apply_notification_center_v109.py
+          run_py tool/apply_owner_recent_people_v112.py
+          run_py tool/apply_social_publish_v120.py
+          run_py tool/apply_social_connect_v123.py
+          run_py tool/apply_launch_readiness_v121.py
+          run_py tool/apply_weather_home_community_v145.py
+          run_py tool/repair_weather_home_v147.py
+          run_py tool/apply_numbered_sales_posts_v146.py
+          run_py tool/apply_copyright_footer_v150.py
+          run_py tool/apply_about_bridgepoint_v151.py
+          run_py tool/apply_routes_offline_v157.py
+          run_py tool/apply_training_demo_founder_v159.py
+          run_py tool/repair_generated_release_v160.py
+          run_py tool/fix_legal_gate_v160.py
+          run_py tool/apply_package_colors_molly_update_v162.py
+          run_py tool/apply_pwa_auto_update_v162.py
+          run_py tool/apply_dashboard_widgets_property_media_v164.py
+          run_py tool/repair_dashboard_media_v166.py
+          run_py tool/apply_property_imagery_history_ui_v169.py
+          run_py tool/apply_molly_companion_v165.py
+          run_py tool/apply_release_map_radar_v172.py
+          run_py tool/fix_live_radar_wms_v177.py
+          run_py tool/apply_live_location_weather_v173.py
+          run_py tool/apply_map_labels_location_domain_v180.py
+          run_py tool/apply_property_media_everywhere_v174.py
+          run_py tool/apply_interactive_widgets_alerts_v175.py
+          run_py tool/apply_molly_live_walkthrough_v176.py
+          run_py tool/fix_expansion_approve_continue_v178.py
+          run_py tool/apply_auth_nickname_v181b.py
+          run_py tool/apply_property_street_media_v186.py
+          run_py tool/apply_multistate_owner_ui_v188.py
+          run_py tool/apply_premium_navigation_expansion_v189.py
+          run_py tool/apply_noaa_weather_loop_v190.py
+          run_py tool/apply_global_search_location_v192.py
+          run_py tool/apply_customer_safe_json_v193.py
+          run_py tool/fix_dead_click_handlers_v194b.py
+          run_py tool/apply_social_readiness_eta_polish_v196.py
+          run_py tool/apply_share_packages_molly_v207.py
+          run_py tool/audit_release_clicks_v194.py
+          run_py tool/apply_stability_polish_v215.py
+          run_py tool/fix_v215_compile_points.py
+          run_py tool/fix_cloud_clarity_v217.py
+          run_py tool/fix_mobile_map_evidence_v218.py
+          run_py tool/apply_owner_outreach_v219.py
+          run_py tool/apply_account_email_v221.py
+          run_py tool/apply_national_weather_spatial_v287.py
+          run_py tool/apply_semantic_immersive_v290.py
+          run_py tool/apply_customer_language_v304.py
+          run_py tool/apply_map_density_heat_v306.py
+          run_py tool/final_release_audit_v305.py
+          run_py tool/apply_dynamic_account_avatar_v444.py
+          run_py tool/repair_dashboard_anchor_v736.py
+          echo "Generated source: $(wc -c < lib/main.dart) bytes"
+          sha256sum lib/main.dart
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages quietly
+        run: flutter pub get >/tmp/pubget.log 2>&1 || { tail -120 /tmp/pubget.log; exit 1; }
+
+      - name: Analyze generated source with compact error output
+        shell: bash
+        run: |
+          set +e
+          flutter analyze --no-fatal-infos --no-fatal-warnings > /tmp/analyze.log 2>&1
+          status=$?
+          set -e
+          echo "=== BRIDGEPOINT V735 ANALYZER RESULT: exit=$status ==="
+          if [ "$status" -ne 0 ]; then
+            python - <<'PY'
+          from pathlib import Path
+          import re
+          analysis=Path('/tmp/analyze.log').read_text(encoding='utf-8',errors='replace').splitlines()
+          selected=[]
+          patterns=[
+              re.compile(r'\berror\b',re.I),
+              re.compile(r'lib/main\.dart:\d+:\d+'),
+              re.compile(r"isn't defined|is not defined|undefined|expected|duplicate|too many positional|named parameter|method .* defined|getter .* defined|argument type",re.I),
+          ]
+          for line in analysis:
+              if any(p.search(line) for p in patterns):
+                  selected.append(line)
+          if not selected:
+              selected=analysis[-120:]
+          print('\n'.join(selected[:260]))
+
+          source=Path('lib/main.dart').read_text(encoding='utf-8',errors='replace').splitlines()
+          windows=[(560,620),(845,900),(1070,1205),(1340,1465),(1490,1595),(1660,1745),(1875,2050),(2120,2185),(2320,2425)]
+          print('\n=== GENERATED SOURCE WINDOWS ===')
+          for lo,hi in windows:
+              print(f'--- main.dart {lo}-{hi} ---')
+              for idx in range(max(1,lo),min(len(source),hi)+1):
+                  print(f'{idx:05d}: {source[idx-1]}')
+          PY
+          else
+            tail -40 /tmp/analyze.log
+          fi
+          exit "$status"
