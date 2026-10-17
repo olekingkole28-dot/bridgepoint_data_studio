@@ -11,6 +11,7 @@
 - Flutter app source: https://github.com/olekingkole28-dot/bridgepoint_data_studio
 - Scope/limits: https://github.com/olekingkole28-dot/bridgepoint-live/blob/main/OPEN_SOURCE_SCOPE.md
 - Contributor guide: https://github.com/olekingkole28-dot/bridgepoint-live/blob/main/CONTRIBUTING.md
+- Community contribution issue: https://github.com/olekingkole28-dot/bridgepoint-live/issues/206
 
 ## Main announcement — LinkedIn / Facebook / Bluesky
 
