@@ -1,0 +1,23 @@
+BridgePoint Intelligence — NOTICE
+
+Copyright 2026 Kole Johnson / BridgePoint Intelligence.
+
+Unless a file or directory states otherwise, first-party source code, scripts, build
+configuration, and project documentation in this repository are offered under the
+Apache License 2.0. See LICENSE.
+
+This notice does not relicense:
+- Third-party libraries, fonts, icons, models, textures, imagery, maps, tiles, datasets,
+  government or commercial records, and other material supplied by external providers.
+- Files or subdirectories that include their own LICENSE, NOTICE, or attribution terms.
+- Trademarks, product names, logos, or other brand assets, except as expressly stated.
+- Live production database contents, customer information, account data, API access,
+  authentication tokens, credentials, or provider entitlements.
+
+Read THIRD_PARTY_ASSETS.md / THIRD_PARTY_NOTICES.md files near the applicable assets.
+Data discovered or ingested by a connector is not automatically licensed for
+redistribution. Check source terms, privacy, attribution, and jurisdictional limits
+before you cache, republish, train on, or commercially use any external data.
+
+The BridgePoint name and logo identify the project; this code license does not grant
+permission to imply endorsement by BridgePoint or its maintainers.
