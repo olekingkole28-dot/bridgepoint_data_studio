@@ -11,3 +11,19 @@ ios/Pods/
 macos/Pods/
 web/bridgepoint-3d-world/runtime-config.local.js
 exports/
+
+# Local secrets/environment files: commit only explicit *.example templates
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.p12
+*.pfx
+*.privatekey
+service-account*.json
+credentials*.json
+local.settings.json
+supabase/.temp/
