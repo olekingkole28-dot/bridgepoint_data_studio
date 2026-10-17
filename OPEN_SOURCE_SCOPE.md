@@ -72,13 +72,16 @@ external data. Existing per-directory licences and attribution notices continue 
 5. Validate map/property matches and data freshness before describing a record as verified.
 6. Review each third-party asset's own licence/attribution file before redistribution.
 
-## Full-release status
+## Public source status
 
-The web/data-workflow repository is public. The companion Flutter repository is currently
-private; **the complete multi-repository source release is not finished until that
-repository is made publicly accessible and its release checks are complete**. The private
-repository is prepared with the same licence and release documentation, but changing
-repository visibility requires an owner/admin action in GitHub Settings.
+Both the web/data-workflow repository and the companion Flutter repository are currently
+public on GitHub. The source code can be inspected and forked under the licences that apply
+to each file and directory. This is not equivalent to publishing the production service:
+live database rows, account/customer data, provider entitlements, secret values, and
+third-party datasets or imagery are not included by the source licence. Deployment still
+requires environment-specific configuration, authorized upstream access, and a security
+and asset review before production use.
+
 
 ## Useful links
 
