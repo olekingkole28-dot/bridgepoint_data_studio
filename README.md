@@ -1,5 +1,28 @@
 # BridgePoint Intelligence — Flutter application
 
+
+> **BridgePoint Data Studio is the application companion to BridgePoint Intelligence**, a geospatial platform building toward an explorable 3D digital twin of the physical world. It connects interactive mapping and physical-world context with property intelligence, weather/hazard signals, and evidence-oriented workflows—where source data is available and authorized.
+>
+> 🌎 **Explore the live platform:** https://bridgepointintelligence.online/
+> 
+> 🌐 **Main web/data repository:** https://github.com/olekingkole28-dot/bridgepoint-live
+
+## What this repository contains
+
+- Flutter/Dart application and product screens
+- App-specific globe, map, and spatial-data integration
+- Supabase functions and database migrations
+- Release and automation workflows
+
+## Important boundaries
+
+The application source is not the same as a complete production deployment. Production records, secrets, paid provider access, third-party datasets, and deployment-specific configuration are not included by the source-code licence. Geographic coverage, geometry detail, and available intelligence vary by region. Review [OPEN_SOURCE_SCOPE.md](OPEN_SOURCE_SCOPE.md), [NOTICE](NOTICE), and [SECURITY.md](SECURITY.md) before deploying.
+
+**Search terms:** Flutter GIS, 3D digital twin, global mapping, geospatial application, property data, spatial intelligence, Supabase GIS, building geometry, terrain and hazard mapping.
+
+---
+
+
 > **Open-source release preparation:** this repository contains the Flutter/Dart application, product screens, app-specific world integration, Supabase functions/migrations, and release automation. It is licensed under Apache-2.0 for first-party code and documentation, subject to the boundaries in [NOTICE](NOTICE) and [OPEN_SOURCE_SCOPE.md](OPEN_SOURCE_SCOPE.md). Both the web/data-workflow repository and this Flutter companion repository are now public. See [OPEN_SOURCE_SCOPE.md](OPEN_SOURCE_SCOPE.md) for the boundaries: public source code does not include production database contents, credentials, third-party datasets, or external provider entitlements.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidance and [SECURITY.md](SECURITY.md) for responsible vulnerability reporting. External data, production records, provider access, credentials, and third-party assets are not granted by the source-code licence.
