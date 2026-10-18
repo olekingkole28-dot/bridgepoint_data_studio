@@ -1,7 +1,7 @@
 # BridgePoint Intelligence — Flutter application
 
 
-> **BridgePoint Data Studio is the application companion to BridgePoint Intelligence**, a geospatial platform building toward an explorable 3D digital twin of the physical world. It connects interactive mapping and physical-world context with property intelligence, weather/hazard signals, and evidence-oriented workflows—where source data is available and authorized.
+> **BridgePoint Data Studio is the application companion to BridgePoint Intelligence**, a globe-scale geospatial platform building an explorable **3D digital twin of the entire globe**. The platform currently reports **412M+ canonical property records worldwide**. That canonical identity count is distinct from parcel polygons and does not imply every region has complete 3D buildings, owner details, or equally deep source coverage. The app connects interactive mapping with property intelligence, weather/hazard signals, and evidence-oriented workflows—where data is available and authorized.
 >
 > 🌎 **Explore the live platform:** https://bridgepointintelligence.online/
 > 
@@ -18,7 +18,7 @@
 
 The application source is not the same as a complete production deployment. Production records, secrets, paid provider access, third-party datasets, and deployment-specific configuration are not included by the source-code licence. Geographic coverage, geometry detail, and available intelligence vary by region. Review [OPEN_SOURCE_SCOPE.md](OPEN_SOURCE_SCOPE.md), [NOTICE](NOTICE), and [SECURITY.md](SECURITY.md) before deploying.
 
-**Search terms:** Flutter GIS, 3D digital twin, global mapping, geospatial application, property data, spatial intelligence, Supabase GIS, building geometry, terrain and hazard mapping.
+**Search terms:** Flutter GIS, global 3D digital twin, digital twin of Earth, entire-globe mapping, 3D globe, global geospatial intelligence, geospatial application, open-source GIS, canonical property records, property intelligence, property data, spatial intelligence, Supabase GIS, building footprints, parcel data, building geometry, 3D terrain, weather and hazard mapping, physical-world AI.
 
 ---
 
