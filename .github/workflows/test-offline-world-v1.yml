@@ -1,0 +1,49 @@
+name: BridgePoint Offline World app checks
+on:
+  pull_request:
+    paths:
+      - 'lib/main_v2.dart'
+      - 'lib/v2/bridgepoint_app_v2.dart'
+      - 'lib/v2/bridgepoint_offline_world_*_v1.dart'
+      - 'lib/v2/bridgepoint_offline_world_embed_v1.dart'
+      - 'pubspec.yaml'
+      - 'test/**'
+      - '.github/workflows/test-offline-world-v1.yml'
+  push:
+    branches: [feature/global-offline-world-v1]
+    paths:
+      - 'lib/main_v2.dart'
+      - 'lib/v2/bridgepoint_app_v2.dart'
+      - 'lib/v2/bridgepoint_offline_world_*_v1.dart'
+      - 'lib/v2/bridgepoint_offline_world_embed_v1.dart'
+      - 'pubspec.yaml'
+      - 'test/**'
+      - '.github/workflows/test-offline-world-v1.yml'
+jobs:
+  flutter-offline-world:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve mobile and web dependencies
+        run: flutter pub get
+      - name: Verify offline world route is reachable from Explore
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "BridgePointOfflineWorldEmbedV1" lib/v2/bridgepoint_app_v2.dart
+          grep -Fq "_Area.offline" lib/v2/bridgepoint_app_v2.dart
+          grep -Fq "Offline & continuity" lib/v2/bridgepoint_app_v2.dart
+          test -s lib/v2/bridgepoint_offline_world_embed_v1.dart
+          test -s lib/v2/bridgepoint_offline_world_native_v1.dart
+          test -s lib/v2/bridgepoint_offline_world_web_v1.dart
+          grep -Fq "webview_flutter:" pubspec.yaml
+          grep -Fq "https://bridgepointintelligence.online/offline/" lib/v2/bridgepoint_offline_world_native_v1.dart
+      - name: Run Flutter tests
+        run: flutter test
+      - name: Compile the Clean V2 web target
+        run: flutter build web --release --target lib/main_v2.dart
