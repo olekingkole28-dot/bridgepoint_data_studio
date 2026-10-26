@@ -4,6 +4,12 @@ Thanks for helping improve BridgePoint. Useful contributions include bug reports
 reproducible fixes, tests, documentation, accessible UI improvements, better source
 provenance, performance work, and integrations with clearly documented data rights.
 
+## GIS and spatial-analysis starter issues
+
+Start with [docs/GIS_STARTER_ISSUES.md](docs/GIS_STARTER_ISSUES.md). The coordinated backlog covers global parcel-boundary visibility (#367), municipal zoning rules and allowed lot coverage (#368), footprint union/coverage calculations (#369), flood-zone overlays (#370), wildfire perimeters/risk layers (#371), parcel-to-hazard intersections (#372), and globe rendering performance (#373).
+
+Contributions must preserve source-level publication rights and provenance. Never bypass source compliance to make a layer appear globally; unknown coverage or an unverified zoning rule must remain explicitly unknown.
+
 ## Before opening a pull request
 
 1. Search existing issues and pull requests first.
