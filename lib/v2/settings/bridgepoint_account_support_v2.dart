@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'bridgepoint_packages_v2.dart';
 
 class BridgePointAccountSupportV2 extends StatefulWidget {
   const BridgePointAccountSupportV2({super.key});
@@ -176,6 +177,7 @@ class _BridgePointAccountSupportV2State
                   segments: const [
                     ButtonSegment(value: 0, icon: Icon(Icons.person_outline_rounded), label: Text('Account')),
                     ButtonSegment(value: 1, icon: Icon(Icons.receipt_long_outlined), label: Text('Purchases & billing')),
+                    ButtonSegment(value: 5, icon: Icon(Icons.sell_outlined), label: Text('Packages')),
                     ButtonSegment(value: 2, icon: Icon(Icons.groups_outlined), label: Text('Company & team')),
                     ButtonSegment(value: 3, icon: Icon(Icons.help_outline_rounded), label: Text('Help & share')),
                     ButtonSegment(value: 4, icon: Icon(Icons.feedback_outlined), label: Text('Feedback')),
@@ -214,13 +216,15 @@ class _BridgePointAccountSupportV2State
                 onShare: _shareBridgePoint,
                 onSupport: _contactSupport,
               )
-            else
+            else if (tab == 4)
               _FeedbackPanel(
                 controller: feedback,
                 category: feedbackCategory,
                 onCategory: (value) => setState(() => feedbackCategory = value),
                 onSend: busy ? null : _sendFeedback,
-              ),
+              )
+            else
+              const BridgePointPackagesV2(),
           ],
         );
       },
@@ -277,6 +281,30 @@ class _PurchasesPanel extends StatelessWidget {
   final List<Map<String, dynamic>> purchases;
   final VoidCallback? onPortal;
 
+  String _displayDate(BuildContext context, dynamic value) {
+    final parsed = DateTime.tryParse('\${value ?? ''}');
+    if (parsed == null) return 'date not reported';
+    return MaterialLocalizations.of(context).formatMediumDate(parsed.toLocal());
+  }
+
+  String _scheduleLabel(BuildContext context, Map<String, dynamic> row) {
+    final status = '\${row['status'] ?? ''}'.toLowerCase();
+    final cancelAtEnd = row['cancel_at_period_end'] == true ||
+        '\${row['cancel_at_period_end'] ?? ''}'.toLowerCase() == 'true';
+    final periodEnd = row['current_period_end'];
+    final trialEnd = row['trial_ends_at'];
+    if (cancelAtEnd) {
+      return 'Cancellation scheduled • access through \${_displayDate(context, periodEnd)}; no renewal is expected after cancellation.';
+    }
+    if (status.contains('trial') && trialEnd != null) {
+      return 'Trial ends \${_displayDate(context, trialEnd)} • confirm the first charge in Stripe.';
+    }
+    if (periodEnd != null) {
+      return 'Next renewal / period end: \${_displayDate(context, periodEnd)} • exact charge amount is in Stripe.';
+    }
+    return 'Payment schedule not returned • open the secure Stripe portal for invoices and payment status.';
+  }
+
   @override
   Widget build(BuildContext context) => _Panel(
         title: 'Purchases & billing',
@@ -319,6 +347,11 @@ class _PurchasesPanel extends StatelessWidget {
                               Text(
                                 '${row['status'] ?? 'unknown'} • ${row['purchase_mode'] ?? 'IMMEDIATE'} • access ${row['has_access'] == true ? 'on' : 'pending/off'}',
                                 style: const TextStyle(color: _BridgePointAccountSupportV2State._muted, fontSize: 11.5),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _scheduleLabel(context, row),
+                                style: const TextStyle(color: _BridgePointAccountSupportV2State._cyan, fontSize: 10.5, height: 1.35),
                               ),
                             ],
                           ),
