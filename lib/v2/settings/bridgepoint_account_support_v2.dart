@@ -282,25 +282,25 @@ class _PurchasesPanel extends StatelessWidget {
   final VoidCallback? onPortal;
 
   String _displayDate(BuildContext context, dynamic value) {
-    final parsed = DateTime.tryParse('\${value ?? ''}');
+    final parsed = DateTime.tryParse('${value ?? ''}');
     if (parsed == null) return 'date not reported';
     return MaterialLocalizations.of(context).formatMediumDate(parsed.toLocal());
   }
 
   String _scheduleLabel(BuildContext context, Map<String, dynamic> row) {
-    final status = '\${row['status'] ?? ''}'.toLowerCase();
+    final status = '${row['status'] ?? ''}'.toLowerCase();
     final cancelAtEnd = row['cancel_at_period_end'] == true ||
-        '\${row['cancel_at_period_end'] ?? ''}'.toLowerCase() == 'true';
+        '${row['cancel_at_period_end'] ?? ''}'.toLowerCase() == 'true';
     final periodEnd = row['current_period_end'];
     final trialEnd = row['trial_ends_at'];
     if (cancelAtEnd) {
-      return 'Cancellation scheduled • access through \${_displayDate(context, periodEnd)}; no renewal is expected after cancellation.';
+      return 'Cancellation scheduled • access through ${_displayDate(context, periodEnd)}; no renewal is expected after cancellation.';
     }
     if (status.contains('trial') && trialEnd != null) {
-      return 'Trial ends \${_displayDate(context, trialEnd)} • confirm the first charge in Stripe.';
+      return 'Trial ends ${_displayDate(context, trialEnd)} • confirm the first charge in Stripe.';
     }
     if (periodEnd != null) {
-      return 'Next renewal / period end: \${_displayDate(context, periodEnd)} • exact charge amount is in Stripe.';
+      return 'Next renewal / period end: ${_displayDate(context, periodEnd)} • exact charge amount is in Stripe.';
     }
     return 'Payment schedule not returned • open the secure Stripe portal for invoices and payment status.';
   }
