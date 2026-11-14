@@ -3,6 +3,7 @@ name: Package checkout readiness guard
 on:
   pull_request:
     paths:
+      - "lib/main.dart"
       - "lib/v2/settings/bridgepoint_packages_v2.dart"
       - "lib/v2/settings/bridgepoint_package_purchase_policy_v1.dart"
       - "test/bridgepoint_package_purchase_policy_v1_test.dart"
