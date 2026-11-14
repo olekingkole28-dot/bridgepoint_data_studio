@@ -75,7 +75,6 @@ void main() {
         BridgePointPackagePurchasePolicyV1.action(
           readyPackage(
             mode: 'MANAGED_ACTIVATION',
-            ownerApproval: true,
             selfCheckout: false,
           ),
         ),
