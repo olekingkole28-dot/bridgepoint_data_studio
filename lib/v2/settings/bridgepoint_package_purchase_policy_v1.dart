@@ -78,7 +78,8 @@ class BridgePointPackagePurchasePolicyV1 {
     }
 
     if (ownerApproval ||
-        mode == 'OWNER_APPROVAL_REQUIRED' ||
+        mode.contains('APPROVAL') ||
+        mode.contains('MANAGED') ||
         commerciallyRequestable == true) {
       return 'REQUEST';
     }
