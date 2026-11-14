@@ -28,7 +28,7 @@ declare
   available_now text;
   commercially_requestable text;
 begin
-  if p_interval not in ('month', 'year') then
+  if p_interval is null or p_interval not in ('month', 'year') then
     raise exception 'Invalid billing interval';
   end if;
 
@@ -37,6 +37,7 @@ begin
     from product.platform_access_overrides o
     where o.user_id = p_user_id
       and o.bypass_subscriptions
+      and (o.expires_at is null or o.expires_at > now())
   ) then
     raise exception 'This account already has permanent platform access';
   end if;
