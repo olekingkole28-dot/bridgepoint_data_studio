@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'bridgepoint_package_purchase_policy_v1.dart';
 
 class BridgePointPackagesV2 extends StatefulWidget {
   const BridgePointPackagesV2({super.key});
@@ -80,28 +81,8 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
 
   String _key(Map<String, dynamic> p) => '${p['package_key'] ?? p['key'] ?? ''}';
 
-  String _action(Map<String, dynamic> p) {
-    final delivery = '${_field(p, 'delivery_status') ?? ''}'.toUpperCase();
-    final mode = '${_field(p, 'purchase_mode') ?? ''}'.toUpperCase();
-    final self = _boolField(p, 'available_for_self_checkout') ||
-        _boolField(p, 'checkout_ready') && mode == 'IMMEDIATE';
-    final approval = _boolField(p, 'owner_approval_required') ||
-        mode.contains('APPROVAL') ||
-        mode.contains('MANAGED');
-
-    if (delivery == 'BUILDING') return 'BUILDING';
-    if (delivery == 'ROADMAP') return 'ROADMAP';
-    if (approval) return 'REQUEST';
-    if (self &&
-        (delivery.isEmpty ||
-            delivery == 'READY' ||
-            delivery == 'IMMEDIATE' ||
-            delivery == 'LIMITED')) {
-      return 'BUY';
-    }
-    if (mode == 'IMMEDIATE' && delivery == 'READY') return 'BUY';
-    return 'UNAVAILABLE';
-  }
+  String _action(Map<String, dynamic> p) =>
+      BridgePointPackagePurchasePolicyV1.action(p);
 
   Color _actionColor(String action) => switch (action) {
         'BUY' => _green,
@@ -121,6 +102,13 @@ class _BridgePointPackagesV2State extends State<BridgePointPackagesV2> {
   }
 
   Future<void> _buy(Map<String, dynamic> package, String interval) async {
+    if (_action(package) != 'BUY') {
+      if (mounted) {
+        setState(() => _message =
+            'This package is not enabled for self-checkout. Request activation or choose an available package.');
+      }
+      return;
+    }
     final key = _key(package);
     if (key.isEmpty || (interval != 'month' && interval != 'year')) return;
     setState(() {
