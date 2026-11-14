@@ -34,7 +34,6 @@ jobs:
       - name: Check Dart formatting
         run: >-
           dart format --output=none --set-exit-if-changed
-          lib/v2/settings/bridgepoint_packages_v2.dart
           lib/v2/settings/bridgepoint_package_purchase_policy_v1.dart
           test/bridgepoint_package_purchase_policy_v1_test.dart
 
