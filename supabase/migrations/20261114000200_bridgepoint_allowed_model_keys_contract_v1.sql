@@ -18,6 +18,26 @@ begin;
 
 do $bootstrap$
 begin
+  if to_regprocedure('product.has_platform_override(uuid)') is null then
+    execute $create_override$
+      create function product.has_platform_override(p_user_id uuid)
+      returns boolean
+      language sql
+      stable
+      security definer
+      set search_path = 'pg_catalog', 'product'
+      as $function$
+        select exists (
+          select 1
+          from product.platform_access_overrides o
+          where o.user_id = p_user_id
+            and coalesce(o.bypass_subscriptions, false)
+            and (o.expires_at is null or o.expires_at > now())
+        )
+      $function$;
+    $create_override$;
+  end if;
+
   if to_regprocedure('product.user_allowed_model_keys_v204(uuid)') is null then
     execute $create_function$
       create function product.user_allowed_model_keys_v204(p_user_id uuid)
@@ -73,6 +93,11 @@ $bootstrap$;
 
 -- This helper is not an authenticated client API. It is invoked by the
 -- security-definer dashboard RPC and should not be callable as a data oracle.
+revoke all on function product.has_platform_override(uuid)
+  from public, anon, authenticated;
+grant execute on function product.has_platform_override(uuid)
+  to service_role;
+
 revoke all on function product.user_allowed_model_keys_v204(uuid)
   from public, anon, authenticated;
 grant execute on function product.user_allowed_model_keys_v204(uuid)
