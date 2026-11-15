@@ -13,6 +13,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'v2/settings/bridgepoint_package_purchase_policy_v1.dart';
+
 import 'screens/bridgepoint_owner_command_center.dart';
 import 'bridgepoint_migration_notice_v5605.dart';
 import 'bridgepoint_intelligence_studio_v790.dart';
@@ -1444,9 +1446,27 @@ Future<void> _openStripeFlow(BuildContext context, String functionName,
 }
 
 Future<void> _startCheckout(
-        BuildContext context, Map<String, dynamic> package, String interval) =>
-    _openStripeFlow(context, 'bridgepoint-checkout-v67',
-        {'package_key': package['package_key'], 'interval': interval});
+  BuildContext context,
+  Map<String, dynamic> package,
+  String interval,
+) async {
+  if (_packageActionKind(package) != 'BUY') {
+    if (context.mounted) {
+      _showInfoDialog(
+        context,
+        'Checkout unavailable',
+        'This package is not approved for self-checkout. Request activation or choose an available package.',
+      );
+    }
+    return;
+  }
+
+  await _openStripeFlow(
+    context,
+    'bridgepoint-checkout-v67',
+    {'package_key': package['package_key'], 'interval': interval},
+  );
+}
 
 Future<void> _openBillingPortal(BuildContext context) =>
     _openStripeFlow(context, 'bridgepoint-billing-portal-v66', const {});
@@ -6037,43 +6057,8 @@ String _packageDeliveryStatus(Map<String, dynamic> package) {
   return value.isEmpty ? 'UNVERIFIED' : value;
 }
 
-String _packageActionKind(Map<String, dynamic> package) {
-  final config = _packageConfiguration(package);
-  final mode = _packagePurchaseMode(package);
-  final delivery = _packageDeliveryStatus(package);
-  final checkoutReady = _packageBool(config['checkout_ready']);
-  final selfCheckout = _packageBool(config['available_for_self_checkout']);
-  final ownerApproval = _packageBool(config['owner_approval_required']);
-  final availableNowRaw = config['available_now'];
-  final commerciallyRequestableRaw = config['commercially_requestable'];
-  final availableNow =
-      availableNowRaw == null ? null : _packageBool(availableNowRaw);
-  final commerciallyRequestable = commerciallyRequestableRaw == null
-      ? null
-      : _packageBool(commerciallyRequestableRaw);
-
-  if (mode == 'IMMEDIATE' &&
-      checkoutReady &&
-      selfCheckout &&
-      delivery == 'READY') {
-    return 'BUY';
-  }
-
-  if (delivery == 'BUILDING' ||
-      delivery == 'ROADMAP' ||
-      availableNow == false ||
-      commerciallyRequestable == false) {
-    return 'BUILDING';
-  }
-
-  if (ownerApproval ||
-      mode == 'OWNER_APPROVAL_REQUIRED' ||
-      commerciallyRequestable == true) {
-    return 'REQUEST';
-  }
-
-  return 'BUILDING';
-}
+String _packageActionKind(Map<String, dynamic> package) =>
+    BridgePointPackagePurchasePolicyV1.action(package);
 
 String _packageActionLabel(Map<String, dynamic> package) {
   switch (_packageActionKind(package)) {

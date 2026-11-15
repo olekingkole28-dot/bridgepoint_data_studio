@@ -1,0 +1,34 @@
+name: Package checkout readiness guard
+
+on:
+  pull_request:
+    paths:
+      - "lib/main.dart"
+      - "lib/v2/settings/bridgepoint_packages_v2.dart"
+      - "lib/v2/settings/bridgepoint_package_purchase_policy_v1.dart"
+      - "test/bridgepoint_package_purchase_policy_v1_test.dart"
+      - "supabase/migrations/20261114000100_bridgepoint_checkout_readiness_guard_v1.sql"
+      - "supabase/migrations/20261114000200_bridgepoint_allowed_model_keys_contract_v1.sql"
+      - ".github/workflows/package-checkout-readiness-guard-v1.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package-policy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Test package purchase policy
+        run: flutter test test/bridgepoint_package_purchase_policy_v1_test.dart
