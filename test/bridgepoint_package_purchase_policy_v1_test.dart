@@ -82,6 +82,33 @@ void main() {
       );
     });
 
+    test('an explicit available_now false blocks an otherwise ready package', () {
+      expect(
+        BridgePointPackagePurchasePolicyV1.action(
+          readyPackage(availableNow: false),
+        ),
+        'BUILDING',
+      );
+    });
+
+    test('top-level false readiness overrides nested true metadata', () {
+      expect(
+        BridgePointPackagePurchasePolicyV1.action({
+          'purchase_mode': 'IMMEDIATE',
+          'delivery_status': 'READY',
+          'checkout_ready': true,
+          'available_for_self_checkout': false,
+          'configuration': {
+            'purchase_mode': 'IMMEDIATE',
+            'delivery_status': 'READY',
+            'checkout_ready': true,
+            'available_for_self_checkout': true,
+          },
+        }),
+        'BUILDING',
+      );
+    });
+
     test('routes commercially requestable products to a request', () {
       expect(
         BridgePointPackagePurchasePolicyV1.action(
